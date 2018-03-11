@@ -6,9 +6,10 @@ LOG = logging.getLogger(__name__)
 BASE_URL = 'http://{0}:1925/{1}/{2}'
 TIMEOUT = 5.0
 CONNFAILCOUNT = 5
+DEFAULT_API_VERSION = 1
 
 class PhilipsTV(object):
-    def __init__(self, host, api_version="1"):
+    def __init__(self, host, api_version=DEFAULT_API_VERSION):
         self._host = host
         self._api_version = api_version
         self._connfail = 0
