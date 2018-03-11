@@ -3,13 +3,15 @@ import json
 import logging
 
 LOG = logging.getLogger(__name__)
-BASE_URL = 'http://{0}:1925/1/{1}'
+BASE_URL = 'http://{0}:1925/{1}/{2}'
 TIMEOUT = 5.0
 CONNFAILCOUNT = 5
+DEFAULT_API_VERSION = 1
 
 class PhilipsTV(object):
-    def __init__(self, host):
+    def __init__(self, host, api_version=DEFAULT_API_VERSION):
         self._host = host
+        self._api_version = api_version
         self._connfail = 0
         self.on = None
         self.name = None
@@ -28,7 +30,7 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return None
-            resp = requests.get(BASE_URL.format(self._host, path), timeout=TIMEOUT)
+            resp = requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT)
             self.on = True
             return json.loads(resp.text)
         except requests.exceptions.RequestException as err:
@@ -43,7 +45,7 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return False
-            resp = requests.post(BASE_URL.format(self._host, path), data=json.dumps(data), timeout=TIMEOUT)
+            resp = requests.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT)
             self.on = True
             if resp.status_code == 200:
                 return True
