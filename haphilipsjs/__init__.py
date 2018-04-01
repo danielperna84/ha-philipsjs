@@ -30,7 +30,7 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return None
-            resp = requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT)
+            resp = requests.get(BASE_URL.format(self._host, self._api_version, path), timeout=TIMEOUT)
             self.on = True
             return json.loads(resp.text)
         except requests.exceptions.RequestException as err:
@@ -45,7 +45,7 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return False
-            resp = requests.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT)
+            resp = requests.post(BASE_URL.format(self._host, self._api_version, path), data=json.dumps(data), timeout=TIMEOUT)
             self.on = True
             if resp.status_code == 200:
                 return True
