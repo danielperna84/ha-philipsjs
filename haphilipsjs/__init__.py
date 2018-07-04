@@ -15,6 +15,7 @@ class PhilipsTV(object):
         self.api_version = api_version
         self.on = None
         self.name = None
+        self.system = None
         self.min_volume = None
         self.max_volume = None
         self.volume = None
@@ -31,6 +32,8 @@ class PhilipsTV(object):
                 self._connfail -= 1
                 return None
             resp = requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT)
+            if resp.status_code != 200:
+                return None
             self.on = True
             return json.loads(resp.text)
         except requests.exceptions.RequestException as err:
@@ -59,14 +62,21 @@ class PhilipsTV(object):
 
     def update(self):
         self.getName()
+        self.getSystem()
         self.getAudiodata()
-        self.getSources()
-        self.getSourceId()
+        self.getChannels()
+        self.getChannelId()
 
     def getName(self):
         r = self._getReq('system/name')
         if r:
             self.name = r['name']
+
+    def getSystem(self):
+        if self.api_version >= '6':
+            r = self._getReq('system')
+            if r:
+                self.system = r
 
     def getAudiodata(self):
         audiodata = self._getReq('audio/volume')
@@ -83,17 +93,19 @@ class PhilipsTV(object):
 
     def getChannels(self):
         if self.api_version >= '5':
-            return self.getSources()
-        r = self._getReq('channels')
-        if r:
-            self.channels = r
+            self.getSources()
+        else:
+            r = self._getReq('channels')
+            if r:
+                self.channels = r
 
     def getChannelId(self):
         if self.api_version >= '5':
-            return self.getSourceId()
-        r = self._getReq('channels/current')
-        if r:
-            self.channel_id = r['id']
+            self.getSourceId()
+        else:
+            r = self._getReq('channels/current')
+            if r:
+                self.channel_id = r['id']
 
     def setChannel(self, id):
         if self.api_version >= '5':
@@ -101,11 +113,26 @@ class PhilipsTV(object):
         if self._postReq('channels/current', {'id': id}):
             self.channel_id = id
 
-    def getSources(self):
-        if self.api_version >= '5':
-            r = self._getReq('channeldb/tv/channelLists/alltv')
+    def getChannelLists(self):
+        if self.api_version >= '6':
+            r = self._getReq('channeldb/tv')
             if r:
-                self.sources = r['Channel']
+                # could be alltv and allsat
+                return [l['id'] for l in r.get('channelLists', [])]
+            else:
+                return []
+        else:
+            return ['alltv']
+
+    def getSources(self):
+        self.sources = []
+        if self.api_version >= '5':
+            for channelListId in self.getChannelLists():
+                r = self._getReq(
+                    'channeldb/tv/channelLists/{}'.format(channelListId)
+                )
+                if r:
+                    self.sources.extend(r.get('Channel', []))
         else:
             r = self._getReq('sources')
             if r:
@@ -114,7 +141,8 @@ class PhilipsTV(object):
     def getSourceId(self):
         if self.api_version >= '5':
             r = self._getReq('activities/tv')
-            if r:
+            if r and r['channel']:
+                # it could be empty if HDMI is set
                 self._source_id = r['channel']['ccid']
             else:
                 self.source_id = None
@@ -127,7 +155,11 @@ class PhilipsTV(object):
 
     def getSourceName(self, srcid):
         if self.api_version >= '5':
-            return srcid['name']
+            name = srcid['name']
+            if not name.strip('-'):
+                return str(srcid['preset'])
+            else:
+                return name
         else:
             return self.sources.get(srcid, dict()).get('name', None)
 
@@ -160,3 +192,12 @@ class PhilipsTV(object):
 
     def sendKey(self, key):
         self._postReq('input/key', {'key': key})
+
+    def openURL(self, url):
+        if self.api_version >= '6':
+            if (
+                self.system and "browser" in (
+                    self.system.get("featuring", {}).get("jsonfeatures", {}).get("activities", [])
+                )
+            ):
+                self._postReq('activities/browser', {'url': url})
