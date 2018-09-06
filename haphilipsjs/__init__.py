@@ -64,6 +64,8 @@ class PhilipsTV(object):
         self.getName()
         self.getSystem()
         self.getAudiodata()
+        self.getSources()
+        self.getSourceId()
         self.getChannels()
         self.getChannelId()
 
@@ -93,7 +95,12 @@ class PhilipsTV(object):
 
     def getChannels(self):
         if self.api_version >= '5':
-            self.getSources()
+            for channelListId in self.getChannelLists():
+                r = self._getReq(
+                    'channeldb/tv/channelLists/{}'.format(channelListId)
+                )
+                if r:
+                    self.channels.extend(r.get('Channel', []))
         else:
             r = self._getReq('channels')
             if r:
@@ -101,17 +108,29 @@ class PhilipsTV(object):
 
     def getChannelId(self):
         if self.api_version >= '5':
-            self.getSourceId()
+            r = self._getReq('activities/tv')
+            if r and r['channel']:
+                # it could be empty if HDMI is set
+                self.channel_id = r['channel']['ccid']
+            else:
+                self.channel_id = None
         else:
             r = self._getReq('channels/current')
             if r:
                 self.channel_id = r['id']
 
+    def getChannelName(self, id):
+        return self.channels.get(id, dict()).get('name', None)
+
     def setChannel(self, id):
         if self.api_version >= '5':
-            return self.setSource(id)
-        if self._postReq('channels/current', {'id': id}):
-            self.channel_id = id
+            def setChannelBody(ccid):
+                return {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
+            if self._postReq('activities/tv', setChannelBody(id)):
+                self.channel_id = id
+        else:
+            if self._postReq('channels/current', {'id': id}):
+                self.channel_id = id
 
     def getChannelLists(self):
         if self.api_version >= '6':
@@ -127,12 +146,7 @@ class PhilipsTV(object):
     def getSources(self):
         self.sources = []
         if self.api_version >= '5':
-            for channelListId in self.getChannelLists():
-                r = self._getReq(
-                    'channeldb/tv/channelLists/{}'.format(channelListId)
-                )
-                if r:
-                    self.sources.extend(r.get('Channel', []))
+            return self.getChannels()
         else:
             r = self._getReq('sources')
             if r:
@@ -140,12 +154,7 @@ class PhilipsTV(object):
 
     def getSourceId(self):
         if self.api_version >= '5':
-            r = self._getReq('activities/tv')
-            if r and r['channel']:
-                # it could be empty if HDMI is set
-                self._source_id = r['channel']['ccid']
-            else:
-                self.source_id = None
+            return self.getChannelId()
         else:
             r = self._getReq('sources/current')
             if r:
@@ -155,20 +164,13 @@ class PhilipsTV(object):
 
     def getSourceName(self, srcid):
         if self.api_version >= '5':
-            name = srcid['name']
-            if not name.strip('-'):
-                return str(srcid['preset'])
-            else:
-                return name
+            return self.getChannelName(srcid)
         else:
             return self.sources.get(srcid, dict()).get('name', None)
 
     def setSource(self, id):
-        def setChannelBody(ccid):
-            return {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
         if self.api_version >= '5':
-            if self._postReq('activities/tv', setChannelBody(id['ccid'])):
-                self.source_id = id
+            self.setChannel(id)
         else:
             if self._postReq('sources/current', {'id': id}):
                 self.source_id = id
