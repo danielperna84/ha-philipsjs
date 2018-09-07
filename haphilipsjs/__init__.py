@@ -61,7 +61,6 @@ class PhilipsTV(object):
             return False
 
     def update(self):
-        self.getName()
         self.getSystem()
         self.getAudiodata()
         self.getSources()
@@ -69,16 +68,11 @@ class PhilipsTV(object):
         self.getChannels()
         self.getChannelId()
 
-    def getName(self):
-        r = self._getReq('system/name')
-        if r:
-            self.name = r['name']
-
     def getSystem(self):
-        if self.api_version >= '6':
-            r = self._getReq('system')
-            if r:
-                self.system = r
+        r = self._getReq('system')
+        if r:
+            self.system = r
+            self.name = r['name']
 
     def getAudiodata(self):
         audiodata = self._getReq('audio/volume')
