@@ -170,7 +170,7 @@ class PhilipsTV(object):
             if self._postReq('sources/current', {'id': id}):
                 self.source_id = id
 
-    def setVolume(self, level, muted):
+    def setVolume(self, level, muted = False):
         if level:
             if self.min_volume != 0 or not self.max_volume:
                 self.getAudiodata()
