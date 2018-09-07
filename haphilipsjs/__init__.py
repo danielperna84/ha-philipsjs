@@ -185,7 +185,7 @@ class PhilipsTV(object):
                 LOG.warning("Level not in range (%i - %i)" % (self.min_volume + 1, self.max_volume))
                 return
             self._postReq('audio/volume', {'current': targetlevel, 'muted': muted})
-            self.volume = targetlevel
+            self.volume = level
             self.muted = muted
 
     def sendKey(self, key):
