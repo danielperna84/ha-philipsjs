@@ -24,6 +24,7 @@ class PhilipsTV(object):
         self.source_id = None
         self.channels = None
         self.channel_id = None
+        self.session = requests.Session()
 
     def _getReq(self, path):
         try:
@@ -31,11 +32,11 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return None
-            resp = requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT)
-            if resp.status_code != 200:
-                return None
-            self.on = True
-            return json.loads(resp.text)
+            with self.session.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
+                if resp.status_code != 200:
+                    return None
+                self.on = True
+                return json.loads(resp.text)
         except requests.exceptions.RequestException as err:
             LOG.debug("Exception: %s", str(err))
             self._connfail = CONNFAILCOUNT
@@ -48,12 +49,12 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return False
-            resp = requests.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT)
-            self.on = True
-            if resp.status_code == 200:
-                return True
-            else:
-                return False
+            with self.session.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT) as resp:
+                self.on = True
+                if resp.status_code == 200:
+                    return True
+                else:
+                    return False
         except requests.exceptions.RequestException as err:
             LOG.debug("Exception: %s", str(err))
             self._connfail = CONNFAILCOUNT
