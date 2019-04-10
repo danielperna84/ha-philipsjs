@@ -31,7 +31,7 @@ if __name__ == '__main__':
             'Sources: %si...',
             ', '.join([
                 tv.getSourceName(srcid)
-                for srcid in tv.sources[:10]
+                for srcid in tv.sources
             ])
         )
     logger.info('Channel: %s', tv.getChannelName(tv.channel_id))
