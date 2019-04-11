@@ -115,6 +115,8 @@ class PhilipsTV(object):
                 self.channel_id = r['id']
 
     def getChannelName(self, ccid):
+        if not self.channels:
+            return None
         return self.channels.get(ccid, dict()).get('name', None)
 
     def setChannel(self, ccid):
@@ -154,6 +156,8 @@ class PhilipsTV(object):
                 self.source_id = None
 
     def getSourceName(self, srcid):
+        if not self.sources:
+            return None
         if self.api_version < 5:
             return self.sources.get(srcid, dict()).get('name', None)
 
