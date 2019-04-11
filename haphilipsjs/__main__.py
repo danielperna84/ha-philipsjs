@@ -14,8 +14,8 @@ if __name__ == '__main__':
         action="store_true",
         default=False,
     )
-    parser.add_argument("-i", "--host", dest="host")
-    parser.add_argument("-a", "--api", dest="api")
+    parser.add_argument("-i", "--host", dest="host", required=True)
+    parser.add_argument("-a", "--api", dest="api", required=True)
     args = parser.parse_args()
     logging.basicConfig(level=args.debug and logging.DEBUG or logging.INFO)
     haphilipsjs.TIMEOUT = 60.0
