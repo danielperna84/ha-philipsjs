@@ -12,7 +12,7 @@ class PhilipsTV(object):
     def __init__(self, host, api_version=DEFAULT_API_VERSION):
         self._host = host
         self._connfail = 0
-        self.api_version = api_version
+        self.api_version = int(api_version)
         self.on = None
         self.name = None
         self.system = None
@@ -24,6 +24,7 @@ class PhilipsTV(object):
         self.source_id = None
         self.channels = None
         self.channel_id = None
+        self.session = requests.Session()
 
     def _getReq(self, path):
         try:
@@ -31,11 +32,11 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return None
-            resp = requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT)
-            if resp.status_code != 200:
-                return None
-            self.on = True
-            return json.loads(resp.text)
+            with self.session.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
+                if resp.status_code != 200:
+                    return None
+                self.on = True
+                return json.loads(resp.text)
         except requests.exceptions.RequestException as err:
             LOG.debug("Exception: %s", str(err))
             self._connfail = CONNFAILCOUNT
@@ -48,12 +49,12 @@ class PhilipsTV(object):
                 LOG.debug("Connfail: %i", self._connfail)
                 self._connfail -= 1
                 return False
-            resp = requests.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT)
-            self.on = True
-            if resp.status_code == 200:
-                return True
-            else:
-                return False
+            with self.session.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT) as resp:
+                self.on = True
+                if resp.status_code == 200:
+                    return True
+                else:
+                    return False
         except requests.exceptions.RequestException as err:
             LOG.debug("Exception: %s", str(err))
             self._connfail = CONNFAILCOUNT
@@ -61,22 +62,16 @@ class PhilipsTV(object):
             return False
 
     def update(self):
-        self.getName()
         self.getSystem()
         self.getAudiodata()
-        self.getChannels()
-        self.getChannelId()
-
-    def getName(self):
-        r = self._getReq('system/name')
-        if r:
-            self.name = r['name']
+        self.getSources()
+        self.getSourceId()
 
     def getSystem(self):
-        if self.api_version >= '6':
-            r = self._getReq('system')
-            if r:
-                self.system = r
+        r = self._getReq('system')
+        if r:
+            self.system = r
+            self.name = r['name']
 
     def getAudiodata(self):
         audiodata = self._getReq('audio/volume')
@@ -92,58 +87,68 @@ class PhilipsTV(object):
             self.muted = None
 
     def getChannels(self):
-        if self.api_version >= '5':
-            self.getSources()
+        if self.api_version >= 5:
+            self.channels = {}
+            for channelListId in self.getChannelLists():
+                r = self._getReq(
+                    'channeldb/tv/channelLists/{}'.format(channelListId)
+                )
+                if r:
+                    for channel in r.get('Channel', []):
+                        self.channels[channel['ccid']] = channel
         else:
             r = self._getReq('channels')
             if r:
                 self.channels = r
 
     def getChannelId(self):
-        if self.api_version >= '5':
-            self.getSourceId()
+        if self.api_version >= 5:
+            r = self._getReq('activities/tv')
+            if r and r['channel']:
+                # it could be empty if HDMI is set
+                self.channel_id = r['channel']['ccid']
+            else:
+                self.channel_id = None
         else:
             r = self._getReq('channels/current')
             if r:
                 self.channel_id = r['id']
 
-    def setChannel(self, id):
-        if self.api_version >= '5':
-            return self.setSource(id)
-        if self._postReq('channels/current', {'id': id}):
-            self.channel_id = id
+    def getChannelName(self, ccid):
+        if not self.channels:
+            return None
+        return self.channels.get(ccid, dict()).get('name', None)
+
+    def setChannel(self, ccid):
+        if self.api_version >= 5:
+            def setChannelBody(ccid):
+                return {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
+            if self._postReq('activities/tv', setChannelBody(ccid)):
+                self.channel_id = ccid
+        else:
+            if self._postReq('channels/current', {'id': ccid}):
+                self.channel_id = ccid
 
     def getChannelLists(self):
-        r = self._getReq('channeldb/tv')
-        if r:
-            # could be alltv and allsat
-            return [l['id'] for l in r.get('channelLists', [])]
+        if self.api_version >= 5:
+            r = self._getReq('channeldb/tv')
+            if r:
+                # could be alltv and allsat
+                return [l['id'] for l in r.get('channelLists', [])]
+            else:
+                return []
         else:
             return []
 
     def getSources(self):
         self.sources = []
-        if self.api_version >= '5':
-            for channelListId in self.getChannelLists():
-                r = self._getReq(
-                    'channeldb/tv/channelLists/{}'.format(channelListId)
-                )
-                if r:
-                    self.sources.extend(r.get('Channel', []))
-        else:
+        if self.api_version < 5:
             r = self._getReq('sources')
             if r:
                 self.sources = r
 
     def getSourceId(self):
-        if self.api_version >= '5':
-            r = self._getReq('activities/tv')
-            if r and r['channel']:
-                # it could be empty if HDMI is set
-                self._source_id = r['channel']['ccid']
-            else:
-                self.source_id = None
-        else:
+        if self.api_version < 5:
             r = self._getReq('sources/current')
             if r:
                 self.source_id = r['id']
@@ -151,26 +156,17 @@ class PhilipsTV(object):
                 self.source_id = None
 
     def getSourceName(self, srcid):
-        if self.api_version >= '5':
-            name = srcid['name']
-            if not name.strip('-'):
-                return str(srcid['preset'])
-            else:
-                return name
-        else:
+        if not self.sources:
+            return None
+        if self.api_version < 5:
             return self.sources.get(srcid, dict()).get('name', None)
 
-    def setSource(self, id):
-        def setChannelBody(ccid):
-            return {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
-        if self.api_version >= '5':
-            if self._postReq('activities/tv', setChannelBody(id['ccid'])):
-                self.source_id = id
-        else:
-            if self._postReq('sources/current', {'id': id}):
-                self.source_id = id
+    def setSource(self, source_id):
+        if self.api_version < 5:
+            if self._postReq('sources/current', {'id': source_id}):
+                self.source_id = source_id
 
-    def setVolume(self, level):
+    def setVolume(self, level, muted=False):
         if level:
             if self.min_volume != 0 or not self.max_volume:
                 self.getAudiodata()
@@ -184,14 +180,15 @@ class PhilipsTV(object):
             if targetlevel < self.min_volume + 1 or targetlevel > self.max_volume:
                 LOG.warning("Level not in range (%i - %i)" % (self.min_volume + 1, self.max_volume))
                 return
-            self._postReq('audio/volume', {'current': targetlevel, 'muted': False})
-            self.volume = targetlevel
+            self._postReq('audio/volume', {'current': targetlevel, 'muted': muted})
+            self.volume = level
+            self.muted = muted
 
     def sendKey(self, key):
         self._postReq('input/key', {'key': key})
 
     def openURL(self, url):
-        if self.api_version >= '6':
+        if self.api_version >= 6:
             if (
                 self.system and "browser" in (
                     self.system.get("featuring", {}).get("jsonfeatures", {}).get("activities", [])
