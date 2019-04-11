@@ -128,7 +128,7 @@ class PhilipsTV(object):
                 self.channel_id = ccid
 
     def getChannelLists(self):
-        if self.api_version >= 6:
+        if self.api_version >= 5:
             r = self._getReq('channeldb/tv')
             if r:
                 # could be alltv and allsat
@@ -136,7 +136,7 @@ class PhilipsTV(object):
             else:
                 return []
         else:
-            return ['alltv']
+            return []
 
     def getSources(self):
         self.sources = []
