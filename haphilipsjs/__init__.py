@@ -191,7 +191,7 @@ class PhilipsTV(object):
         self.muted = muted
 
     def sendKey(self, key):
-        self._postReq('input/key', {'key': key})
+        return self._postReq('input/key', {'key': key})
 
     def openURL(self, url):
         if self.api_version >= 6:
