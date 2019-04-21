@@ -167,22 +167,28 @@ class PhilipsTV(object):
                 self.source_id = source_id
 
     def setVolume(self, level, muted=False):
+        data = {}
         if level:
             if self.min_volume != 0 or not self.max_volume:
                 self.getAudiodata()
-            if not self.on:
-                return
+
             try:
                 targetlevel = int(level * self.max_volume)
             except ValueError:
                 LOG.warning("Invalid audio level %s" % str(level))
-                return
-            if targetlevel < self.min_volume + 1 or targetlevel > self.max_volume:
-                LOG.warning("Level not in range (%i - %i)" % (self.min_volume + 1, self.max_volume))
-                return
-            self._postReq('audio/volume', {'current': targetlevel, 'muted': muted})
-            self.volume = level
-            self.muted = muted
+                return False
+            if targetlevel < self.min_volume or targetlevel > self.max_volume:
+                LOG.warning("Level not in range (%i - %i)" % (self.min_volume, self.max_volume))
+                return False
+            data['current'] = targetlevel
+
+        data['muted'] = muted
+
+        if not self._postReq('audio/volume', data):
+            return False
+
+        self.volume = level
+        self.muted = muted
 
     def sendKey(self, key):
         self._postReq('input/key', {'key': key})
