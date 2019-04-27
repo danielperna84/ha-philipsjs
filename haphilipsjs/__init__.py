@@ -26,12 +26,11 @@ class PhilipsTV(object):
         self.source_id = None
         self.channels = None
         self.channel_id = None
-        self.session = requests.Session()
 
     def _getReq(self, path):
         try:
 
-            with self.session.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
+            with requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
                 if resp.status_code != 200:
                     return None
                 return json.loads(resp.text)
@@ -40,7 +39,7 @@ class PhilipsTV(object):
 
     def _postReq(self, path, data):
         try:
-            with self.session.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT) as resp:
+            with requests.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT) as resp:
                 if resp.status_code == 200:
                     return True
                 else:
