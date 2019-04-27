@@ -5,15 +5,17 @@ import logging
 LOG = logging.getLogger(__name__)
 BASE_URL = 'http://{0}:1925/{1}/{2}'
 TIMEOUT = 5.0
-CONNFAILCOUNT = 5
 DEFAULT_API_VERSION = 1
+
+class ConnectionFailure(Exception):
+    pass
 
 class PhilipsTV(object):
     def __init__(self, host, api_version=DEFAULT_API_VERSION):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
-        self.on = None
+        self.on = False
         self.name = None
         self.system = None
         self.min_volume = None
@@ -28,44 +30,44 @@ class PhilipsTV(object):
 
     def _getReq(self, path):
         try:
-            if self._connfail:
-                LOG.debug("Connfail: %i", self._connfail)
-                self._connfail -= 1
-                return None
+
             with self.session.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
                 if resp.status_code != 200:
                     return None
-                self.on = True
                 return json.loads(resp.text)
         except requests.exceptions.RequestException as err:
-            LOG.debug("Exception: %s", str(err))
-            self._connfail = CONNFAILCOUNT
-            self.on = False
-            return None
+            raise ConnectionFailure(str(err)) from err
 
     def _postReq(self, path, data):
         try:
-            if self._connfail:
-                LOG.debug("Connfail: %i", self._connfail)
-                self._connfail -= 1
-                return False
             with self.session.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT) as resp:
-                self.on = True
                 if resp.status_code == 200:
                     return True
                 else:
                     return False
         except requests.exceptions.RequestException as err:
-            LOG.debug("Exception: %s", str(err))
-            self._connfail = CONNFAILCOUNT
-            self.on = False
-            return False
+            raise ConnectionFailure(str(err)) from err
 
     def update(self):
-        self.getSystem()
-        self.getAudiodata()
-        self.getSources()
-        self.getSourceId()
+        try:
+            if not self.on:
+                self.getSystem()
+
+            if not self.on:
+                self.getSources()
+
+            if not self.on:
+                self.getChannels()
+
+            self.getAudiodata()
+            self.getSourceId()
+            self.getChannelId()
+            self.on = True
+            return True
+        except ConnectionFailure as err:
+            LOG.debug("Exception: %s", str(err))
+            self.on = False
+            return False
 
     def getSystem(self):
         r = self._getReq('system')
@@ -167,25 +169,31 @@ class PhilipsTV(object):
                 self.source_id = source_id
 
     def setVolume(self, level, muted=False):
+        data = {}
         if level:
             if self.min_volume != 0 or not self.max_volume:
                 self.getAudiodata()
-            if not self.on:
-                return
+
             try:
                 targetlevel = int(level * self.max_volume)
             except ValueError:
                 LOG.warning("Invalid audio level %s" % str(level))
-                return
-            if targetlevel < self.min_volume + 1 or targetlevel > self.max_volume:
-                LOG.warning("Level not in range (%i - %i)" % (self.min_volume + 1, self.max_volume))
-                return
-            self._postReq('audio/volume', {'current': targetlevel, 'muted': muted})
-            self.volume = level
-            self.muted = muted
+                return False
+            if targetlevel < self.min_volume or targetlevel > self.max_volume:
+                LOG.warning("Level not in range (%i - %i)" % (self.min_volume, self.max_volume))
+                return False
+            data['current'] = targetlevel
+
+        data['muted'] = muted
+
+        if not self._postReq('audio/volume', data):
+            return False
+
+        self.volume = level
+        self.muted = muted
 
     def sendKey(self, key):
-        self._postReq('input/key', {'key': key})
+        return self._postReq('input/key', {'key': key})
 
     def openURL(self, url):
         if self.api_version >= 6:
