@@ -34,4 +34,13 @@ setup(
             'Operating System :: OS Independent',
             'Programming Language :: Python :: 3.4'
         ],
+        extras_require={
+            'tests': [
+                'pytest>3.6.4',
+                'pytest-requests',
+                'pytest-cov<2.6',
+                'coveralls',
+                'pytest-mock',
+            ]
+        },
 )
