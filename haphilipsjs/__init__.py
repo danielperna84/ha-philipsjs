@@ -74,6 +74,9 @@ class PhilipsTV(object):
         if r:
             self.system = r
             self.name = r['name']
+        else:
+            self.system = {}
+            self.name = None
 
     def getAudiodata(self):
         audiodata = self._getReq('audio/volume')
@@ -102,6 +105,8 @@ class PhilipsTV(object):
             r = self._getReq('channels')
             if r:
                 self.channels = r
+            else:
+                self.channels = {}
 
     def getChannelId(self):
         if self.api_version >= 5:
@@ -115,6 +120,8 @@ class PhilipsTV(object):
             r = self._getReq('channels/current')
             if r:
                 self.channel_id = r['id']
+            else:
+                self.channel_id = None
 
     def getChannelName(self, ccid):
         if not self.channels:
@@ -143,11 +150,12 @@ class PhilipsTV(object):
             return []
 
     def getSources(self):
-        self.sources = []
         if self.api_version < 5:
             r = self._getReq('sources')
             if r:
                 self.sources = r
+            else:
+                self.sources = {}
 
     def getSourceId(self):
         if self.api_version < 5:
