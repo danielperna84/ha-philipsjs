@@ -178,7 +178,7 @@ class PhilipsTV(object):
 
     def setVolume(self, level, muted=False):
         data = {}
-        if level:
+        if level is not None:
             if self.min_volume != 0 or not self.max_volume:
                 self.getAudiodata()
 
