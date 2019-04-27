@@ -1,5 +1,4 @@
 import requests
-import json
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -33,13 +32,13 @@ class PhilipsTV(object):
             with requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
                 if resp.status_code != 200:
                     return None
-                return json.loads(resp.text)
+                return resp.json()
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
     def _postReq(self, path, data):
         try:
-            with requests.post(BASE_URL.format(self._host, self.api_version, path), data=json.dumps(data), timeout=TIMEOUT) as resp:
+            with requests.post(BASE_URL.format(self._host, self.api_version, path), json=data, timeout=TIMEOUT) as resp:
                 if resp.status_code == 200:
                     return True
                 else:
