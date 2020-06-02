@@ -33,6 +33,8 @@ class PhilipsTV(object):
                 if resp.status_code != 200:
                     return None
                 return resp.json()
+        except requests.exceptions.Timeout:
+            return None
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
