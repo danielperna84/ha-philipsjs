@@ -24,6 +24,9 @@ if __name__ == '__main__':
     tv.getChannelId()
     tv.getChannels()
 
+    print(tv.sendKey('Netflix'))
+
+
     # Simulating homeassistant/components/media_player/philips_js.py
     logger.info('Source: %s', tv.getSourceName(tv.source_id))
     if tv.sources:
