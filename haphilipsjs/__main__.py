@@ -34,7 +34,7 @@ if __name__ == '__main__':
                 for srcid in tv.sources
             ])
         )
-    logger.info('Channel: %s', tv.getChannelName(tv.channel_id))
+    logger.info('Channel: %s: %s', tv.channel_id, tv.getChannelName(tv.channel_id))
     if tv.channels:
         logger.info(
             'Channels: %s...',
