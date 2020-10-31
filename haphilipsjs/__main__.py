@@ -24,6 +24,7 @@ if __name__ == '__main__':
     tv.getChannelId()
     tv.getChannels()
 
+
     # Simulating homeassistant/components/media_player/philips_js.py
     logger.info('Source: %s', tv.getSourceName(tv.source_id))
     if tv.sources:
@@ -34,7 +35,7 @@ if __name__ == '__main__':
                 for srcid in tv.sources
             ])
         )
-    logger.info('Channel: %s', tv.getChannelName(tv.channel_id))
+    logger.info('Channel: %s: %s', tv.channel_id, tv.getChannelName(tv.channel_id))
     if tv.channels:
         logger.info(
             'Channels: %s...',

@@ -175,15 +175,23 @@ def test_current_channel_none(client_mock, requests_mock):
     assert client_mock.channel_id == None
 
 
+def test_current_channel_with_channellist_prefix(client_mock, requests_mock):
+    requests_mock.get("http://127.0.0.1:1925/1/channels/current", json={
+        "id": "0_fingerprint-1"
+    })
+    client_mock.update()
+    assert client_mock.channel_id == "fingerprint-1"
+
+
 def test_get_source_name(client_mock):
-    """Verify that we can translate source id to name""" 
+    """Verify that we can translate source id to name"""
     client_mock.update()
     assert client_mock.getSourceName("ypbpr") == "Y Pb Pr"
     assert client_mock.getSourceName("invalid_name") == None
 
 
 def test_get_channel_name(client_mock):
-    """Verify that we can translate channel id to name""" 
+    """Verify that we can translate channel id to name"""
     client_mock.update()
     assert client_mock.getChannelName("fingerprint-3") == "Irdeto scrambled"
     assert client_mock.getChannelName("invalid_name") == None
@@ -205,7 +213,6 @@ def test_timeout(client_mock, requests_mock):
 
 
 def test_volume(client_mock, requests_mock):
-
     requests_mock.get("http://127.0.0.1:1925/1/audio/volume", json={
         "muted": True,
         "current": 30,

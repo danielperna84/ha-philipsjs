@@ -116,10 +116,16 @@ class PhilipsTV(object):
                 self.channel_id = None
         else:
             r = self._getReq('channels/current')
-            if r:
-                self.channel_id = r['id']
-            else:
+            if not r:
                 self.channel_id = None
+                return
+
+            if not self.channels.get(r['id']):
+                pos = r['id'].find('_')
+                if pos > 0:
+                    self.channel_id = r['id'][pos+1:]
+                    return
+            self.channel_id = r['id']
 
     def getChannelName(self, ccid):
         if not self.channels:
