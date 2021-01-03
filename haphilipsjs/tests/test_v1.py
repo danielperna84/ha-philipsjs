@@ -136,6 +136,182 @@ VOLUME = {
     "max": 60
 }
 
+AMBILIGHT = {
+    "mode": {
+        "current": "internal"
+    },
+    "topology": {
+        "layers": 1,
+        "left": 4,
+        "top": 0,
+        "right": 4,
+        "bottom": 0
+    },
+    "measured": {
+        "layer1": {
+            "left": {
+                "0": {
+                    "r": 56,
+                    "g": 43,
+                    "b": 40
+                },
+                "1": {
+                    "r": 94,
+                    "g": 81,
+                    "b": 77
+                },
+                "2": {
+                    "r": 76,
+                    "g": 70,
+                    "b": 60
+                },
+                "3": {
+                    "r": 43,
+                    "g": 37,
+                    "b": 26
+                }
+            },
+            "top": {
+
+            },
+            "right": {
+                "0": {
+                    "r": 69,
+                    "g": 70,
+                    "b": 58
+                },
+                "1": {
+                    "r": 124,
+                    "g": 120,
+                    "b": 100
+                },
+                "2": {
+                    "r": 83,
+                    "g": 87,
+                    "b": 90
+                },
+                "3": {
+                    "r": 50,
+                    "g": 49,
+                    "b": 51
+                }
+            },
+            "bottom": {
+
+            }
+        }
+    },
+    "processed": {
+        "layer1": {
+            "left": {
+                "0": {
+                    "r": 37,
+                    "g": 77,
+                    "b": 182
+                },
+                "1": {
+                    "r": 53,
+                    "g": 87,
+                    "b": 186
+                },
+                "2": {
+                    "r": 64,
+                    "g": 96,
+                    "b": 188
+                },
+                "3": {
+                    "r": 19,
+                    "g": 67,
+                    "b": 188
+                }
+            },
+            "top": {
+
+            },
+            "right": {
+                "0": {
+                    "r": 32,
+                    "g": 79,
+                    "b": 188
+                },
+                "1": {
+                    "r": 83,
+                    "g": 110,
+                    "b": 188
+                },
+                "2": {
+                    "r": 113,
+                    "g": 110,
+                    "b": 112
+                },
+                "3": {
+                    "r": 32,
+                    "g": 76,
+                    "b": 188
+                }
+            },
+            "bottom": {
+
+            }
+        }
+    },
+    "cached": {
+        "layer1": {
+            "left": {
+                "0": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                },
+                "1": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                },
+                "2": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                },
+                "3": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                }
+            },
+            "top": {
+
+            },
+            "right": {
+                "0": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                },
+                "1": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                },
+                "2": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                },
+                "3": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0
+                }
+            },
+            "bottom": {
+
+            }
+        }
+    }
+}
+
+
 @pytest.fixture
 def client_mock(requests_mock):
     client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=1)
@@ -146,6 +322,11 @@ def client_mock(requests_mock):
     requests_mock.get("http://127.0.0.1:1925/1/channels/current", json=CHANNELS_CURRENT)
     requests_mock.get("http://127.0.0.1:1925/1/audio/volume", json=VOLUME)
     requests_mock.get("http://127.0.0.1:1925/1/channellists", json=CHANNELLISTS)
+    requests_mock.get("http://127.0.0.1:1925/1/ambilight/mode", json=AMBILIGHT["mode"])
+    requests_mock.get("http://127.0.0.1:1925/1/ambilight/topology", json=AMBILIGHT["topology"])
+    requests_mock.get("http://127.0.0.1:1925/1/ambilight/measured", json=AMBILIGHT["measured"])
+    requests_mock.get("http://127.0.0.1:1925/1/ambilight/processed", json=AMBILIGHT["processed"])
+    requests_mock.get("http://127.0.0.1:1925/1/ambilight/cached", json=AMBILIGHT["cached"])
     yield client
 
 def test_basic_data(client_mock):
@@ -318,3 +499,39 @@ def test_send_key_off(client_mock, requests_mock):
 
     with pytest.raises(haphilipsjs.ConnectionFailure):
         client_mock.sendKey("Standby")
+
+def test_ambilight_mode(client_mock, requests_mock):
+    assert client_mock.getAmbilightMode() == "internal"
+
+    requests_mock.post("http://127.0.0.1:1925/1/ambilight/mode", json={})
+    client_mock.setAmbilightMode("manual")
+
+    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/ambilight/mode"
+    assert requests_mock.last_request.json() == {
+        "current": "manual",
+    }
+
+def test_ambilight_topology(client_mock):
+    assert client_mock.getAmbilightTopology() == AMBILIGHT["topology"]
+
+def test_ambilight_measured(client_mock):
+    assert client_mock.getAmbilightMeasured() == AMBILIGHT["measured"]
+
+def test_ambilight_processed(client_mock):
+    assert client_mock.getAmbilightProcessed() == AMBILIGHT["processed"]
+
+def test_ambilight_cached(client_mock, requests_mock):
+    assert client_mock.getAmbilightCached() == AMBILIGHT["cached"]
+
+    requests_mock.post("http://127.0.0.1:1925/1/ambilight/cached", json={})
+
+    data = {
+        "r": 100,
+        "g": 210,
+        "b": 30
+    }
+
+    client_mock.setAmbilightCached(data)
+
+    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/ambilight/cached"
+    assert requests_mock.last_request.json() == data

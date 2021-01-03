@@ -210,6 +210,31 @@ class PhilipsTV(object):
     def sendKey(self, key):
         return self._postReq('input/key', {'key': key})
 
+    def getAmbilightMode(self):
+        data = self._getReq('ambilight/mode')
+        return data["current"]
+
+    def setAmbilightMode(self, mode):
+        data = {
+            "current": mode
+        }
+        return self._postReq('ambilight/mode', data)
+
+    def getAmbilightTopology(self):
+        return self._getReq('ambilight/topology')
+
+    def getAmbilightMeasured(self):
+        return self._getReq('ambilight/measured')
+
+    def getAmbilightProcessed(self):
+        return self._getReq('ambilight/processed')
+
+    def getAmbilightCached(self):
+        return self._getReq('ambilight/cached')
+
+    def setAmbilightCached(self, data):
+        return self._postReq('ambilight/cached', data)
+
     def openURL(self, url):
         if self.api_version >= 6:
             if (
