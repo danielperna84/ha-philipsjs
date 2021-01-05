@@ -1,6 +1,7 @@
 import requests
 import logging
 
+
 LOG = logging.getLogger(__name__)
 BASE_URL = 'http://{0}:1925/{1}/{2}'
 TIMEOUT = 5.0
@@ -25,11 +26,13 @@ class PhilipsTV(object):
         self.source_id = None
         self.channels = None
         self.channel_id = None
+        self.session = requests.Session()
+        self.session.mount("http://", requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1))
 
     def _getReq(self, path):
         try:
 
-            with requests.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
+            with self.session.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
                 if resp.status_code != 200:
                     return None
                 return resp.json()
@@ -38,7 +41,7 @@ class PhilipsTV(object):
 
     def _postReq(self, path, data):
         try:
-            with requests.post(BASE_URL.format(self._host, self.api_version, path), json=data, timeout=TIMEOUT) as resp:
+            with self.session.post(BASE_URL.format(self._host, self.api_version, path), json=data, timeout=TIMEOUT) as resp:
                 if resp.status_code == 200:
                     return True
                 else:
@@ -206,6 +209,31 @@ class PhilipsTV(object):
 
     def sendKey(self, key):
         return self._postReq('input/key', {'key': key})
+
+    def getAmbilightMode(self):
+        data = self._getReq('ambilight/mode')
+        return data["current"]
+
+    def setAmbilightMode(self, mode):
+        data = {
+            "current": mode
+        }
+        return self._postReq('ambilight/mode', data)
+
+    def getAmbilightTopology(self):
+        return self._getReq('ambilight/topology')
+
+    def getAmbilightMeasured(self):
+        return self._getReq('ambilight/measured')
+
+    def getAmbilightProcessed(self):
+        return self._getReq('ambilight/processed')
+
+    def getAmbilightCached(self):
+        return self._getReq('ambilight/cached')
+
+    def setAmbilightCached(self, data):
+        return self._postReq('ambilight/cached', data)
 
     def openURL(self, url):
         if self.api_version >= 6:
