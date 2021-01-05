@@ -37,7 +37,6 @@ setup(
         extras_require={
             'tests': [
                 'pytest>3.6.4',
-                'pytest-requests',
                 'pytest-cov<2.6',
                 'coveralls',
                 'pytest-mock',
