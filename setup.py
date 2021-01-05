@@ -40,6 +40,7 @@ setup(
                 'pytest-cov<2.6',
                 'coveralls',
                 'pytest-mock',
+                'requests-mock'
             ]
         },
 )
