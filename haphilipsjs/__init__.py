@@ -27,7 +27,7 @@ class PhilipsTV(object):
         self.channels = None
         self.channel_id = None
         self.session = requests.Session()
-        self.session.mount("http://", requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1))
+        self.session.mount("http://", requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1, pool_block=True))
 
     def _getReq(self, path):
         try:
