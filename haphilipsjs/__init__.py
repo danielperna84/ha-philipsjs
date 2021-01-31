@@ -143,7 +143,7 @@ class PhilipsTV(object):
         }
 
         LOG.debug("pair/grant request: %", data)
-        with self.session.post(self._url("pair/grant", json=data, auth=auth_handler) as resp:
+        with self.session.post(self._url("pair/grant"), json=data, auth=auth_handler) as resp:
             data_response = resp.json()
             LOG.debug("pair/grant response: %", data_response)
 
