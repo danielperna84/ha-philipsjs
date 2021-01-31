@@ -1,17 +1,26 @@
+from typing import Any, Dict
 import requests
 import logging
+from random import getrandbits
+from base64 import b64decode, b64encode
 
+import hashlib
+import hmac
+
+from requests.sessions import session
 
 LOG = logging.getLogger(__name__)
-BASE_URL = '{0}://{1}:{2}/{3}/{4}'
 TIMEOUT = 5.0
 DEFAULT_API_VERSION = 1
 
 class ConnectionFailure(Exception):
     pass
 
+class PairingFailure(Exception):
+    pass
+
 class PhilipsTV(object):
-    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol="http", port=1925, url=None, username=None, password=None, verify=False):
+    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol="http", port=1925, username=None, password=None, verify=False):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
@@ -38,10 +47,19 @@ class PhilipsTV(object):
         if username:
             self.session.auth = requests.auth.HTTPDigestAuth(username, password)
 
+    def _url(self, path):
+        return '{0}://{1}:{2}/{3}/{4}'.format(
+            self.protocol,
+            self._host,
+            self.port,
+            self.api_version,
+            path
+        )
+
     def _getReq(self, path):
         try:
 
-            with self.session.get(BASE_URL.format(self.protocol, self._host, self.port, self.api_version, path), timeout=TIMEOUT) as resp:
+            with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
                 if resp.status_code != 200:
                     return None
                 return resp.json()
@@ -50,13 +68,88 @@ class PhilipsTV(object):
 
     def _postReq(self, path, data):
         try:
-            with self.session.post(BASE_URL.format(self.protocol, self._host, self.port, self.api_version, path), json=data, timeout=TIMEOUT) as resp:
+            with self.session.post(self._url(path), json=data, timeout=TIMEOUT) as resp:
                 if resp.status_code == 200:
                     return True
                 else:
                     return False
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
+
+    def pair_request(self, app_id: str, app_name: str, device_name: str, device_os: str):
+        """Start up a pairing request."""
+        device_id = "%016x" % getrandbits(16 * 4)
+        device = {
+            "device_name": device_name,
+            "device_os": device_os,
+            "type" : "native",
+            "id": device_id,
+            "app_id": app_id,
+            "app_name": app_name,
+        }
+
+        state = {
+            "device": device
+        }
+
+        data = {
+            "scope" : [
+                "read",
+                "write",
+                "control"
+            ],
+            "device": device
+        }
+
+        LOG.debug("pair/request request: %", data)
+        with self.session.post(self._url("pair/request"), json=data, auth=None) as resp:
+            try:
+                data_response = resp.json()
+                LOG.debug("pair/request response: %", data_response)
+                if data_response.get("error_id") != "SUCCESS":
+                    raise PairingFailure(f"Failed to start pairing: {data_response}")
+            except ValueError as exc:
+                raise PairingFailure(f"Failed to start pairing no valid json returned") from exc
+
+        state["timestamp"] = data_response["timestamp"]
+        state["auth_key"] = data_response["auth_key"]
+
+        return state
+
+    def pair_grant(self, state: Dict[str, Any], pin: str, key: bytes):
+        """Finish a pairing sequence"""
+
+        auth_handler = requests.auth.HTTPDigestAuth(
+            state["device"]["id"],
+            state["auth_key"]
+        )
+
+        signature = b64encode(hmac.new(
+            key=key,
+            msg=bytes(f"{state['timestamp']}{pin}", "utf-8"),
+            digestmod=hashlib.sha256,
+        ).digest())
+
+        auth = {
+            "auth_AppId" : "1",
+            "auth_timestamp": state["timestamp"],
+            "auth_signature": signature,
+            "pin": pin,
+        }
+
+        data = {
+            "auth": auth,
+            "device": state["device"]
+        }
+
+        LOG.debug("pair/grant request: %", data)
+        with self.session.post(self._url("pair/grant", json=data, auth=auth_handler) as resp:
+            data_response = resp.json()
+            LOG.debug("pair/grant response: %", data_response)
+
+        self.session.auth = auth_handler
+        return state["device"]["id"], state["auth_key"]
+
 
     def update(self):
         try:
