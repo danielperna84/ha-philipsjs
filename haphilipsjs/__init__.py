@@ -3,7 +3,7 @@ import logging
 
 
 LOG = logging.getLogger(__name__)
-BASE_URL = 'http://{0}:1925/{1}/{2}'
+BASE_URL = '{0}://{1}:{2}/{3}/{4}'
 TIMEOUT = 5.0
 DEFAULT_API_VERSION = 1
 
@@ -11,7 +11,7 @@ class ConnectionFailure(Exception):
     pass
 
 class PhilipsTV(object):
-    def __init__(self, host, api_version=DEFAULT_API_VERSION):
+    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol="http", port=1925, url=None, username=None, password=None, verify=False):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
@@ -26,13 +26,22 @@ class PhilipsTV(object):
         self.source_id = None
         self.channels = None
         self.channel_id = None
+        self.protocol = protocol
+        self.port = port
+
+        adapter = requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1, pool_block=True)
         self.session = requests.Session()
-        self.session.mount("http://", requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1, pool_block=True))
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
+        self.session.verify = verify
+        if username:
+            self.session.auth = requests.auth.HTTPDigestAuth(username, password)
 
     def _getReq(self, path):
         try:
 
-            with self.session.get(BASE_URL.format(self._host, self.api_version, path), timeout=TIMEOUT) as resp:
+            with self.session.get(BASE_URL.format(self.protocol, self._host, self.port, self.api_version, path), timeout=TIMEOUT) as resp:
                 if resp.status_code != 200:
                     return None
                 return resp.json()
@@ -41,7 +50,7 @@ class PhilipsTV(object):
 
     def _postReq(self, path, data):
         try:
-            with self.session.post(BASE_URL.format(self._host, self.api_version, path), json=data, timeout=TIMEOUT) as resp:
+            with self.session.post(BASE_URL.format(self.protocol, self._host, self.port, self.api_version, path), json=data, timeout=TIMEOUT) as resp:
                 if resp.status_code == 200:
                     return True
                 else:
