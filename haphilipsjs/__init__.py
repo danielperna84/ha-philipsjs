@@ -76,7 +76,7 @@ class PhilipsTV(object):
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
-    def pair_request(self, app_id: str, app_name: str, device_name: str, device_os: str):
+    def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str):
         """Start up a pairing request."""
         device_id = "%016x" % getrandbits(16 * 4)
         device = {
@@ -116,7 +116,7 @@ class PhilipsTV(object):
 
         return state
 
-    def pair_grant(self, state: Dict[str, Any], pin: str, key: bytes):
+    def pairGrant(self, state: Dict[str, Any], pin: str, key: bytes):
         """Finish a pairing sequence"""
 
         auth_handler = requests.auth.HTTPDigestAuth(
