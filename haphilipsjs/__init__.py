@@ -1,17 +1,19 @@
 from typing import Any, Dict
 import requests
 import logging
-from random import getrandbits
-from base64 import b64decode, b64encode
+from secrets import token_bytes, token_hex
+from base64 import b64encode
 
 import hashlib
 import hmac
 
-from requests.sessions import session
-
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
 DEFAULT_API_VERSION = 1
+
+
+def gen_pair_secret():
+    return token_bytes(64)
 
 class ConnectionFailure(Exception):
     pass
@@ -78,7 +80,7 @@ class PhilipsTV(object):
 
     def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str):
         """Start up a pairing request."""
-        device_id = "%016x" % getrandbits(16 * 4)
+        device_id = token_hex(16)
         device = {
             "device_name": device_name,
             "device_os": device_os,
