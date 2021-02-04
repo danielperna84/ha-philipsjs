@@ -1,6 +1,8 @@
 from typing import Any, Dict
 import requests
 import logging
+import warnings
+import urllib3
 from secrets import token_bytes, token_hex
 from base64 import b64encode
 
@@ -42,6 +44,7 @@ class PhilipsTV(object):
 
         adapter = requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1, pool_block=True)
         self.session = requests.Session()
+        self.session.verify=False
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
@@ -59,22 +62,28 @@ class PhilipsTV(object):
         )
 
     def _getReq(self, path):
-        try:
 
-            with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
-                if resp.status_code != 200:
-                    return None
-                return resp.json()
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+                with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
+                    if resp.status_code != 200:
+                        return None
+                    return resp.json()
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
+
     def _postReq(self, path, data):
         try:
-            with self.session.post(self._url(path), json=data, timeout=TIMEOUT) as resp:
-                if resp.status_code == 200:
-                    return True
-                else:
-                    return False
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+
+                with self.session.post(self._url(path), json=data, timeout=TIMEOUT) as resp:
+                    if resp.status_code == 200:
+                        return True
+                    else:
+                        return False
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
@@ -103,15 +112,18 @@ class PhilipsTV(object):
             "device": device
         }
 
-        LOG.debug("pair/request request: %", data)
-        with self.session.post(self._url("pair/request"), json=data, auth=None) as resp:
-            try:
-                data_response = resp.json()
-                LOG.debug("pair/request response: %", data_response)
-                if data_response.get("error_id") != "SUCCESS":
-                    raise PairingFailure(f"Failed to start pairing: {data_response}")
-            except ValueError as exc:
-                raise PairingFailure(f"Failed to start pairing no valid json returned") from exc
+        LOG.debug("pair/request request: %s", data)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+
+            with self.session.post(self._url("pair/request"), json=data, auth=None) as resp:
+                try:
+                    data_response = resp.json()
+                    LOG.debug("pair/request response: %s", data_response)
+                    if data_response.get("error_id") != "SUCCESS":
+                        raise PairingFailure(f"Failed to start pairing: {data_response}")
+                except ValueError as exc:
+                    raise PairingFailure(f"Failed to start pairing no valid json returned") from exc
 
         state["timestamp"] = data_response["timestamp"]
         state["auth_key"] = data_response["auth_key"]
@@ -130,7 +142,7 @@ class PhilipsTV(object):
             key=key,
             msg=bytes(f"{state['timestamp']}{pin}", "utf-8"),
             digestmod=hashlib.sha256,
-        ).digest())
+        ).digest()).decode("utf-8")
 
         auth = {
             "auth_appId" : "1",
@@ -144,10 +156,13 @@ class PhilipsTV(object):
             "device": state["device"]
         }
 
-        LOG.debug("pair/grant request: %", data)
-        with self.session.post(self._url("pair/grant"), json=data, auth=auth_handler) as resp:
-            data_response = resp.json()
-            LOG.debug("pair/grant response: %", data_response)
+        LOG.debug("pair/grant request: %s", data)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+
+            with self.session.post(self._url("pair/grant"), json=data, auth=auth_handler) as resp:
+                data_response = resp.json()
+                LOG.debug("pair/grant response: %s", data_response)
 
         self.session.auth = auth_handler
         return state["device"]["id"], state["auth_key"]
