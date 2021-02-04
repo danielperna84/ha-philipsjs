@@ -293,6 +293,14 @@ class PhilipsTV(object):
             if self._postReq('sources/current', {'id': source_id}):
                 self.source_id = source_id
 
+    def getApplications(self):
+        if self.api_version >= 5:
+            return self._getReq('applications')
+
+    def getApplicationId(self):
+        if self.api_version >= 5:
+            return self._getReq('activities/current')
+
     def setVolume(self, level, muted=False):
         data = {}
         if level is not None:
