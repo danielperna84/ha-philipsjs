@@ -78,13 +78,13 @@ class PhilipsTV(object):
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
-    def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str):
+    def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str, type: str):
         """Start up a pairing request."""
         device_id = token_hex(16)
         device = {
             "device_name": device_name,
             "device_os": device_os,
-            "type" : "native",
+            "type" : type,
             "id": device_id,
             "app_id": app_id,
             "app_name": app_name,
@@ -133,7 +133,7 @@ class PhilipsTV(object):
         ).digest())
 
         auth = {
-            "auth_AppId" : "1",
+            "auth_appId" : "1",
             "auth_timestamp": state["timestamp"],
             "auth_signature": signature,
             "pin": pin,
