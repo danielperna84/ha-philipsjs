@@ -8,7 +8,8 @@ from haphilipsjs.data.v6 import (
     CHANNELDB_TV,
     CHANNELDB_TV_CHANNELLISTS_ALL,
     ACTIVITIES_CURRENT,
-    SYSTEM,
+    SYSTEM_DECRYPTED,
+    SYSTEM_ENCRYPTED,
     VOLUME,
 )
 
@@ -17,7 +18,7 @@ BASE_URL = "http://127.0.0.1:1925/6"
 @pytest.fixture
 def client_mock(requests_mock):
     client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6)
-    requests_mock.get(f"{BASE_URL}/system", json=SYSTEM)
+    requests_mock.get(f"{BASE_URL}/system", json=SYSTEM_ENCRYPTED)
     requests_mock.get(f"{BASE_URL}/channeldb/tv", json=CHANNELDB_TV)
     requests_mock.get(f"{BASE_URL}/channeldb/tv/channelLists/all", json=CHANNELDB_TV_CHANNELLISTS_ALL)
     requests_mock.get(f"{BASE_URL}/activities/current", json=ACTIVITIES_CURRENT)
@@ -34,7 +35,7 @@ def test_basic_data(client_mock):
     """Test for basic data"""
     client_mock.update()
     assert client_mock.on == True
-    assert client_mock.system == SYSTEM
+    assert client_mock.system == SYSTEM_DECRYPTED
     assert client_mock.sources is None
     assert client_mock.channels == {
         1648: {

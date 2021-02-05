@@ -84,6 +84,7 @@ class SystemFeaturesType(TypedDict, total=False):
     tvsearch: str
     pairing_type: str
     secured_transport: str
+    companion_screen: str
 class SystemFeaturingType(TypedDict):
     jsonfeatures: JsonFeaturesType
     systemfeatures: SystemFeaturesType
@@ -102,3 +103,5 @@ class SystemType(TypedDict, total=False):
     epgsource: str
     api_version: Dict
     featuring: SystemFeaturingType
+    notifyChange: str
+    os_type: str

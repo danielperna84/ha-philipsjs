@@ -4,7 +4,7 @@ from requests.auth import HTTPDigestAuth
 import logging
 import warnings
 import urllib3
-from secrets import token_hex
+from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -38,6 +38,16 @@ def cbc_decode(key: bytes, data: str):
     result = decryptor.update(raw[16:]) + decryptor.finalize()
     result = unpadder.update(result) + unpadder.finalize()
     return result.decode("utf-8")
+
+def cbc_encode(key: bytes, data: str):
+    """Decoded encrypted fields based on shared key."""
+    raw = data.encode("utf-8")
+    iv = token_bytes(16)
+    encryptor = Cipher(algorithms.AES(key[0:16]), modes.CBC(iv)).encryptor()
+    padder = PKCS7(128).padder()
+    result = padder.update(raw) + padder.finalize()
+    result = encryptor.update(result) + encryptor.finalize()
+    return b64encode(iv + result).decode("utf-8")
 
 class ConnectionFailure(Exception):
     pass
@@ -388,8 +398,8 @@ class PhilipsTV(object):
         if level is not None:
             if self.min_volume is None or self.max_volume is None:
                 self.getAudiodata()
-            assert(self.max_volume)
-            assert(self.min_volume)
+            assert(self.max_volume is not None)
+            assert(self.min_volume is not None)
 
             try:
                 targetlevel = int(level * self.max_volume)

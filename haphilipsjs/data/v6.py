@@ -1,28 +1,30 @@
-from haphilipsjs.typing import ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ComponentType, FavoriteType, SystemType
+from typing import cast
+from haphilipsjs.typing import (
+    ApplicationIntentType,
+    ApplicationsType,
+    ChannelDbTv,
+    ChannelListType,
+    ComponentType,
+    FavoriteType,
+    SystemType,
+)
 
 
 SYSTEM: SystemType = {
-    "menulanguage": "Dutch",
-    "name": "55PUS7181\/12",
-    "country": "Netherlands",
-    "serialnumber_encrypted": "F6905Z+vyquNhZoXegQ1DzZXCqMIcjJpkzy3LsiPac=\n",
-    "softwareversion_encrypted": "1YWR42sjQ6xdjuyIXWZbyPnoRswLoRswLmKtAhR9GRsBx1qY=\n",
-    "model_encrypted": "jGNvXDerdJoWjOpwh\/n0gw2MgM7oRswLoRswLKC73wfMgra3S62c4=\n",
-    "deviceid_encrypted": "7mv3ZEtMH8oRswL0RoRswLISTn38FN8HAqfmSF95qoaiRsuukSraQ=\n",
-    "nettvversion": "6.0.2",
-    "epgsource": "one",
-    "api_version": {"Major": 6, "Minor": 2, "Patch": 0},
+    "notifyChange": "http",
+    "menulanguage": "Swedish",
+    "name": "65OLED855/12",
+    "country": "Sweden",
+    "nettvversion": "9.0.0",
+    "epgsource": "broadcast",
+    "api_version": {"Major": 6, "Minor": 4, "Patch": 0},
     "featuring": {
         "jsonfeatures": {
             "editfavorites": ["TVChannels", "SatChannels"],
             "recordings": ["List", "Schedule", "Manage"],
-            "ambilight": ["LoungeLight", "Hue", "Ambilight"],
+            "ambilight": ["LoungeLight", "Hue", "Ambilight", "HueStreaming"],
             "menuitems": ["Setup_Menu"],
-            "textentry": [
-                "context_based",
-                "initial_string_available",
-                "editor_info_available",
-            ],
+            "textentry": ["not_available"],
             "applications": ["TV_Apps", "TV_Games", "TV_Settings"],
             "pointer": ["not_available"],
             "inputkey": ["key"],
@@ -32,13 +34,37 @@ SYSTEM: SystemType = {
         },
         "systemfeatures": {
             "tvtype": "consumer",
-            "content": ["dmr", "dms_tad"],
+            "content": ["dmr", "pvr"],
             "tvsearch": "intent",
             "pairing_type": "digest_auth_pairing",
-            "secured_transport": "True",
+            "secured_transport": "true",
+            "companion_screen": "true",
         },
     },
+    "os_type": "MSAF_2019_P",
 }
+
+SYSTEM_ENCRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM,
+        "serialnumber_encrypted": "bf1BcncGiQyBVS47ZXFWjNXoynlKUNlqDhxQz5ikPEU=\n",
+        "softwareversion_encrypted": "o5VTq/nnyhUzdpj+ac65ItwU2KTv6j6bu8brxNxA+5J78u9D7fdZwqcAilvhFc9L\n",
+        "model_encrypted": "3Cdh9HfKdQZb0UJPzeXau15tgTFcLdYcPGb0NqOreDg=\n",
+        "deviceid_encrypted": "0dwhYxbc4pu9bo+yXXKsSaAI/GqIoxSMlQIs6osKlCI=\n",
+    },
+)
+
+SYSTEM_DECRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM,
+        "serialnumber": "ABCDEFGHIJKLF",
+        "softwareversion": "TPM191E_R.101.001.208.001",
+        "model": "65OLED855/12",
+        "deviceid": "1234567890",
+    },
+)
 
 VOLUME = {"muted": False, "current": 18, "min": 0, "max": 60}
 
