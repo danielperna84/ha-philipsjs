@@ -1,5 +1,6 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional, TypeVar, cast
 import requests
+from requests.auth import HTTPDigestAuth
 import logging
 import warnings
 import urllib3
@@ -8,6 +9,8 @@ from base64 import b64encode
 
 import hashlib
 import hmac
+
+from .typing import ActivitesTVType, ApplicationIntentType, ChannelDbTv, ChannelListType, ChannelsCurrentType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -22,6 +25,8 @@ class ConnectionFailure(Exception):
 
 class PairingFailure(Exception):
     pass
+
+T = TypeVar('T') 
 
 class PhilipsTV(object):
     def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol="http", port=1925, username=None, password=None, verify=False):
@@ -47,10 +52,11 @@ class PhilipsTV(object):
         self.session.verify=False
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
+        self.session.headers["Accept"] = "application/json"
 
         self.session.verify = verify
         if username:
-            self.session.auth = requests.auth.HTTPDigestAuth(username, password)
+            self.session.auth = HTTPDigestAuth(username, password)
 
     def _url(self, path):
         return '{0}://{1}:{2}/{3}/{4}'.format(
@@ -61,7 +67,7 @@ class PhilipsTV(object):
             path
         )
 
-    def _getReq(self, path):
+    def _getReq(self, path) -> Optional[Dict]:
 
         try:
             with warnings.catch_warnings():
@@ -74,7 +80,7 @@ class PhilipsTV(object):
             raise ConnectionFailure(str(err)) from err
 
 
-    def _postReq(self, path, data):
+    def _postReq(self, path: str, data: Dict) -> bool:
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
@@ -133,7 +139,7 @@ class PhilipsTV(object):
     def pairGrant(self, state: Dict[str, Any], pin: str, key: bytes):
         """Finish a pairing sequence"""
 
-        auth_handler = requests.auth.HTTPDigestAuth(
+        auth_handler = HTTPDigestAuth(
             state["device"]["id"],
             state["auth_key"]
         )
@@ -217,9 +223,9 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             self.channels = {}
             for channelListId in self.getChannelLists():
-                r = self._getReq(
+                r = cast(ChannelListType, self._getReq(
                     'channeldb/tv/channelLists/{}'.format(channelListId)
-                )
+                ))
                 if r:
                     for channel in r.get('Channel', []):
                         self.channels[channel['ccid']] = channel
@@ -234,14 +240,14 @@ class PhilipsTV(object):
 
     def getChannelId(self):
         if self.api_version >= 5:
-            r = self._getReq('activities/tv')
+            r = cast(Optional[ActivitesTVType], self._getReq('activities/tv'))
             if r and r['channel']:
                 # it could be empty if HDMI is set
                 self.channel_id = r['channel']['ccid']
             else:
                 self.channel_id = None
         else:
-            r = self._getReq('channels/current')
+            r = cast(Optional[ChannelsCurrentType], self._getReq('channels/current'))
             if not r:
                 self.channel_id = None
                 return
@@ -252,8 +258,9 @@ class PhilipsTV(object):
                     self.channel_id = r['id'][pos+1:]
                     return
             self.channel_id = r['id']
+        return r
 
-    def getChannelName(self, ccid):
+    def getChannelName(self, ccid) -> Optional[str]:
         if not self.channels:
             return None
         return self.channels.get(ccid, dict()).get('name', None)
@@ -270,7 +277,7 @@ class PhilipsTV(object):
 
     def getChannelLists(self):
         if self.api_version >= 5:
-            r = self._getReq('channeldb/tv')
+            r = cast(ChannelDbTv, self._getReq('channeldb/tv'))
             if r:
                 # could be alltv and allsat
                 return [l['id'] for l in r.get('channelLists', [])]
@@ -297,7 +304,7 @@ class PhilipsTV(object):
                 self.source_id = None
             return r
 
-    def getSourceName(self, srcid):
+    def getSourceName(self, srcid) -> Optional[str]:
         if not self.sources:
             return None
         if self.api_version < 5:
@@ -314,7 +321,7 @@ class PhilipsTV(object):
 
     def getApplicationId(self):
         if self.api_version >= 5:
-            return self._getReq('activities/current')
+            return cast(ApplicationIntentType, self._getReq('activities/current'))
 
     def setVolume(self, level, muted=False):
         data = {}

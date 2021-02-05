@@ -87,7 +87,7 @@ if __name__ == '__main__':
             print(
                 'Sources: {}'.format(
                 ', '.join([
-                    tv.getSourceName(srcid)
+                    tv.getSourceName(srcid) or "None"
                     for srcid in tv.sources
                 ]))
             )
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             print(
                 'Channels: {}'.format(
                 ', '.join([
-                    tv.getChannelName(ccid)
+                    tv.getChannelName(ccid) or "None"
                     for ccid in list(tv.channels.keys())[:10]
                 ]))
             )

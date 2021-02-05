@@ -1,3 +1,6 @@
+from haphilipsjs.typing import ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ComponentType, FavoriteType
+
+
 SYSTEM = {
     "menulanguage": "Dutch",
     "name": "55PUS7181\/12",
@@ -39,7 +42,7 @@ SYSTEM = {
 
 VOLUME = {"muted": False, "current": 18, "min": 0, "max": 60}
 
-APPLICATIONS = {
+APPLICATIONS: ApplicationsType = {
     "version": 0,
     "applications": [
         {
@@ -227,7 +230,7 @@ APPLICATIONS = {
     ],
 }
 
-ACTIVITIES_CURRENT = {
+ACTIVITIES_CURRENT: ApplicationIntentType = {
     "component": {
         "packageName": "org.droidtv.nettv.market",
         "className": "org.droidtv.nettv.market.MarketMainActivity",
@@ -236,7 +239,7 @@ ACTIVITIES_CURRENT = {
 
 ACTIVITIES_TV = {"channel": {"ccid": 1648}}
 
-CHANNELDB_TV_CHANNELLISTS_ALL = {
+CHANNELDB_TV_CHANNELLISTS_ALL: ChannelListType = {
     "id": "all",
     "version": 10,
     "listType": "MixedSources",
@@ -250,7 +253,8 @@ CHANNELDB_TV_CHANNELLISTS_ALL = {
     ],
 }
 
-CHANNELDB_TV = {
+
+CHANNELDB_TV: ChannelDbTv = {
     "channelLists": [CHANNELDB_TV_CHANNELLISTS_ALL],
     "favoriteLists": [
         {
