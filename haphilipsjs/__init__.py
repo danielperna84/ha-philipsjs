@@ -202,7 +202,7 @@ class PhilipsTV(object):
 
         signature = hmac_signature(
             self.auth_shared_key,
-            state['timestamp'],
+            str(state['timestamp']),
             pin
         )
 
