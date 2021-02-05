@@ -11,7 +11,9 @@ VERSION = '0.1.0'
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*', 'dist', 'ccu', 'build'])
 
-REQUIRES = []
+REQUIRES = [
+    "cryptography"
+]
 
 setup(
         name=PACKAGE_NAME,

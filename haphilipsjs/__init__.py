@@ -4,11 +4,13 @@ from requests.auth import HTTPDigestAuth
 import logging
 import warnings
 import urllib3
-from secrets import token_bytes, token_hex
-from base64 import b64encode
+from secrets import token_hex
+from base64 import b64decode, b64encode
 
-import hashlib
-import hmac
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.hmac import HMAC
 
 from .typing import ActivitesTVType, ApplicationIntentType, ChannelDbTv, ChannelListType, ChannelsCurrentType, SystemType
 
@@ -16,9 +18,26 @@ LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
 DEFAULT_API_VERSION = 1
 
+AUTH_SHARED_KEY = b64decode("ZmVay1EQVFOaZhwQ4Kv81ypLAZNczV9sG4KkseXWn1NEk6cXmPKO/MCa9sryslvLCFMnNe4Z4CPXzToowvhHvA==")
+"""Key used for hmac signatures and decoding of cbc data."""
 
-def gen_pair_secret():
-    return token_bytes(64)
+
+def hmac_signature(key: bytes, timestamp: str, data: str):
+    """Calculate a timestamped signature."""
+    hmac = HMAC(key, SHA256())
+    hmac.update(timestamp.encode("utf-8"))
+    hmac.update(data.encode("utf-8"))
+    return b64encode(hmac.finalize()).decode("utf-8")
+
+def cbc_decode(key: bytes, data: str):
+    """Decoded encrypted fields based on shared key."""
+    raw = b64decode(data)
+    assert len(raw) >= 16
+    decryptor = Cipher(algorithms.AES(key[0:16]), modes.CBC(raw[0:16])).decryptor()
+    unpadder = PKCS7(128).unpadder()
+    result = decryptor.update(raw[16:]) + decryptor.finalize()
+    result = unpadder.update(result) + unpadder.finalize()
+    return result.decode("utf-8")
 
 class ConnectionFailure(Exception):
     pass
@@ -28,11 +47,18 @@ class PairingFailure(Exception):
         super().__init__(f"Failed to start pairing: {data}")
         self.data = data
 
+class NoneJsonData(Exception):
+    def __init__(self, data):
+        super().__init__(f"Non json data received: {data}")
+        self.data = data
+    """API Returned non json data when json was expected."""
+
+
 T = TypeVar('T') 
 
 class PhilipsTV(object):
 
-    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol="http", port=1925, username=None, password=None, verify=False):
+    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol=None, port=None, username=None, password=None, verify=False, auth_shared_key=None):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
@@ -47,8 +73,17 @@ class PhilipsTV(object):
         self.source_id = None
         self.channels = None
         self.channel_id = None
-        self.protocol = protocol
-        self.port = port
+        if auth_shared_key:
+            self.auth_shared_key = auth_shared_key
+        else:
+            self.auth_shared_key = AUTH_SHARED_KEY
+
+        if api_version == '6':
+            self.protocol = protocol or "https"
+            self.port = port or 1926
+        else:
+            self.protocol = protocol or "http"
+            self.port = port or 1925
 
         adapter = requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1, pool_block=True)
         self.session = requests.Session()
@@ -103,9 +138,11 @@ class PhilipsTV(object):
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
-    def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str, type: str):
+    def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str, type: str, device_id: Optional[str] = None):
         """Start up a pairing request."""
-        device_id = token_hex(16)
+        if device_id is None:
+            device_id = token_hex(16)
+
         device = {
             "device_name": device_name,
             "device_os": device_os,
@@ -133,6 +170,8 @@ class PhilipsTV(object):
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
             with self.session.post(self._url("pair/request"), json=data, auth=None) as resp:
+                if not resp.headers['content-type'].startswith("application/json"):
+                    raise NoneJsonData(resp.text)
                 data_response = resp.json()
 
         LOG.debug("pair/request response: %s", data_response)
@@ -144,19 +183,18 @@ class PhilipsTV(object):
 
         return state
 
-    def pairGrant(self, state: Dict[str, Any], pin: str, key: bytes):
+    def pairGrant(self, state: Dict[str, Any], pin: str):
         """Finish a pairing sequence"""
-
         auth_handler = HTTPDigestAuth(
             state["device"]["id"],
             state["auth_key"]
         )
 
-        signature = b64encode(hmac.new(
-            key=key,
-            msg=bytes(f"{state['timestamp']}{pin}", "utf-8"),
-            digestmod=hashlib.sha256,
-        ).digest()).decode("utf-8")
+        signature = hmac_signature(
+            self.auth_shared_key,
+            state['timestamp'],
+            pin
+        )
 
         auth = {
             "auth_appId" : "1",
@@ -175,6 +213,8 @@ class PhilipsTV(object):
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
             with self.session.post(self._url("pair/grant"), json=data, auth=auth_handler) as resp:
+                if not resp.headers['content-type'].startswith("application/json"):
+                    raise NoneJsonData(resp.text)
                 data_response = resp.json()
                 LOG.debug("pair/grant response: %s", data_response)
 
@@ -206,10 +246,19 @@ class PhilipsTV(object):
             self.on = False
             return False
 
+    def _decodeSystem(self, system) -> SystemType:
+        result: SystemType = {}
+        for key, value in system.items():
+            if key.endswith("_encrypted"):
+                result[key[:-10]] = cbc_decode(self.auth_shared_key, value)
+            else:
+                result[key] = value
+        return result
+
     def getSystem(self):
         r = cast(Optional[SystemType], self._getReq('system'))
         if r:
-            self.system = r
+            self.system = self._decodeSystem(r)
             self.name = r['name']
         else:
             self.system = {}
