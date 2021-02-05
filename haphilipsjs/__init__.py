@@ -24,7 +24,9 @@ class ConnectionFailure(Exception):
     pass
 
 class PairingFailure(Exception):
-    pass
+    def __init__(self, data):
+        super().__init__(f"Failed to start pairing: {data}")
+        self.data = data
 
 T = TypeVar('T') 
 
@@ -131,13 +133,11 @@ class PhilipsTV(object):
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
             with self.session.post(self._url("pair/request"), json=data, auth=None) as resp:
-                try:
-                    data_response = resp.json()
-                    LOG.debug("pair/request response: %s", data_response)
-                    if data_response.get("error_id") != "SUCCESS":
-                        raise PairingFailure(f"Failed to start pairing: {data_response}")
-                except ValueError as exc:
-                    raise PairingFailure(f"Failed to start pairing no valid json returned") from exc
+                data_response = resp.json()
+
+        LOG.debug("pair/request response: %s", data_response)
+        if data_response.get("error_id") != "SUCCESS":
+            raise PairingFailure(data_response)
 
         state["timestamp"] = data_response["timestamp"]
         state["auth_key"] = data_response["auth_key"]
@@ -177,6 +177,9 @@ class PhilipsTV(object):
             with self.session.post(self._url("pair/grant"), json=data, auth=auth_handler) as resp:
                 data_response = resp.json()
                 LOG.debug("pair/grant response: %s", data_response)
+
+        if data_response.get("error_id") != "SUCCESS":
+            raise PairingFailure(data_response)
 
         self.session.auth = auth_handler
         return state["device"]["id"], state["auth_key"]
