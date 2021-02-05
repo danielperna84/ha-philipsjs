@@ -10,7 +10,7 @@ from base64 import b64encode
 import hashlib
 import hmac
 
-from .typing import ActivitesTVType, ApplicationIntentType, ChannelDbTv, ChannelListType, ChannelsCurrentType
+from .typing import ActivitesTVType, ApplicationIntentType, ChannelDbTv, ChannelListType, ChannelsCurrentType, SystemType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -29,13 +29,14 @@ class PairingFailure(Exception):
 T = TypeVar('T') 
 
 class PhilipsTV(object):
+
     def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol="http", port=1925, username=None, password=None, verify=False):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
         self.on = False
         self.name = None
-        self.system = None
+        self.system: Optional[SystemType] = None
         self.min_volume = None
         self.max_volume = None
         self.volume = None
@@ -57,6 +58,13 @@ class PhilipsTV(object):
         self.session.verify = verify
         if username:
             self.session.auth = HTTPDigestAuth(username, password)
+
+    @property
+    def pairing_type(self):
+        if self.system:
+            return self.system.get("featuring", {}).get("systemfeatures", {}).get("pairing_type")
+        else:
+            return None
 
     def _url(self, path):
         return '{0}://{1}:{2}/{3}/{4}'.format(
@@ -196,7 +204,7 @@ class PhilipsTV(object):
             return False
 
     def getSystem(self):
-        r = self._getReq('system')
+        r = cast(Optional[SystemType], self._getReq('system'))
         if r:
             self.system = r
             self.name = r['name']

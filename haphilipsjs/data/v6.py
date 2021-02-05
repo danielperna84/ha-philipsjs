@@ -1,7 +1,7 @@
-from haphilipsjs.typing import ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ComponentType, FavoriteType
+from haphilipsjs.typing import ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ComponentType, FavoriteType, SystemType
 
 
-SYSTEM = {
+SYSTEM: SystemType = {
     "menulanguage": "Dutch",
     "name": "55PUS7181\/12",
     "country": "Netherlands",

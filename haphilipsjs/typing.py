@@ -64,3 +64,41 @@ class ChannelListType(TypedDict):
 class ChannelDbTv(TypedDict):
     channelLists: List[ChannelListType]
     favoriteLists: List[FavoriteType]
+
+class JsonFeaturesType(TypedDict, total=False):
+    editfavorites: List[str]
+    recordings: List[str]
+    ambilight: List[str]
+    menuitems: List[str]
+    textentry: List[str]
+    applications: List[str]
+    pointer: List[str]
+    inputkey: List[str]
+    activities: List[str]
+    channels: List[str]
+    mappings: List[str]
+
+class SystemFeaturesType(TypedDict, total=False):
+    tvtype: str
+    content: List[str]
+    tvsearch: str
+    pairing_type: str
+    secured_transport: str
+class SystemFeaturingType(TypedDict):
+    jsonfeatures: JsonFeaturesType
+    systemfeatures: SystemFeaturesType
+
+class SystemType(TypedDict, total=False):
+    menulanguage: str
+    name: str
+    country: str
+    serialnumber: str
+    serialnumber_encrypted: str
+    softwareversion: str
+    softwareversion_encrypted: str
+    model_encrypted: str
+    deviceid_encrypted: str
+    nettvversion: str
+    epgsource: str
+    api_version: Dict
+    featuring: SystemFeaturingType
