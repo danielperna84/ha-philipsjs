@@ -407,3 +407,7 @@ AMBILIGHT = {
         }
     },
 }
+
+POWERSTATE = {
+    "powerstate": "On"
+}

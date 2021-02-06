@@ -68,7 +68,7 @@ T = TypeVar('T')
 
 class PhilipsTV(object):
 
-    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, protocol=None, port=None, username=None, password=None, verify=False, auth_shared_key=None):
+    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, secured_transport=None, username=None, password=None, verify=False, auth_shared_key=None):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
@@ -90,12 +90,15 @@ class PhilipsTV(object):
         else:
             self.auth_shared_key = AUTH_SHARED_KEY
 
-        if api_version == '6':
-            self.protocol = protocol or "https"
-            self.port = port or 1926
+        if secured_transport is None:
+            secured_transport = api_version == '6'
+        
+        if secured_transport:            
+            self.protocol = "https"
+            self.port = 1926
         else:
-            self.protocol = protocol or "http"
-            self.port = port or 1925
+            self.protocol = "http"
+            self.port = 1925
 
         adapter = requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1, pool_block=True)
         self.session = requests.Session()

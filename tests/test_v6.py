@@ -4,10 +4,10 @@ import requests
 
 from haphilipsjs.data.v6 import (
     AMBILIGHT,
-    ACTIVITIES_TV,
+    ACTIVITIES_TV, APPLICATIONS,
     CHANNELDB_TV,
     CHANNELDB_TV_CHANNELLISTS_ALL,
-    ACTIVITIES_CURRENT,
+    ACTIVITIES_CURRENT, POWERSTATE,
     SYSTEM_DECRYPTED,
     SYSTEM_ENCRYPTED,
     VOLUME,
@@ -23,6 +23,8 @@ def client_mock(requests_mock):
     requests_mock.get(f"{BASE_URL}/channeldb/tv/channelLists/all", json=CHANNELDB_TV_CHANNELLISTS_ALL)
     requests_mock.get(f"{BASE_URL}/activities/current", json=ACTIVITIES_CURRENT)
     requests_mock.get(f"{BASE_URL}/activities/tv", json=ACTIVITIES_TV)
+    requests_mock.get(f"{BASE_URL}/applications", json=APPLICATIONS)
+    requests_mock.get(f"{BASE_URL}/powerstate", json=POWERSTATE)
     requests_mock.get(f"{BASE_URL}/audio/volume", json=VOLUME)
     requests_mock.get(f"{BASE_URL}/ambilight/mode", json=AMBILIGHT["mode"])
     requests_mock.get(f"{BASE_URL}/ambilight/topology", json=AMBILIGHT["topology"])
@@ -48,6 +50,8 @@ def test_basic_data(client_mock):
             "preset": "2"
         }
     }
+    assert client_mock.powerstate == POWERSTATE["powerstate"]
+    assert client_mock.applications == APPLICATIONS
 
 
 def test_current_channel_none(client_mock, requests_mock):
