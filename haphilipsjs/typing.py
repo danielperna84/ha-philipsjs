@@ -21,6 +21,7 @@ class ComponentType(TypedDict):
     className: str
 
 class ApplicationIntentType(TypedDict, total=False):
+    extras: Dict
     component: ComponentType
     action: str
 
