@@ -408,6 +408,4 @@ AMBILIGHT = {
     },
 }
 
-POWERSTATE = {
-    "powerstate": "On"
-}
+POWERSTATE = {"powerstate": "On"}

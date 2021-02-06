@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, TypeVar, cast
+from typing import Any, Dict, Optional, TypeVar, Union, cast
 import requests
 from requests.auth import HTTPDigestAuth
 import logging
@@ -83,14 +83,12 @@ class PhilipsTV(object):
         self.on = False
         self.name: Optional[str] = None
         self.system: Optional[SystemType] = None
-        self.min_volume = None
-        self.max_volume = None
-        self.volume = None
-        self.muted = None
         self.sources = None
         self.source_id = None
+        self.audio_volume = None
         self.channels: Optional[ChannelsType] = None
         self.channel_id: Optional[str] = None
+        self.channel: Optional[Union[ActivitesTVType, ChannelsCurrentType]] = None
         self.applications: Optional[ApplicationsType] = None
         self.application: Optional[ApplicationIntentType] = None
         if auth_shared_key:
@@ -131,6 +129,13 @@ class PhilipsTV(object):
             return None
 
     @property
+    def notify_change_supported(self) -> Optional[str]:
+        if self.system:
+            return self.system.get("notifyChange", None)
+        else:
+            return None
+
+    @property
     def channel_active(self):
         if self.application:
             return self.application in TV_PLAYBACK_INTENTS
@@ -138,14 +143,36 @@ class PhilipsTV(object):
             return self.channel_id is not None
         return False
 
+    @property
+    def min_volume(self):
+        if self.audio_volume:
+            return int(self.audio_volume['min'])
+        else:
+            return None
+
+    @property
+    def max_volume(self):
+        if self.audio_volume:
+            return int(self.audio_volume['max'])
+        else:
+            return None
+
+    @property
+    def volume(self):
+        if self.audio_volume and int(self.audio_volume['max']):
+            return self.audio_volume['current'] / int(self.audio_volume['max'])
+        else:
+            return None
+
+    @property
+    def muted(self):
+        if self.audio_volume:
+            return self.audio_volume['muted']
+        else:
+            return None
+
     def _url(self, path):
-        return '{0}://{1}:{2}/{3}/{4}'.format(
-            self.protocol,
-            self._host,
-            self.port,
-            self.api_version,
-            path
-        )
+        return f'{self.protocol}://{self._host}:{self.port}/{self.api_version}/{path}'
 
     def _getReq(self, path) -> Optional[Dict]:
 
@@ -160,18 +187,23 @@ class PhilipsTV(object):
             raise ConnectionFailure(str(err)) from err
 
 
-    def _postReq(self, path: str, data: Dict) -> bool:
+    def _postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
-                with self.session.post(self._url(path), json=data, timeout=TIMEOUT) as resp:
+                with self.session.post(self._url(path), json=data, timeout=timeout) as resp:
                     if resp.status_code == 200:
                         LOG.debug("Post succeded: %s", resp.text)
-                        return True
+                        if resp.headers.get('content-type', "").startswith("application/json"):
+                            return resp.json()
+                        else:
+                            return {}
                     else:
                         LOG.warning("Failed to post request: %s", resp.text)
-                        return False
+                        return None
+        except requests.exceptions.ReadTimeout:
+            return None
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
@@ -312,18 +344,12 @@ class PhilipsTV(object):
         return r
 
     def getAudiodata(self):
-        audiodata = self._getReq('audio/volume')
-        if audiodata:
-            self.min_volume = int(audiodata['min'])
-            self.max_volume = int(audiodata['max'])
-            self.volume = audiodata['current'] / self.max_volume
-            self.muted = audiodata['muted']
+        r = self._getReq('audio/volume')
+        if r:
+            self.audio_volume = r
         else:
-            self.min_volume = None
-            self.max_volume = None
-            self.volume = None
-            self.muted = None
-        return audiodata
+            self.audio_volume = r
+        return r
 
     def getChannels(self):
         if self.api_version >= 5:
@@ -349,8 +375,10 @@ class PhilipsTV(object):
             r = cast(Optional[ActivitesTVType], self._getReq('activities/tv'))
             if r and r['channel']:
                 # it could be empty if HDMI is set
+                self.channel = r
                 self.channel_id = str(r['channel']['ccid'])
             else:
+                self.channel = None
                 self.channel_id = None
         else:
             r = cast(Optional[ChannelsCurrentType], self._getReq('channels/current'))
@@ -358,6 +386,7 @@ class PhilipsTV(object):
                 self.channel_id = None
                 return
 
+            self.channel = r
             if not self.channels.get(r['id']):
                 pos = r['id'].find('_')
                 if pos > 0:
@@ -493,11 +522,10 @@ class PhilipsTV(object):
         if not self._postReq('audio/volume', data):
             return False
 
-        self.volume = level
-        self.muted = muted
+        self.audio_volume.update(data)
 
     def sendKey(self, key):
-        return self._postReq('input/key', {'key': key})
+        return bool(self._postReq('input/key', {'key': key}))
 
     def getAmbilightMode(self):
         data = self._getReq('ambilight/mode')
@@ -507,7 +535,7 @@ class PhilipsTV(object):
         data = {
             "current": mode
         }
-        return self._postReq('ambilight/mode', data)
+        return bool(self._postReq('ambilight/mode', data))
 
     def getAmbilightTopology(self):
         return self._getReq('ambilight/topology')
@@ -522,7 +550,7 @@ class PhilipsTV(object):
         return self._getReq('ambilight/cached')
 
     def setAmbilightCached(self, data):
-        return self._postReq('ambilight/cached', data)
+        return bool(self._postReq('ambilight/cached', data))
 
     def openURL(self, url):
         if self.api_version >= 6:
@@ -532,3 +560,33 @@ class PhilipsTV(object):
                 )
             ):
                 self._postReq('activities/browser', {'url': url})
+
+    def notifyChange(self, timeout = 30):
+        """Start a http connection waiting for changes."""
+        if not self.notify_change_supported:
+            return None
+
+        data = {
+            "notification": {
+                "activities/tv": self.channel,
+                "activities/current": self.application,
+                "powerstate": {"powerstate": self.powerstate},
+                "audio/volume": self.audio_volume
+            }
+        }
+        result = self._postReq('notifychange', data=data, timeout=timeout)
+        if result:
+            if "activities/tv" in result:
+                self.channel = result["activities/tv"]
+
+            if "activities/current" in result:
+                self.application = result["activities/current"]
+
+            if "powerstate" in result:
+                self.powerstate = result["powerstate"]["powerstate"]
+
+            if "audio/volume" in result:
+                self.audio_volume = result["audio/volume"]
+            return True
+        else:
+            return False
