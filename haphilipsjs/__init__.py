@@ -253,6 +253,7 @@ class PhilipsTV(object):
             if not self.on:
                 self.getApplications()
 
+            self.getPowerState()
             self.getAudiodata()
             self.getSourceId()
             self.getChannelId()
@@ -410,6 +411,26 @@ class PhilipsTV(object):
             else:
                 self.application_id = None
             return r
+
+    def getPowerState(self):
+        if self.api_version >= 5:
+            r = self._getReq('powerstate')
+            if r:
+                self.powerstate = cast(str, r["powerstate"])
+            else:
+                self.powerstate = None
+        else:
+            self.powerstate = None
+
+    def setPowerState(self, state):
+        if self.api_version >= 5:
+            data = {
+                "powerstate": state
+            }
+            if self._postReq('powerstate', data):
+                self.powerstate = state
+                return True
+        return False
 
     def setApplication(self, intent: ApplicationIntentType):
         if self.api_version >= 5:
