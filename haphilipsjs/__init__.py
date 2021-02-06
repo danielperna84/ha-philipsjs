@@ -21,6 +21,14 @@ DEFAULT_API_VERSION = 1
 AUTH_SHARED_KEY = b64decode("ZmVay1EQVFOaZhwQ4Kv81ypLAZNczV9sG4KkseXWn1NEk6cXmPKO/MCa9sryslvLCFMnNe4Z4CPXzToowvhHvA==")
 """Key used for hmac signatures and decoding of cbc data."""
 
+TV_PLAYBACK_INTENTS = [
+    {
+        'component': {
+            'className': 'org.droidtv.playtv.PlayTvActivity',
+            'packageName': 'org.droidtv.playtv'
+        }
+    }
+]
 
 def hmac_signature(key: bytes, timestamp: str, data: str):
     """Calculate a timestamped signature."""
@@ -121,6 +129,14 @@ class PhilipsTV(object):
             return self.system.get("featuring", {}).get("systemfeatures", {}).get("secured_transport") == "true"
         else:
             return None
+
+    @property
+    def channel_active(self):
+        if self.application:
+            return self.application in TV_PLAYBACK_INTENTS
+        if self.source_id in ("tv", "11", None):
+            return self.channel_id is not None
+        return False
 
     def _url(self, path):
         return '{0}://{1}:{2}/{3}/{4}'.format(
