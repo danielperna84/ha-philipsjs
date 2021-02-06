@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ApplicationIntentType, ChannelDbTv, ChannelListType, ChannelsCurrentType, SystemType
+from .typing import ActivitesTVType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, SystemType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -83,6 +83,8 @@ class PhilipsTV(object):
         self.source_id = None
         self.channels = None
         self.channel_id = None
+        self.applications = None
+        self.application_id = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
@@ -142,8 +144,10 @@ class PhilipsTV(object):
 
                 with self.session.post(self._url(path), json=data, timeout=TIMEOUT) as resp:
                     if resp.status_code == 200:
+                        LOG.debug("Post succeded: %s", resp.text)
                         return True
                     else:
+                        LOG.warning("Failed to post request: %s", resp.text)
                         return False
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
@@ -246,9 +250,13 @@ class PhilipsTV(object):
             if not self.on:
                 self.getChannels()
 
+            if not self.on:
+                self.getApplications()
+
             self.getAudiodata()
             self.getSourceId()
             self.getChannelId()
+            self.getApplication()
             self.on = True
             return True
         except ConnectionFailure as err:
@@ -387,11 +395,31 @@ class PhilipsTV(object):
 
     def getApplications(self):
         if self.api_version >= 5:
-            return self._getReq('applications')
+            r = cast(ApplicationsType, self._getReq('applications'))
+            if r:
+                self.applications = r
+            else:
+                self.applications = None
+            return r
 
-    def getApplicationId(self):
+    def getApplication(self):
         if self.api_version >= 5:
-            return cast(ApplicationIntentType, self._getReq('activities/current'))
+            r = cast(ApplicationIntentType, self._getReq('activities/current'))
+            if r:
+                self.application_id = r
+            else:
+                self.application_id = None
+            return r
+
+    def setApplication(self, intent: ApplicationIntentType):
+        if self.api_version >= 5:
+            data = {
+                "intent": intent
+            }
+            if self._postReq('activities/launch', data):
+                self.application_id = intent
+                return True
+        return False
 
     def setVolume(self, level, muted=False):
         data = {}

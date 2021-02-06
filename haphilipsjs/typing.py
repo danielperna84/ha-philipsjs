@@ -26,7 +26,7 @@ class ApplicationIntentType(TypedDict, total=False):
 
 class ApplicationType(TypedDict):
     label: str
-    intent: Dict
+    intent: ApplicationIntentType
     order: int
     id: str
     type: str
