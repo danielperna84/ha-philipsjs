@@ -90,10 +90,7 @@ class PhilipsTV(object):
         else:
             self.auth_shared_key = AUTH_SHARED_KEY
 
-        if secured_transport is None:
-            secured_transport = api_version == 6
-        
-        if secured_transport:            
+        if secured_transport:
             self.protocol = "https"
             self.port = 1926
         else:
@@ -115,6 +112,13 @@ class PhilipsTV(object):
     def pairing_type(self):
         if self.system:
             return self.system.get("featuring", {}).get("systemfeatures", {}).get("pairing_type")
+        else:
+            return None
+
+    @property
+    def secured_transport(self) -> Optional[bool]:
+        if self.system:
+            return self.system.get("featuring", {}).get("systemfeatures", {}).get("secured_transport") == "true"
         else:
             return None
 
@@ -241,19 +245,23 @@ class PhilipsTV(object):
         self.session.auth = auth_handler
         return state["device"]["id"], state["auth_key"]
 
+    def setTransport(self, secured_transport):
+        if secured_transport == True and self.protocol != "https":
+            LOG.info("Switching to secured transport")
+            self.protocol = "https"
+            self.port = 1926
+        elif secured_transport == False and self.protocol != "http":
+            LOG.info("Switching to unsecured transport")
+            self.protocol = "http"
+            self.port = 1925
 
     def update(self):
         try:
             if not self.on:
                 self.getSystem()
-
-            if not self.on:
+                self.setTransport(self.secured_transport)
                 self.getSources()
-
-            if not self.on:
                 self.getChannels()
-
-            if not self.on:
                 self.getApplications()
 
             self.getPowerState()

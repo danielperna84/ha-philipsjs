@@ -13,11 +13,11 @@ from haphilipsjs.data.v6 import (
     VOLUME,
 )
 
-BASE_URL = "http://127.0.0.1:1925/6"
+BASE_URL = "https://127.0.0.1:1926/6"
 
 @pytest.fixture
 def client_mock(requests_mock):
-    client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6)
+    client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6, secured_transport=True)
     requests_mock.get(f"{BASE_URL}/system", json=SYSTEM_ENCRYPTED)
     requests_mock.get(f"{BASE_URL}/channeldb/tv", json=CHANNELDB_TV)
     requests_mock.get(f"{BASE_URL}/channeldb/tv/channelLists/all", json=CHANNELDB_TV_CHANNELLISTS_ALL)
@@ -40,12 +40,12 @@ def test_basic_data(client_mock):
     assert client_mock.system == SYSTEM_DECRYPTED
     assert client_mock.sources is None
     assert client_mock.channels == {
-        1648: {
+        "1648": {
             "ccid": 1648,
             "preset": "1",
             "name": "Irdeto scrambled"
         },
-        1649:  {
+        "1649":  {
             "ccid": 1649,
             "preset": "2"
         }
@@ -56,7 +56,7 @@ def test_basic_data(client_mock):
 
 def test_current_channel_none(client_mock, requests_mock):
     client_mock.update()
-    assert client_mock.channel_id == 1648
+    assert client_mock.channel_id == "1648"
 
     requests_mock.get(f"{BASE_URL}/activities/tv", json={})
     client_mock.update()
@@ -66,7 +66,7 @@ def test_current_channel_none(client_mock, requests_mock):
 def test_get_channel_name(client_mock):
     """Verify that we can translate channel id to name"""
     client_mock.update()
-    assert client_mock.getChannelName(1648) == "Irdeto scrambled"
+    assert client_mock.getChannelName("1648") == "Irdeto scrambled"
     assert client_mock.getChannelName("balha") == None
 
 
