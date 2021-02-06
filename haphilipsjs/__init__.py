@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, SystemType
+from .typing import ActivitesTVType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, SystemType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -73,7 +73,7 @@ class PhilipsTV(object):
         self._connfail = 0
         self.api_version = int(api_version)
         self.on = False
-        self.name = None
+        self.name: Optional[str] = None
         self.system: Optional[SystemType] = None
         self.min_volume = None
         self.max_volume = None
@@ -81,17 +81,17 @@ class PhilipsTV(object):
         self.muted = None
         self.sources = None
         self.source_id = None
-        self.channels = None
-        self.channel_id = None
-        self.applications = None
-        self.application_id = None
+        self.channels: Optional[ChannelsType] = None
+        self.channel_id: Optional[str] = None
+        self.applications: Optional[ApplicationsType] = None
+        self.application: Optional[ApplicationIntentType] = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
             self.auth_shared_key = AUTH_SHARED_KEY
 
         if secured_transport is None:
-            secured_transport = api_version == '6'
+            secured_transport = api_version == 6
         
         if secured_transport:            
             self.protocol = "https"
@@ -269,13 +269,13 @@ class PhilipsTV(object):
             return False
 
     def _decodeSystem(self, system) -> SystemType:
-        result: SystemType = {}
+        result = {}
         for key, value in system.items():
             if key.endswith("_encrypted"):
                 result[key[:-10]] = cbc_decode(self.auth_shared_key, value)
             else:
                 result[key] = value
-        return result
+        return cast(SystemType, result)
 
     def getSystem(self):
         r = cast(Optional[SystemType], self._getReq('system'))
@@ -305,15 +305,15 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             self.channels = {}
             for channelListId in self.getChannelLists():
-                r = cast(ChannelListType, self._getReq(
+                r = cast(Optional[ChannelListType], self._getReq(
                     'channeldb/tv/channelLists/{}'.format(channelListId)
                 ))
                 if r:
                     for channel in r.get('Channel', []):
-                        self.channels[channel['ccid']] = channel
+                        self.channels[str(channel['ccid'])] = channel
                 return r
         else:
-            r = self._getReq('channels')
+            r = cast(Optional[ChannelsType], self._getReq('channels'))
             if r:
                 self.channels = r
             else:
@@ -325,7 +325,7 @@ class PhilipsTV(object):
             r = cast(Optional[ActivitesTVType], self._getReq('activities/tv'))
             if r and r['channel']:
                 # it could be empty if HDMI is set
-                self.channel_id = r['channel']['ccid']
+                self.channel_id = str(r['channel']['ccid'])
             else:
                 self.channel_id = None
         else:
@@ -391,6 +391,7 @@ class PhilipsTV(object):
             return None
         if self.api_version < 5:
             return self.sources.get(srcid, dict()).get('name', None)
+        return None
 
     def setSource(self, source_id):
         if self.api_version < 5:
@@ -410,9 +411,9 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             r = cast(ApplicationIntentType, self._getReq('activities/current'))
             if r:
-                self.application_id = r
+                self.application = r
             else:
-                self.application_id = None
+                self.application = None
             return r
 
     def getPowerState(self):
@@ -441,7 +442,7 @@ class PhilipsTV(object):
                 "intent": intent
             }
             if self._postReq('activities/launch', data):
-                self.application_id = intent
+                self.application = intent
                 return True
         return False
 

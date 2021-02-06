@@ -25,7 +25,7 @@ def monitor_run(stdscr, tv: PhilipsTV):
 
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
-            stdscr.addstr(offset_y+1, offset_x, "-----------".format(side))
+            stdscr.addstr(offset_y+1, offset_x, "-----------")
             for pixel, data in layer[side].items():
                 stdscr.addstr(
                     offset_y+2+int(pixel),

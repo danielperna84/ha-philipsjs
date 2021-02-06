@@ -1,5 +1,12 @@
+from haphilipsjs.typing import (
+    ChannelsCurrentType, SourcesType,
+    SystemType,
+    SourceCurrentType,
+    ChannelsType,
+)
 
-SYSTEM = {
+
+SYSTEM: SystemType = {
 	"menulanguage": "English",
 	"name": "Philips TV",
 	"country": "Sweden",
@@ -8,7 +15,7 @@ SYSTEM = {
 	"model": "55PFL6007T/12"
 }
 
-SOURCES = {
+SOURCES: SourcesType = {
     "tv":
     {
         "name": "Watch TV"
@@ -51,11 +58,11 @@ SOURCES = {
     }
 }
 
-SOURCES_CURRENT = {
+SOURCES_CURRENT: SourceCurrentType = {
     "id": "hdmi1"
 }
 
-CHANNELS = {
+CHANNELS: ChannelsType = {
     "fingerprint-1":
     {
         "preset": "1",
@@ -78,7 +85,7 @@ CHANNELS = {
     },
 }
 
-CHANNELS_CURRENT = {
+CHANNELS_CURRENT: ChannelsCurrentType = {
     "id": "fingerprint-1"
 }
 

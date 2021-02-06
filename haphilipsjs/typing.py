@@ -62,6 +62,8 @@ class ChannelListType(TypedDict):
     modifiable: bool
     Channel: List[ChannelType]
 
+ChannelsType = Dict[str, ChannelType]
+
 class ChannelDbTv(TypedDict):
     channelLists: List[ChannelListType]
     favoriteLists: List[FavoriteType]
@@ -98,6 +100,7 @@ class SystemType(TypedDict, total=False):
     serialnumber_encrypted: str
     softwareversion: str
     softwareversion_encrypted: str
+    model: str
     model_encrypted: str
     deviceid_encrypted: str
     nettvversion: str
@@ -106,3 +109,12 @@ class SystemType(TypedDict, total=False):
     featuring: SystemFeaturingType
     notifyChange: str
     os_type: str
+
+class SourceType(TypedDict, total=False):
+    name: str
+
+
+SourcesType = Dict[str, SourceType]
+
+class SourceCurrentType(TypedDict):
+    id: str
