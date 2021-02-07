@@ -339,6 +339,7 @@ class PhilipsTV(object):
             return True
         except ConnectionFailure as err:
             LOG.debug("Exception: %s", str(err))
+            self.on = False
             return False
 
     def _decodeSystem(self, system) -> SystemType:
