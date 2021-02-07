@@ -1,11 +1,11 @@
 from typing import Dict, List, Optional, TypedDict, Union
 
-class ActivitiesChannelType(TypedDict):
+class ActivitiesChannelType(TypedDict, total=False):
     ccid: int
     name: str
     preset: str
 
-class ActivitiesChannelListType(TypedDict):
+class ActivitiesChannelListType(TypedDict, total=False):
     id: str
     version: str
 

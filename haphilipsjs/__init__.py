@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, SystemType
+from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, SystemType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -87,7 +87,6 @@ class PhilipsTV(object):
         self.source_id = None
         self.audio_volume = None
         self.channels: Optional[ChannelsType] = None
-        self.channel_id: Optional[str] = None
         self.channel: Optional[Union[ActivitesTVType, ChannelsCurrentType]] = None
         self.applications: Optional[ApplicationsType] = None
         self.application: Optional[ApplicationIntentType] = None
@@ -170,6 +169,26 @@ class PhilipsTV(object):
             return self.audio_volume['muted']
         else:
             return None
+
+    @property
+    def channel_id(self):
+        if self.api_version >= 5:
+            r = cast(Optional[ActivitesTVType], self.channel)
+            if r and r['channel']:
+                # it could be empty if HDMI is set
+                return str(r['channel']['ccid'])
+            else:
+                return None
+        else:
+            r = cast(Optional[ChannelsCurrentType], self.channel)
+            if not r:
+                return None
+
+            if not self.channels.get(r['id']):
+                pos = r['id'].find('_')
+                if pos > 0:
+                    return r['id'][pos+1:]
+            return r['id']
 
     def _url(self, path):
         return f'{self.protocol}://{self._host}:{self.port}/{self.api_version}/{path}'
@@ -373,26 +392,10 @@ class PhilipsTV(object):
     def getChannelId(self):
         if self.api_version >= 5:
             r = cast(Optional[ActivitesTVType], self._getReq('activities/tv'))
-            if r and r['channel']:
-                # it could be empty if HDMI is set
-                self.channel = r
-                self.channel_id = str(r['channel']['ccid'])
-            else:
-                self.channel = None
-                self.channel_id = None
         else:
             r = cast(Optional[ChannelsCurrentType], self._getReq('channels/current'))
-            if not r:
-                self.channel_id = None
-                return
 
-            self.channel = r
-            if not self.channels.get(r['id']):
-                pos = r['id'].find('_')
-                if pos > 0:
-                    self.channel_id = r['id'][pos+1:]
-                    return
-            self.channel_id = r['id']
+        self.channel = r
         return r
 
     def getChannelName(self, ccid) -> Optional[str]:
@@ -401,14 +404,15 @@ class PhilipsTV(object):
         return self.channels.get(ccid, dict()).get('name', None)
 
     def setChannel(self, ccid):
+        channel: Union[ActivitesTVType, ChannelsCurrentType]
         if self.api_version >= 5:
-            def setChannelBody(ccid):
-                return {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
-            if self._postReq('activities/tv', setChannelBody(ccid)):
-                self.channel_id = ccid
+            channel = {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
+            if self._postReq('activities/tv', cast(Dict, channel)):
+                self.channel = channel
         else:
-            if self._postReq('channels/current', {'id': ccid}):
-                self.channel_id = ccid
+            channel = {'id': ccid}
+            if self._postReq('channels/current', cast(Dict, channel)):
+                self.channel = channel
 
     def getChannelLists(self):
         if self.api_version >= 5:
