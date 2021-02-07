@@ -203,6 +203,7 @@ class PhilipsTV(object):
                         return None
                     return resp.json()
         except requests.exceptions.RequestException as err:
+            self.on = False
             raise ConnectionFailure(str(err)) from err
 
 
@@ -340,7 +341,6 @@ class PhilipsTV(object):
             return True
         except ConnectionFailure as err:
             LOG.debug("Exception: %s", str(err))
-            self.on = False
             return False
 
     def _decodeSystem(self, system) -> SystemType:
