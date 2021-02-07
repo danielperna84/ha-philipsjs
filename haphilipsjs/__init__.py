@@ -203,9 +203,7 @@ class PhilipsTV(object):
                         return None
                     return resp.json()
         except requests.exceptions.RequestException as err:
-            self.on = False
             raise ConnectionFailure(str(err)) from err
-
 
     def _postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
         try:
@@ -578,7 +576,12 @@ class PhilipsTV(object):
                 "audio/volume": self.audio_volume
             }
         }
-        result = self._postReq('notifychange', data=data, timeout=timeout)
+        try:
+            result = self._postReq('notifychange', data=data, timeout=timeout)
+        except ConnectionFailure as err:
+            LOG.debug("Exception: %s", str(err))
+            self.on = False
+            result = None
         if result:
             if "activities/tv" in result:
                 self.channel = result["activities/tv"]
