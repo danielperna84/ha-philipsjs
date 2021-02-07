@@ -7,11 +7,13 @@ def readme():
 
 PACKAGE_NAME = 'ha-philipsjs'
 HERE = os.path.abspath(os.path.dirname(__file__))
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*', 'dist', 'ccu', 'build'])
 
-REQUIRES = []
+REQUIRES = [
+    "cryptography"
+]
 
 setup(
         name=PACKAGE_NAME,
@@ -32,7 +34,7 @@ setup(
             'Intended Audience :: Developers',
             'License :: OSI Approved :: MIT License',
             'Operating System :: OS Independent',
-            'Programming Language :: Python :: 3.4'
+            'Programming Language :: Python :: 3.8'
         ],
         extras_require={
             'tests': [
@@ -43,4 +45,5 @@ setup(
                 'requests-mock'
             ]
         },
+        python_requires='>=3.8'
 )

@@ -25,7 +25,7 @@ def monitor_run(stdscr, tv: PhilipsTV):
 
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
-            stdscr.addstr(offset_y+1, offset_x, "-----------".format(side))
+            stdscr.addstr(offset_y+1, offset_x, "-----------")
             for pixel, data in layer[side].items():
                 stdscr.addstr(
                     offset_y+2+int(pixel),
@@ -87,7 +87,7 @@ if __name__ == '__main__':
             print(
                 'Sources: {}'.format(
                 ', '.join([
-                    tv.getSourceName(srcid)
+                    tv.getSourceName(srcid) or "None"
                     for srcid in tv.sources
                 ]))
             )
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             print(
                 'Channels: {}'.format(
                 ', '.join([
-                    tv.getChannelName(ccid)
+                    tv.getChannelName(ccid) or "None"
                     for ccid in list(tv.channels.keys())[:10]
                 ]))
             )
