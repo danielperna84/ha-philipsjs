@@ -7,7 +7,7 @@ from haphilipsjs.data.v6 import (
     ACTIVITIES_TV, APPLICATIONS,
     CHANNELDB_TV,
     CHANNELDB_TV_CHANNELLISTS_ALL,
-    ACTIVITIES_CURRENT, POWERSTATE,
+    ACTIVITIES_CURRENT, CONTEXT, POWERSTATE,
     SYSTEM_DECRYPTED,
     SYSTEM_ENCRYPTED,
     VOLUME,
@@ -25,6 +25,7 @@ def client_mock(requests_mock):
     requests_mock.get(f"{BASE_URL}/activities/tv", json=ACTIVITIES_TV)
     requests_mock.get(f"{BASE_URL}/applications", json=APPLICATIONS)
     requests_mock.get(f"{BASE_URL}/powerstate", json=POWERSTATE)
+    requests_mock.get(f"{BASE_URL}/context", json=CONTEXT)
     requests_mock.get(f"{BASE_URL}/audio/volume", json=VOLUME)
     requests_mock.get(f"{BASE_URL}/ambilight/mode", json=AMBILIGHT["mode"])
     requests_mock.get(f"{BASE_URL}/ambilight/topology", json=AMBILIGHT["topology"])

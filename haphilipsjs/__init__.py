@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, TypeVar, Union, cast
+from typing import Any, Dict, Optional, Tuple, TypeVar, Union, cast
 import requests
 from requests.auth import HTTPDigestAuth
 import logging
@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, SystemType
+from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, ContextType, SystemType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -90,6 +90,7 @@ class PhilipsTV(object):
         self.channel: Optional[Union[ActivitesTVType, ChannelsCurrentType]] = None
         self.applications: Optional[ApplicationsType] = None
         self.application: Optional[ApplicationIntentType] = None
+        self.context: Optional[ContextType] = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
@@ -142,6 +143,8 @@ class PhilipsTV(object):
 
     @property
     def channel_active(self):
+        if self.context:
+            return self.context["level1"] in ("WatchTv", "WatchSatellite")
         if self.application:
             return self.application in TV_PLAYBACK_INTENTS
         if self.source_id in ("tv", "11", None):
@@ -208,6 +211,18 @@ class PhilipsTV(object):
                     if resp.status_code != 200:
                         return None
                     return resp.json()
+        except requests.exceptions.RequestException as err:
+            raise ConnectionFailure(str(err)) from err
+
+    def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
+
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+                with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
+                    if resp.status_code != 200:
+                        return None, None
+                    return resp.content, resp.headers["Content-Type"]
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
@@ -341,6 +356,7 @@ class PhilipsTV(object):
             self.getSourceId()
             self.getChannelId()
             self.getApplication()
+            self.getContext()
             self.on = True
             return True
         except ConnectionFailure as err:
@@ -408,25 +424,18 @@ class PhilipsTV(object):
             return None
         return self.channels.get(ccid, dict()).get('name', None)
 
-    def getChannelLogo(self, ccid, channel_list="all") -> bytes:
-        def getter(path):
-            try:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-                    with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
-                        print(resp.status_code)
-                        if resp.status_code != 200:
-                            return None
-                        return resp
-            except requests.exceptions.RequestException as err:
-                raise ConnectionFailure(str(err)) from err
-
+    def getChannelLogo(self, ccid, channel_list="all") -> Optional[bytes]:
         if self.api_version >= 5:
-            r = getter(f"channeldb/tv/channelLists/{channel_list}/{ccid}/logo")
+            data, _ = self._getBinary(f"channeldb/tv/channelLists/{channel_list}/{ccid}/logo")
         else:
-            r = getter(f"channels/{ccid}/logo.png")
-        return r.content
+            data, _ = self._getBinary(f"channels/{ccid}/logo.png")
+        return data
 
+    def getContext(self) -> Optional[ContextType]:
+        if self.api_version >= 5:
+            r = cast(Optional[ContextType], self._getReq(f"context"))
+            self.context = r
+            return r
 
     def setChannel(self, ccid):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
@@ -600,7 +609,8 @@ class PhilipsTV(object):
                 "activities/tv": self.channel,
                 "activities/current": self.application,
                 "powerstate": {"powerstate": self.powerstate},
-                "audio/volume": self.audio_volume
+                "audio/volume": self.audio_volume,
+                "context": self.context,
             }
         }
         try:
@@ -621,6 +631,9 @@ class PhilipsTV(object):
 
             if "audio/volume" in result:
                 self.audio_volume = result["audio/volume"]
+
+            if "context" in result:
+                self.context = result["context"]
             return True
         else:
             return False

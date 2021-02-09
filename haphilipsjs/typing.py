@@ -118,3 +118,9 @@ SourcesType = Dict[str, SourceType]
 
 class SourceCurrentType(TypedDict):
     id: str
+
+class ContextType(TypedDict):
+    data: str
+    level1: str
+    level2: str
+    level3: str

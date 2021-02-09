@@ -4,7 +4,7 @@ from haphilipsjs.typing import (
     ApplicationsType,
     ChannelDbTv,
     ChannelListType,
-    ComponentType,
+    ComponentType, ContextType,
     FavoriteType,
     SystemType,
 )
@@ -409,3 +409,10 @@ AMBILIGHT = {
 }
 
 POWERSTATE = {"powerstate": "On"}
+
+CONTEXT: ContextType = {
+    'data': 'NA',
+    'level1': 'WatchTv',
+    'level2': 'Playstate',
+    'level3': 'NA'
+}
