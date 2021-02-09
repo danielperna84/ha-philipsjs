@@ -102,7 +102,13 @@ class PhilipsTV(object):
             self.protocol = "http"
             self.port = 1925
 
-        adapter = requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=1, pool_block=True)
+        # for devices with notify support we must have two
+        if self.api_version > 1:
+            pool_maxsize=2
+        else:
+            pool_maxsize=1
+
+        adapter = requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=pool_maxsize, pool_block=True)
         self.session = requests.Session()
         self.session.verify=False
         self.session.mount("http://", adapter)
