@@ -408,6 +408,26 @@ class PhilipsTV(object):
             return None
         return self.channels.get(ccid, dict()).get('name', None)
 
+    def getChannelLogo(self, ccid, channel_list="all") -> bytes:
+        def getter(path):
+            try:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
+                    with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
+                        print(resp.status_code)
+                        if resp.status_code != 200:
+                            return None
+                        return resp
+            except requests.exceptions.RequestException as err:
+                raise ConnectionFailure(str(err)) from err
+
+        if self.api_version >= 5:
+            r = getter(f"channeldb/tv/channelLists/{channel_list}/{ccid}/logo")
+        else:
+            r = getter(f"channels/{ccid}/logo.png")
+        return r.content
+
+
     def setChannel(self, ccid):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
         if self.api_version >= 5:
