@@ -143,8 +143,10 @@ class PhilipsTV(object):
 
     @property
     def channel_active(self):
-        if self.context:
+        if self.context and "level1" in self.context:
             return self.context["level1"] in ("WatchTv", "WatchSatellite")
+        if self.context and "activity" in self.context:
+            return self.context["activity"] in ("WatchTv", "WatchSatellite")
         if self.application:
             return self.application in TV_PLAYBACK_INTENTS
         if self.source_id in ("tv", "11", None):

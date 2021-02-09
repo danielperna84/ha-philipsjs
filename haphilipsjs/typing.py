@@ -119,8 +119,15 @@ SourcesType = Dict[str, SourceType]
 class SourceCurrentType(TypedDict):
     id: str
 
-class ContextType(TypedDict):
+class ContextType1(TypedDict):
     data: str
     level1: str
     level2: str
     level3: str
+
+class ContextType2(TypedDict):
+    activity: str
+    menu: str
+    Recording: str
+
+ContextType = Union[ContextType1, ContextType2]
