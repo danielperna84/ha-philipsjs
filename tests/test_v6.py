@@ -11,6 +11,7 @@ from haphilipsjs.data.v6 import (
     SYSTEM_DECRYPTED,
     SYSTEM_ENCRYPTED,
     VOLUME,
+    SCREENSTATE,
 )
 
 BASE_URL = "https://127.0.0.1:1926/6"
@@ -25,6 +26,7 @@ def client_mock(requests_mock):
     requests_mock.get(f"{BASE_URL}/activities/tv", json=ACTIVITIES_TV)
     requests_mock.get(f"{BASE_URL}/applications", json=APPLICATIONS)
     requests_mock.get(f"{BASE_URL}/powerstate", json=POWERSTATE)
+    requests_mock.get(f"{BASE_URL}/screenstate", json=SCREENSTATE)
     requests_mock.get(f"{BASE_URL}/context", json=CONTEXT)
     requests_mock.get(f"{BASE_URL}/audio/volume", json=VOLUME)
     requests_mock.get(f"{BASE_URL}/ambilight/mode", json=AMBILIGHT["mode"])
@@ -52,6 +54,7 @@ def test_basic_data(client_mock):
         }
     }
     assert client_mock.powerstate == POWERSTATE["powerstate"]
+    assert client_mock.screenstate == SCREENSTATE["screenstate"]
     assert client_mock.applications == APPLICATIONS
 
 

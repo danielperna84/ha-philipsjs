@@ -409,6 +409,7 @@ AMBILIGHT = {
 }
 
 POWERSTATE = {"powerstate": "On"}
+SCREENSTATE = {"screenstate": "On"}
 
 CONTEXT: ContextType = {
     'data': 'NA',

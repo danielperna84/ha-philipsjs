@@ -91,6 +91,7 @@ class PhilipsTV(object):
         self.applications: Optional[ApplicationsType] = None
         self.application: Optional[ApplicationIntentType] = None
         self.context: Optional[ContextType] = None
+        self.screenstate: Optional[str] = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
@@ -371,6 +372,7 @@ class PhilipsTV(object):
             self.getChannelId()
             self.getApplication()
             self.getContext()
+            self.getScreenState()
             self.on = True
             return True
         except ConnectionFailure as err:
@@ -528,6 +530,7 @@ class PhilipsTV(object):
                 self.powerstate = cast(str, r["powerstate"])
             else:
                 self.powerstate = None
+            return r
         else:
             self.powerstate = None
 
@@ -538,6 +541,27 @@ class PhilipsTV(object):
             }
             if self._postReq('powerstate', data):
                 self.powerstate = state
+                return True
+        return False
+
+    def getScreenState(self):
+        if self.api_version >= 5:
+            r = self._getReq('screenstate')
+            if r:
+                self.screenstate = cast(str, r["screenstate"])
+            else:
+                self.screenstate = None
+            return r
+        else:
+            self.screenstate = None
+
+    def setScreenState(self, state):
+        if self.api_version >= 5:
+            data = {
+                "screenstate": state
+            }
+            if self._postReq('screenstate', data):
+                self.screenstate = state
                 return True
         return False
 
@@ -625,6 +649,7 @@ class PhilipsTV(object):
                 "powerstate": {"powerstate": self.powerstate},
                 "audio/volume": self.audio_volume,
                 "context": self.context,
+                "screenstate": self.screenstate,
             }
         }
         try:
@@ -648,6 +673,9 @@ class PhilipsTV(object):
 
             if "context" in result:
                 self.context = result["context"]
+
+            if "screenstate" in result:
+                self.screenstate = result["screenstate"]["screenstate"]
             return True
         else:
             return False
