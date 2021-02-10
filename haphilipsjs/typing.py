@@ -4,6 +4,13 @@ class ActivitiesChannelType(TypedDict, total=False):
     ccid: int
     name: str
     preset: str
+    onid: str
+    tsid: str
+    sid: str
+    serviceType: str
+    type: str
+    logoVersion: str
+
 
 class ActivitiesChannelListType(TypedDict, total=False):
     id: str
