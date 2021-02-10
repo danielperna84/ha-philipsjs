@@ -142,6 +142,13 @@ class PhilipsTV(object):
             return None
 
     @property
+    def api_version_detected(self) -> Optional[int]:
+        if self.system:
+            return self.system.get("api_version", {}).get("Major")
+        else:
+            return None
+
+    @property
     def channel_active(self):
         if self.context and "level1" in self.context:
             return self.context["level1"] in ("WatchTv", "WatchSatellite")
@@ -334,7 +341,7 @@ class PhilipsTV(object):
         self.session.auth = auth_handler
         return state["device"]["id"], state["auth_key"]
 
-    def setTransport(self, secured_transport):
+    def setTransport(self, secured_transport: Optional[bool] = None, api_version: Optional[int] = None):
         if secured_transport == True and self.protocol != "https":
             LOG.info("Switching to secured transport")
             self.protocol = "https"
@@ -343,6 +350,11 @@ class PhilipsTV(object):
             LOG.info("Switching to unsecured transport")
             self.protocol = "http"
             self.port = 1925
+
+        if api_version and api_version != self.api_version:
+            LOG.info("Switching to api_version %d", api_version)
+            self.api_version = api_version
+
 
     def update(self):
         try:
