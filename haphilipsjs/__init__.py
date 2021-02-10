@@ -523,6 +523,11 @@ class PhilipsTV(object):
                 self.application = None
             return r
 
+    def getApplicationIcon(self, id) -> Optional[bytes]:
+        if self.api_version >= 5:
+            data, _ = self._getBinary(f"applications/{id}/icon")
+            return data
+
     def getPowerState(self):
         if self.api_version >= 5:
             r = self._getReq('powerstate')
