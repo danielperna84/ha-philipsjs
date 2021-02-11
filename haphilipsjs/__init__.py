@@ -244,7 +244,7 @@ class PhilipsTV(object):
                 with self.session.post(self._url(path), json=data, timeout=timeout) as resp:
                     if resp.status_code == 200:
                         LOG.debug("Post succeded: %s", resp.text)
-                        if resp.headers.get('content-type', "").startswith("application/json"):
+                        if resp.headers.get('content-type', "").startswith("application/json") and resp.text:
                             return resp.json()
                         else:
                             return {}
