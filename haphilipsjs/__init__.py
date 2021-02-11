@@ -440,12 +440,12 @@ class PhilipsTV(object):
             return None
         return self.channels.get(ccid, dict()).get('name', None)
 
-    def getChannelLogo(self, ccid, channel_list="all") -> Optional[bytes]:
+    def getChannelLogo(self, ccid, channel_list="all") -> Tuple[Optional[bytes], Optional[str]]:
         if self.api_version >= 5:
-            data, _ = self._getBinary(f"channeldb/tv/channelLists/{channel_list}/{ccid}/logo")
+            data, content_type = self._getBinary(f"channeldb/tv/channelLists/{channel_list}/{ccid}/logo")
         else:
-            data, _ = self._getBinary(f"channels/{ccid}/logo.png")
-        return data
+            data, content_type = self._getBinary(f"channels/{ccid}/logo.png")
+        return data, content_type
 
     def getContext(self) -> Optional[ContextType]:
         if self.api_version >= 5:
@@ -523,10 +523,12 @@ class PhilipsTV(object):
                 self.application = None
             return r
 
-    def getApplicationIcon(self, id) -> Optional[bytes]:
+    def getApplicationIcon(self, id) -> Tuple[Optional[bytes], Optional[str]]:
         if self.api_version >= 5:
-            data, _ = self._getBinary(f"applications/{id}/icon")
-            return data
+            data, content_type = self._getBinary(f"applications/{id}/icon")
+            return data, content_type
+        else:
+            return None, None
 
     def getPowerState(self):
         if self.api_version >= 5:
