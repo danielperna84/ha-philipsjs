@@ -610,6 +610,9 @@ class PhilipsTV(object):
     def sendKey(self, key):
         return bool(self._postReq('input/key', {'key': key}))
 
+    def sendUnicode(self, key: str):
+        return bool(self._postReq('input/key', {'unicode': key}))
+
     def getAmbilightMode(self):
         data = self._getReq('ambilight/mode')
         return data["current"]
