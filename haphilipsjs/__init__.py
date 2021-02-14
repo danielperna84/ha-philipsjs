@@ -627,7 +627,10 @@ class PhilipsTV(object):
         self.audio_volume.update(data)
 
     def sendKey(self, key):
-        return bool(self._postReq('input/key', {'key': key}))
+        res = bool(self._postReq('input/key', {'key': key}))
+        if res:
+            if key == "Mute" and self.audio_volume:
+                self.audio_volume["muted"] = not self.audio_volume["muted"]
 
     def sendUnicode(self, key: str):
         return bool(self._postReq('input/key', {'unicode': key}))
