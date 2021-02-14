@@ -141,6 +141,14 @@ class PhilipsTV(object):
             self.session.auth = HTTPDigestAuth(username, password)
 
     @property
+    def quirk_playpause_spacebar(self):
+        """Does this tv need workaround for playpause."""
+        if self.system:
+            return self.system.get("os_type", "").startswith("MSAF_")
+        else:
+            return None
+
+    @property
     def pairing_type(self):
         if self.system:
             return self.system.get("featuring", {}).get("systemfeatures", {}).get("pairing_type")
