@@ -178,12 +178,23 @@ def test_set_channel(client_mock, requests_mock):
 def test_send_key(client_mock, requests_mock):
     requests_mock.post(f"{BASE_URL}/input/key", json={})
 
+    client_mock.update()
     client_mock.sendKey("Standby")
 
     assert requests_mock.last_request.url == f"{BASE_URL}/input/key"
     assert requests_mock.last_request.json() == {
         "key": "Standby",
     }
+
+    assert client_mock.audio_volume["muted"] == False
+    client_mock.sendKey("Mute")
+    assert client_mock.audio_volume["muted"] == True
+
+    assert client_mock.audio_volume["current"] == 18
+    client_mock.sendKey("VolumeUp")
+    assert client_mock.audio_volume["current"] == 19
+    client_mock.sendKey("VolumeDown")
+    assert client_mock.audio_volume["current"] == 18
 
 
 def test_send_key_off(client_mock, requests_mock):

@@ -627,13 +627,20 @@ class PhilipsTV(object):
         self.audio_volume.update(data)
 
     def sendKey(self, key):
-        res = bool(self._postReq('input/key', {'key': key}))
+        res = self._postReq('input/key', {'key': key}) is not None
         if res:
-            if key == "Mute" and self.audio_volume:
-                self.audio_volume["muted"] = not self.audio_volume["muted"]
+            if key == "Mute":
+                if self.audio_volume:
+                    self.audio_volume["muted"] = not self.audio_volume["muted"]
+            elif key == "VolumeUp":
+                if self.audio_volume and self.audio_volume["current"] < self.audio_volume["max"]:
+                    self.audio_volume["current"] += 1
+            elif key == "VolumeDown":
+                if self.audio_volume and self.audio_volume["current"] > self.audio_volume["min"]:
+                    self.audio_volume["current"] -= 1
 
     def sendUnicode(self, key: str):
-        return bool(self._postReq('input/key', {'unicode': key}))
+        return self._postReq('input/key', {'unicode': key}) is not None
 
     def getAmbilightMode(self):
         data = self._getReq('ambilight/mode')
