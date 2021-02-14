@@ -262,13 +262,13 @@ class PhilipsTV(object):
 
                 with self.session.post(self._url(path), json=data, timeout=timeout) as resp:
                     if resp.status_code == 200:
-                        LOG.debug("Post succeded: %s", resp.text)
+                        LOG.debug("Post succeded: %s -> %s", data, resp.text)
                         if resp.headers.get('content-type', "").startswith("application/json"):
                             return decode_xtv_json(resp.text)
                         else:
                             return {}
                     else:
-                        LOG.warning("Failed to post request: %s", resp.text)
+                        LOG.warning("Post failed: %s -> %s", data, resp.text)
                         return None
         except requests.exceptions.ReadTimeout:
             return None
