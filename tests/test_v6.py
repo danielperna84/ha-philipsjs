@@ -7,7 +7,9 @@ from haphilipsjs.data.v6 import (
     ACTIVITIES_TV, APPLICATIONS,
     CHANNELDB_TV,
     CHANNELDB_TV_CHANNELLISTS_ALL,
-    ACTIVITIES_CURRENT, CONTEXT, POWERSTATE,
+    ACTIVITIES_CURRENT,
+    CONTEXT,
+    POWERSTATE,
     SYSTEM_DECRYPTED,
     SYSTEM_ENCRYPTED,
     VOLUME,
@@ -225,3 +227,10 @@ def test_ambilight_cached(client_mock, requests_mock):
 
     assert requests_mock.last_request.url == f"{BASE_URL}/ambilight/cached"
     assert requests_mock.last_request.json() == data
+
+def test_buggy_json():
+    assert haphilipsjs.decode_xtv_json("") == {}
+    assert haphilipsjs.decode_xtv_json("}") == {}
+    assert haphilipsjs.decode_xtv_json('{,"a":{}}') == {}
+    assert haphilipsjs.decode_xtv_json('{"a":{},}') == {"a": {}}
+    assert haphilipsjs.decode_xtv_json('{"a":{},,,"b":{}}') == {"a": {}, "b": {}}

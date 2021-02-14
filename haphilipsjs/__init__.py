@@ -4,6 +4,7 @@ from requests.auth import HTTPDigestAuth
 import logging
 import warnings
 import urllib3
+import json
 from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
 
@@ -56,6 +57,24 @@ def cbc_encode(key: bytes, data: str):
     result = padder.update(raw) + padder.finalize()
     result = encryptor.update(result) + encryptor.finalize()
     return b64encode(iv + result).decode("utf-8")
+
+def decode_xtv_json(text: str):
+    if text == "" or text == "}":
+        LOG.debug("Ignoring invalid json %s", text)
+        return {}
+
+    try:
+        data = json.loads(text)
+    except json.decoder.JSONDecodeError:
+        LOG.debug("Invalid json received, trying adjusted version")
+        text = text.replace("{,", "{")
+        text = text.replace(",}", "}")
+        while (p:= text.find(",,")) >= 0:
+            text = text[:p] + text[p+1:]
+        data = json.loads(text)
+
+    return data
+
 
 class ConnectionFailure(Exception):
     pass
@@ -220,7 +239,7 @@ class PhilipsTV(object):
                 with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
                     if resp.status_code != 200:
                         return None
-                    return resp.json()
+                    return decode_xtv_json(resp.text)
         except requests.exceptions.RequestException as err:
             raise ConnectionFailure(str(err)) from err
 
@@ -245,11 +264,7 @@ class PhilipsTV(object):
                     if resp.status_code == 200:
                         LOG.debug("Post succeded: %s", resp.text)
                         if resp.headers.get('content-type', "").startswith("application/json"):
-                            if resp.text and resp.text != "}":
-                                return resp.json()
-                            else:
-                                LOG.debug("Ignoring invalid json %s", resp.text)
-                                return {}
+                            return decode_xtv_json(resp.text)
                         else:
                             return {}
                     else:
