@@ -231,6 +231,6 @@ def test_ambilight_cached(client_mock, requests_mock):
 def test_buggy_json():
     assert haphilipsjs.decode_xtv_json("") == {}
     assert haphilipsjs.decode_xtv_json("}") == {}
-    assert haphilipsjs.decode_xtv_json('{,"a":{}}') == {}
+    assert haphilipsjs.decode_xtv_json('{,"a":{}}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},,,"b":{}}') == {"a": {}, "b": {}}
