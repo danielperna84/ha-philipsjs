@@ -679,7 +679,7 @@ class PhilipsTV(object):
                 "powerstate": {"powerstate": self.powerstate},
                 "audio/volume": self.audio_volume,
                 "context": self.context,
-                "screenstate": self.screenstate,
+                "screenstate": {"screenstate": self.screenstate},
             }
         }
         try:
