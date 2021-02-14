@@ -7,7 +7,7 @@ def readme():
 
 PACKAGE_NAME = 'ha-philipsjs'
 HERE = os.path.abspath(os.path.dirname(__file__))
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*', 'dist', 'ccu', 'build'])
 
@@ -24,6 +24,8 @@ setup(
         author='Daniel Perna',
         author_email='danielperna84@gmail.com',
         description='jointSPACE API for Home-Assistant',
+        long_description=readme(),
+        long_description_content_type='text/markdown',
         packages=PACKAGES,
         include_package_data=True,
         zip_safe=False,
