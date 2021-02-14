@@ -105,6 +105,8 @@ if __name__ == '__main__':
 
     pair = subparsers.add_parser("pair", help="Pair with tv")
 
+    markdown = subparsers.add_parser("markdown", help="Print markdown for commandline")
+
     args = parser.parse_args()
     logging.basicConfig(level=args.debug and logging.DEBUG or logging.INFO)
     haphilipsjs.TIMEOUT = 60.0
@@ -166,3 +168,7 @@ if __name__ == '__main__':
 
         print(f"Username: {res[0]}")
         print(f"Password: {res[1]}")
+
+    elif args.command == "markdown":
+        import argmark
+        argmark.md_help(parser)

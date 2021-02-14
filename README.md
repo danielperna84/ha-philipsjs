@@ -34,11 +34,8 @@ print(username)
 print(password)
 ```
 
-Command line utility:
-```bash
-> python -m haphilipsjs -h
-```
 
+Command line utility:
 ```
 usage: python -m haphilipsjs [-h] [-d] -i HOST -a API [-u USERNAME] [-p PASSWORD] {status,monitor,ambilight,pair} ...
 
