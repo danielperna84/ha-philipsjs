@@ -634,7 +634,8 @@ class PhilipsTV(object):
 
     def getAmbilightMode(self):
         data = self._getReq('ambilight/mode')
-        return data["current"]
+        if data:
+            return data["current"]
 
     def setAmbilightMode(self, mode):
         data = {

@@ -33,3 +33,30 @@ username, password = tv.pairGrant(state, pin)
 print(username)
 print(password)
 ```
+
+Command line utility:
+```bash
+> python -m haphilipsjs -h
+```
+
+```
+usage: python -m haphilipsjs [-h] [-d] -i HOST -a API [-u USERNAME] [-p PASSWORD] {status,monitor,ambilight,pair} ...
+
+positional arguments:
+  {status,monitor,ambilight,pair}
+                        commands
+    status              Show current tv status
+    monitor             Monitor current tv status
+    ambilight           Control ambilight
+    pair                Pair with tv
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d, --debug           Debug output
+  -i HOST, --host HOST
+  -a API, --api API
+  -u USERNAME, --username USERNAME
+                        Username
+  -p PASSWORD, --password PASSWORD
+                        Password
+```

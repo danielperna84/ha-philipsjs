@@ -1,19 +1,25 @@
 import curses
+import platform
 from . import PhilipsTV
 
 def monitor_run(stdscr, tv: PhilipsTV):
 
     stdscr.clear()
+    stdscr.timeout(1000)
 
-    source_pad = stdscr.subpad(2, 15, 0, 0)
-    channel_pad = stdscr.subpad(2, 15, 0, 15)
+    tv.update()
 
-    ambilight_pad = stdscr.subpad(10, 80, 3, 0)
+    def get_application_name():
 
+        if tv.applications:
+            for app in tv.applications["applications"]:
+                if app["intent"] == tv.application:
+                    return app["label"]
 
+        return f"{tv.application['component']['className']}"
 
     while True:
-        tv.update()
+
         stdscr.clear()
         stdscr.addstr(0, 0, "Source")
         if tv.source_id:
@@ -23,9 +29,22 @@ def monitor_run(stdscr, tv: PhilipsTV):
         if tv.channel_id:
             stdscr.addstr(1, 15, tv.getChannelName(tv.channel_id))
 
+        stdscr.addstr(0, 30, "Application")
+        if tv.application:
+            stdscr.addstr(1, 30, get_application_name())
+
+        stdscr.addstr(0, 45, "Context")
+        if tv.context:
+            stdscr.addstr(1, 45, tv.context.get("level1", ""))
+            stdscr.addstr(2, 45, tv.context.get("level2", ""))
+            stdscr.addstr(3, 45, tv.context.get("level3", ""))
+            stdscr.addstr(3, 45, tv.context.get("data", ""))
+
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
             stdscr.addstr(offset_y+1, offset_x, "-----------")
+            if side not in layer:
+                return
             for pixel, data in layer[side].items():
                 stdscr.addstr(
                     offset_y+2+int(pixel),
@@ -36,14 +55,18 @@ def monitor_run(stdscr, tv: PhilipsTV):
         ambilight = tv.getAmbilightProcessed()
         if ambilight:
             for idx, layer in enumerate(ambilight.values()):
-                offset_y = 5 + 6*idx
+                offset_y = 6 + 6*idx
                 print_pixels("left", offset_y, 0)
                 print_pixels("top", offset_y, 15)
                 print_pixels("right", offset_y, 30)
                 print_pixels("bottom", offset_y, 45)
 
         stdscr.refresh()
-        curses.napms(1000)
+        tv.update()
+        key = stdscr.getch()
+        
+        if key == ord("q"):
+            break
 
 def monitor(tv):
     curses.wrapper(monitor_run, tv)
@@ -56,7 +79,7 @@ if __name__ == '__main__':
 
     logger = logging.getLogger(__name__)
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog="python -m haphilipsjs")
     parser.add_argument(
         "-d",
         "--debug",
@@ -67,16 +90,27 @@ if __name__ == '__main__':
     )
     parser.add_argument("-i", "--host", dest="host", required=True)
     parser.add_argument("-a", "--api", dest="api", required=True)
-    parser.add_argument("-s", "--status", dest="status", help="Print current status", action='store_true')
-    parser.add_argument("--ambilight_mode", dest="ambilight_mode", type=str)
-    parser.add_argument("--ambilight_cached", dest="ambilight_cached", type=ast.literal_eval)
-    parser.add_argument("--monitor", dest="monitor", action="store_true")
+    parser.add_argument("-u", "--username", dest="username", help="Username", required=False)
+    parser.add_argument("-p", "--password", dest="password", help="Password", required=False)
+
+    subparsers = parser.add_subparsers(help='commands', dest="command")
+
+    status = subparsers.add_parser("status", help="Show current tv status")
+
+    mon = subparsers.add_parser("monitor", help="Monitor current tv status")
+
+    ambilight = subparsers.add_parser("ambilight", help="Control ambilight")
+    ambilight.add_argument("--ambilight_mode", dest="ambilight_mode", type=str, required=False)
+    ambilight.add_argument("--ambilight_cached", dest="ambilight_cached", type=ast.literal_eval, required=False)
+
+    pair = subparsers.add_parser("pair", help="Pair with tv")
+
     args = parser.parse_args()
     logging.basicConfig(level=args.debug and logging.DEBUG or logging.INFO)
     haphilipsjs.TIMEOUT = 60.0
-    tv = haphilipsjs.PhilipsTV(args.host, int(args.api))
+    tv = haphilipsjs.PhilipsTV(args.host, int(args.api), username=args.username, password=args.password)
 
-    if args.status:
+    if args.command == "status":
         tv.update()
         tv.getChannelId()
         tv.getChannels()
@@ -97,21 +131,38 @@ if __name__ == '__main__':
                 'Channels: {}'.format(
                 ', '.join([
                     tv.getChannelName(ccid) or "None"
-                    for ccid in list(tv.channels.keys())[:10]
+                    for ccid in list(tv.channels.keys())
                 ]))
             )
+        print('Context: {}'.format(tv.context))
 
         print('Ambilight mode: {}'.format(tv.getAmbilightMode()))
         print('Ambilight topology: {}'.format(tv.getAmbilightTopology()))
+        print('Ambilight processed: {}'.format(tv.getAmbilightProcessed()))
+        print('Ambilight measured: {}'.format(tv.getAmbilightMeasured()))
 
 
-    if args.ambilight_mode:
-        if not tv.setAmbilightMode(args.ambilight_mode):
-            print("Failed to set mode")
+    elif args.command == "ambilight":
+        if args.ambilight_mode:
+            if not tv.setAmbilightMode(args.ambilight_mode):
+                print("Failed to set mode")
 
-    if args.ambilight_cached:
-        if not tv.setAmbilightCached(args.ambilight_cached):
-            print("Failed to set ambilight cached")
+        if args.ambilight_cached:
+            if not tv.setAmbilightCached(args.ambilight_cached):
+                print("Failed to set ambilight cached")
 
-    if args.monitor:
+    elif args.command == "monitor":
         monitor(tv)
+
+
+    elif args.command == "pair":
+        tv.getSystem()
+        tv.setTransport(tv.secured_transport, tv.api_version_detected)
+        state = tv.pairRequest("ha-philipsjs", "ha-philipsjs", platform.node(), platform.system(), "native")
+
+        pin = input("Please enter pin displayed on scree")
+
+        res = tv.pairGrant(state, pin)
+
+        print(f"Username: {res[0]}")
+        print(f"Password: {res[1]}")
