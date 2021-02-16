@@ -484,11 +484,11 @@ class PhilipsTV(object):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
         if self.api_version >= 5:
             channel = {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
-            if self._postReq('activities/tv', cast(Dict, channel)):
+            if self._postReq('activities/tv', cast(Dict, channel)) is not None:
                 self.channel = channel
         else:
             channel = {'id': ccid}
-            if self._postReq('channels/current', cast(Dict, channel)):
+            if self._postReq('channels/current', cast(Dict, channel)) is not None:
                 self.channel = channel
 
     def getChannelLists(self):
@@ -529,7 +529,7 @@ class PhilipsTV(object):
 
     def setSource(self, source_id):
         if self.api_version < 5:
-            if self._postReq('sources/current', {'id': source_id}):
+            if self._postReq('sources/current', {'id': source_id}) is not None:
                 self.source_id = source_id
 
     def getApplications(self):
@@ -573,7 +573,7 @@ class PhilipsTV(object):
             data = {
                 "powerstate": state
             }
-            if self._postReq('powerstate', data):
+            if self._postReq('powerstate', data) is not None:
                 self.powerstate = state
                 return True
         return False
@@ -594,7 +594,7 @@ class PhilipsTV(object):
             data = {
                 "screenstate": state
             }
-            if self._postReq('screenstate', data):
+            if self._postReq('screenstate', data) is not None:
                 self.screenstate = state
                 return True
         return False
@@ -604,7 +604,7 @@ class PhilipsTV(object):
             data = {
                 "intent": intent
             }
-            if self._postReq('activities/launch', data):
+            if self._postReq('activities/launch', data) is not None:
                 self.application = intent
                 return True
         return False
@@ -629,7 +629,7 @@ class PhilipsTV(object):
 
         data['muted'] = muted
 
-        if not self._postReq('audio/volume', data):
+        if self._postReq('audio/volume', data) is None:
             return False
 
         self.audio_volume.update(data)
@@ -659,7 +659,7 @@ class PhilipsTV(object):
         data = {
             "current": mode
         }
-        return bool(self._postReq('ambilight/mode', data))
+        return self._postReq('ambilight/mode', data) is not None
 
     def getAmbilightTopology(self):
         return self._getReq('ambilight/topology')
@@ -674,7 +674,7 @@ class PhilipsTV(object):
         return self._getReq('ambilight/cached')
 
     def setAmbilightCached(self, data):
-        return bool(self._postReq('ambilight/cached', data))
+        return self._postReq('ambilight/cached', data) is not None
 
     def openURL(self, url):
         if self.api_version >= 6:
