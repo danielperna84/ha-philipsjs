@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional, Tuple, TypeVar, Union, cast
-import requests
-from requests.auth import HTTPDigestAuth
+import httpx
 import logging
 import warnings
 import urllib3
@@ -134,16 +133,12 @@ class PhilipsTV(object):
         else:
             pool_maxsize=1
 
-        adapter = requests.sessions.HTTPAdapter(pool_connections=1, pool_maxsize=pool_maxsize, pool_block=True)
-        self.session = requests.Session()
-        self.session.verify=False
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
+        limits = httpx.Limits(max_keepalive_connections=1, max_connections=pool_maxsize)
+        self.session = httpx.Client(limits=limits, verify=False)
         self.session.headers["Accept"] = "application/json"
 
-        self.session.verify = verify
-        if username:
-            self.session.auth = HTTPDigestAuth(username, password)
+        if username and password:
+            self.session.auth = httpx.DigestAuth(username, password)
 
     @property
     def quirk_playpause_spacebar(self):
@@ -249,11 +244,11 @@ class PhilipsTV(object):
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-                with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
-                    if resp.status_code != 200:
-                        return None
-                    return decode_xtv_json(resp.text)
-        except requests.exceptions.RequestException as err:
+                resp = self.session.get(self._url(path), timeout=TIMEOUT)
+                if resp.status_code != 200:
+                    return None
+                return decode_xtv_json(resp.text)
+        except httpx.HTTPError as err:
             raise ConnectionFailure(str(err)) from err
 
     def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
@@ -261,11 +256,11 @@ class PhilipsTV(object):
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-                with self.session.get(self._url(path), timeout=TIMEOUT) as resp:
-                    if resp.status_code != 200:
-                        return None, None
-                    return resp.content, resp.headers["Content-Type"]
-        except requests.exceptions.RequestException as err:
+                resp = self.session.get(self._url(path), timeout=TIMEOUT)
+                if resp.status_code != 200:
+                    return None, None
+                return resp.content, resp.headers["Content-Type"]
+        except httpx.HTTPError as err:
             raise ConnectionFailure(str(err)) from err
 
     def _postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
@@ -273,19 +268,19 @@ class PhilipsTV(object):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
-                with self.session.post(self._url(path), json=data, timeout=timeout) as resp:
-                    if resp.status_code == 200:
-                        LOG.debug("Post succeded: %s -> %s", data, resp.text)
-                        if resp.headers.get('content-type', "").startswith("application/json"):
-                            return decode_xtv_json(resp.text)
-                        else:
-                            return {}
+                resp = self.session.post(self._url(path), json=data, timeout=timeout)
+                if resp.status_code == 200:
+                    LOG.debug("Post succeded: %s -> %s", data, resp.text)
+                    if resp.headers.get('content-type', "").startswith("application/json"):
+                        return decode_xtv_json(resp.text)
                     else:
-                        LOG.warning("Post failed: %s -> %s", data, resp.text)
-                        return None
-        except requests.exceptions.ReadTimeout:
+                        return {}
+                else:
+                    LOG.warning("Post failed: %s -> %s", data, resp.text)
+                    return None
+        except httpx.ReadTimeout:
             return None
-        except requests.exceptions.RequestException as err:
+        except httpx.HTTPError as err:
             raise ConnectionFailure(str(err)) from err
 
     def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str, type: str, device_id: Optional[str] = None):
@@ -319,10 +314,10 @@ class PhilipsTV(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
-            with self.session.post(self._url("pair/request"), json=data, auth=None) as resp:
-                if not resp.headers['content-type'].startswith("application/json"):
-                    raise NoneJsonData(resp.text)
-                data_response = resp.json()
+            resp = self.session.post(self._url("pair/request"), json=data, auth=None)
+            if not resp.headers['content-type'].startswith("application/json"):
+                raise NoneJsonData(resp.text)
+            data_response = resp.json()
 
         LOG.debug("pair/request response: %s", data_response)
         if data_response.get("error_id") != "SUCCESS":
@@ -335,7 +330,7 @@ class PhilipsTV(object):
 
     def pairGrant(self, state: Dict[str, Any], pin: str):
         """Finish a pairing sequence"""
-        auth_handler = HTTPDigestAuth(
+        auth_handler = httpx.DigestAuth(
             state["device"]["id"],
             state["auth_key"]
         )
@@ -362,11 +357,11 @@ class PhilipsTV(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
 
-            with self.session.post(self._url("pair/grant"), json=data, auth=auth_handler) as resp:
-                if not resp.headers['content-type'].startswith("application/json"):
-                    raise NoneJsonData(resp.text)
-                data_response = resp.json()
-                LOG.debug("pair/grant response: %s", data_response)
+            resp = self.session.post(self._url("pair/grant"), json=data, auth=auth_handler)
+            if not resp.headers['content-type'].startswith("application/json"):
+                raise NoneJsonData(resp.text)
+            data_response = resp.json()
+            LOG.debug("pair/grant response: %s", data_response)
 
         if data_response.get("error_id") != "SUCCESS":
             raise PairingFailure(data_response)

@@ -1,6 +1,9 @@
+import httpx
 import haphilipsjs
 import pytest
-import requests
+import respx
+import json
+from typing import cast, Dict
 
 from haphilipsjs.data.v1 import (
     AMBILIGHT,
@@ -14,21 +17,22 @@ from haphilipsjs.data.v1 import (
 )
 
 @pytest.fixture
-def client_mock(requests_mock):
-    client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=1)
-    requests_mock.get("http://127.0.0.1:1925/1/system", json=SYSTEM)
-    requests_mock.get("http://127.0.0.1:1925/1/sources", json=SOURCES)
-    requests_mock.get("http://127.0.0.1:1925/1/sources/current", json=SOURCES_CURRENT)
-    requests_mock.get("http://127.0.0.1:1925/1/channels", json=CHANNELS)
-    requests_mock.get("http://127.0.0.1:1925/1/channels/current", json=CHANNELS_CURRENT)
-    requests_mock.get("http://127.0.0.1:1925/1/audio/volume", json=VOLUME)
-    requests_mock.get("http://127.0.0.1:1925/1/channellists", json=CHANNELLISTS)
-    requests_mock.get("http://127.0.0.1:1925/1/ambilight/mode", json=AMBILIGHT["mode"])
-    requests_mock.get("http://127.0.0.1:1925/1/ambilight/topology", json=AMBILIGHT["topology"])
-    requests_mock.get("http://127.0.0.1:1925/1/ambilight/measured", json=AMBILIGHT["measured"])
-    requests_mock.get("http://127.0.0.1:1925/1/ambilight/processed", json=AMBILIGHT["processed"])
-    requests_mock.get("http://127.0.0.1:1925/1/ambilight/cached", json=AMBILIGHT["cached"])
-    yield client
+def client_mock():
+    with respx.mock:
+        client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=1)
+        respx.get("http://127.0.0.1:1925/1/system").respond(json=cast(Dict, SYSTEM))
+        respx.get("http://127.0.0.1:1925/1/sources").respond(json=SOURCES)
+        respx.get("http://127.0.0.1:1925/1/sources/current").respond(json=cast(Dict, SOURCES_CURRENT))
+        respx.get("http://127.0.0.1:1925/1/channels").respond(json=CHANNELS)
+        respx.get("http://127.0.0.1:1925/1/channels/current").respond(json=cast(Dict, CHANNELS_CURRENT))
+        respx.get("http://127.0.0.1:1925/1/audio/volume").respond(json=VOLUME)
+        respx.get("http://127.0.0.1:1925/1/channellists").respond(json=CHANNELLISTS)
+        respx.get("http://127.0.0.1:1925/1/ambilight/mode").respond(json=AMBILIGHT["mode"])
+        respx.get("http://127.0.0.1:1925/1/ambilight/topology").respond(json=AMBILIGHT["topology"])
+        respx.get("http://127.0.0.1:1925/1/ambilight/measured").respond(json=AMBILIGHT["measured"])
+        respx.get("http://127.0.0.1:1925/1/ambilight/processed").respond(json=AMBILIGHT["processed"])
+        respx.get("http://127.0.0.1:1925/1/ambilight/cached").respond(json=AMBILIGHT["cached"])
+        yield client
 
 def test_basic_data(client_mock):
     """Test for basic data"""
@@ -39,26 +43,26 @@ def test_basic_data(client_mock):
     assert client_mock.channels == CHANNELS
 
 
-def test_current_source_none(client_mock, requests_mock):
+def test_current_source_none(client_mock):
     client_mock.update()
     assert client_mock.source_id == "hdmi1"
 
-    requests_mock.get("http://127.0.0.1:1925/1/sources/current", json={})
+    respx.get("http://127.0.0.1:1925/1/sources/current").respond(json={})
     client_mock.update()
     assert client_mock.source_id == None
 
 
-def test_current_channel_none(client_mock, requests_mock):
+def test_current_channel_none(client_mock):
     client_mock.update()
     assert client_mock.channel_id == "fingerprint-1"
 
-    requests_mock.get("http://127.0.0.1:1925/1/channels/current", json={})
+    respx.get("http://127.0.0.1:1925/1/channels/current").respond(json={})
     client_mock.update()
     assert client_mock.channel_id == None
 
 
-def test_current_channel_with_channellist_prefix(client_mock, requests_mock):
-    requests_mock.get("http://127.0.0.1:1925/1/channels/current", json={
+def test_current_channel_with_channellist_prefix(client_mock):
+    respx.get("http://127.0.0.1:1925/1/channels/current").respond(json={
         "id": "0_fingerprint-1"
     })
     client_mock.update()
@@ -79,23 +83,23 @@ def test_get_channel_name(client_mock):
     assert client_mock.getChannelName("invalid_name") == None
 
 
-def test_timeout(client_mock, requests_mock):
+def test_timeout(client_mock):
     """Test that connect timeouts trigger tv to be considered off"""
     client_mock.update()
     assert client_mock.on == True
-    requests_mock.get("http://127.0.0.1:1925/1/sources/current", exc=requests.exceptions.ConnectTimeout)
+    respx.get("http://127.0.0.1:1925/1/sources/current").mock(side_effect=httpx.ConnectTimeout)
 
     client_mock.update()
     assert client_mock.on == False
 
-    requests_mock.get("http://127.0.0.1:1925/1/sources/current", json=SOURCES_CURRENT)
+    respx.get("http://127.0.0.1:1925/1/sources/current").respond(json=cast(Dict, SOURCES_CURRENT))
 
     client_mock.update()
     assert client_mock.on == True
 
 
-def test_volume(client_mock, requests_mock):
-    requests_mock.get("http://127.0.0.1:1925/1/audio/volume", json={
+def test_volume(client_mock):
+    respx.get("http://127.0.0.1:1925/1/audio/volume").respond(json={
         "muted": True,
         "current": 30,
         "min": 0,
@@ -106,7 +110,7 @@ def test_volume(client_mock, requests_mock):
     assert client_mock.volume == 0.5
     assert client_mock.muted == True
 
-    requests_mock.get("http://127.0.0.1:1925/1/audio/volume", json={
+    respx.get("http://127.0.0.1:1925/1/audio/volume").respond(json={
         "muted": False,
         "current": 60,
         "min": 0,
@@ -117,7 +121,7 @@ def test_volume(client_mock, requests_mock):
     assert client_mock.volume == 1.0
     assert client_mock.muted == False
 
-    requests_mock.get("http://127.0.0.1:1925/1/audio/volume", json={
+    respx.get("http://127.0.0.1:1925/1/audio/volume").respond(json={
         "muted": False,
         "current": 0,
         "min": 0,
@@ -129,86 +133,86 @@ def test_volume(client_mock, requests_mock):
     assert client_mock.muted == False
 
 
-def test_set_volume(client_mock, requests_mock):
+def test_set_volume(client_mock):
     client_mock.update()
-    requests_mock.post("http://127.0.0.1:1925/1/audio/volume", json={})
+    respx.post("http://127.0.0.1:1925/1/audio/volume").respond(json={})
 
     client_mock.setVolume(0.5)
 
-    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/audio/volume"
-    assert requests_mock.last_request.json() == {
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/audio/volume"
+    assert json.loads(respx.calls[-1].request.content) == {
         "muted": False,
         "current": 30,
     }
 
     client_mock.setVolume(1.0, True)
 
-    assert requests_mock.last_request.json() == {
+    assert json.loads(respx.calls[-1].request.content) == {
         "muted": True,
         "current": 60,
     }
 
     client_mock.setVolume(0.0, True)
 
-    assert requests_mock.last_request.json() == {
+    assert json.loads(respx.calls[-1].request.content) == {
         "muted": True,
         "current": 0,
     }
 
     client_mock.setVolume(None, True)
 
-    assert requests_mock.last_request.json() == {
+    assert json.loads(respx.calls[-1].request.content) == {
         "muted": True,
     }
 
 
-def test_set_source(client_mock, requests_mock):
-    requests_mock.post("http://127.0.0.1:1925/1/sources/current", json={})
+def test_set_source(client_mock):
+    respx.post("http://127.0.0.1:1925/1/sources/current").respond(json={})
 
     client_mock.setSource("hdmi2")
 
-    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/sources/current"
-    assert requests_mock.last_request.json() == {
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/sources/current"
+    assert json.loads(respx.calls[-1].request.content) == {
         "id": "hdmi2",
     }
 
 
-def test_set_channel(client_mock, requests_mock):
-    requests_mock.post("http://127.0.0.1:1925/1/channels/current", json={})
+def test_set_channel(client_mock):
+    respx.post("http://127.0.0.1:1925/1/channels/current").respond(json={})
 
     client_mock.setChannel("fingerprint-2")
 
-    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/channels/current"
-    assert requests_mock.last_request.json() == {
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/channels/current"
+    assert json.loads(respx.calls[-1].request.content) == {
         "id": "fingerprint-2",
     }
 
 
-def test_send_key(client_mock, requests_mock):
-    requests_mock.post("http://127.0.0.1:1925/1/input/key", json={})
+def test_send_key(client_mock):
+    respx.post("http://127.0.0.1:1925/1/input/key").respond(json={})
 
     client_mock.sendKey("Standby")
 
-    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/input/key"
-    assert requests_mock.last_request.json() == {
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/input/key"
+    assert json.loads(respx.calls[-1].request.content) == {
         "key": "Standby",
     }
 
 
-def test_send_key_off(client_mock, requests_mock):
-    requests_mock.post("http://127.0.0.1:1925/1/input/key", exc=requests.exceptions.ConnectTimeout)
+def test_send_key_off(client_mock):
+    respx.post("http://127.0.0.1:1925/1/input/key").mock(side_effect=httpx.RequestError("", request=httpx.Request("", url="")))
 
     with pytest.raises(haphilipsjs.ConnectionFailure):
         client_mock.sendKey("Standby")
 
-def test_ambilight_mode(client_mock, requests_mock):
+def test_ambilight_mode(client_mock):
     assert client_mock.getAmbilightMode() == "internal"
 
-    requests_mock.post("http://127.0.0.1:1925/1/ambilight/mode", json={})
+    respx.post("http://127.0.0.1:1925/1/ambilight/mode").respond(json={})
     client_mock.setAmbilightMode("manual")
 
-    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/ambilight/mode"
-    assert requests_mock.last_request.json() == {
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/ambilight/mode"
+    assert json.loads(respx.calls[-1].request.content) == {
         "current": "manual",
     }
 
@@ -221,10 +225,10 @@ def test_ambilight_measured(client_mock):
 def test_ambilight_processed(client_mock):
     assert client_mock.getAmbilightProcessed() == AMBILIGHT["processed"]
 
-def test_ambilight_cached(client_mock, requests_mock):
+def test_ambilight_cached(client_mock):
     assert client_mock.getAmbilightCached() == AMBILIGHT["cached"]
 
-    requests_mock.post("http://127.0.0.1:1925/1/ambilight/cached", json={})
+    respx.post("http://127.0.0.1:1925/1/ambilight/cached").respond(json={})
 
     data = {
         "r": 100,
@@ -234,5 +238,5 @@ def test_ambilight_cached(client_mock, requests_mock):
 
     client_mock.setAmbilightCached(data)
 
-    assert requests_mock.last_request.url == "http://127.0.0.1:1925/1/ambilight/cached"
-    assert requests_mock.last_request.json() == data
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/ambilight/cached"
+    assert json.loads(respx.calls[-1].request.content) == data
