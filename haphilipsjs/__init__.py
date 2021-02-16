@@ -111,6 +111,8 @@ class PhilipsTV(object):
         self.application: Optional[ApplicationIntentType] = None
         self.context: Optional[ContextType] = None
         self.screenstate: Optional[str] = None
+        self.ambilight_mode = None
+        self.ambilight_cached = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
@@ -653,13 +655,19 @@ class PhilipsTV(object):
     def getAmbilightMode(self):
         data = self._getReq('ambilight/mode')
         if data:
+            self.ambilight_mode = data["current"]
             return data["current"]
+        else:
+            self.ambilight_mode = None
 
     def setAmbilightMode(self, mode):
         data = {
             "current": mode
         }
-        return self._postReq('ambilight/mode', data) is not None
+        if self._postReq('ambilight/mode', data) is None:
+            return False
+        self.ambilight_mode = mode
+        return True
 
     def getAmbilightTopology(self):
         return self._getReq('ambilight/topology')
@@ -671,10 +679,17 @@ class PhilipsTV(object):
         return self._getReq('ambilight/processed')
 
     def getAmbilightCached(self):
-        return self._getReq('ambilight/cached')
+        r = self._getReq('ambilight/cached')
+        if r:
+            self.ambilight_cached = r
+        else:
+            self.ambilight_cached = None
 
     def setAmbilightCached(self, data):
-        return self._postReq('ambilight/cached', data) is not None
+        if self._postReq('ambilight/cached', data) is None:
+            return False
+        self.ambilight_cached = data
+        return True
 
     def openURL(self, url):
         if self.api_version >= 6:
