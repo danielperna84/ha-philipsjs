@@ -111,8 +111,11 @@ class PhilipsTV(object):
         self.application: Optional[ApplicationIntentType] = None
         self.context: Optional[ContextType] = None
         self.screenstate: Optional[str] = None
+        self.ambilight_topology = None
         self.ambilight_mode = None
         self.ambilight_cached = None
+        self.ambilight_measured = None
+        self.ambilight_processed = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
@@ -670,13 +673,25 @@ class PhilipsTV(object):
         return True
 
     def getAmbilightTopology(self):
-        return self._getReq('ambilight/topology')
+        r = self._getReq('ambilight/topology')
+        if r:
+            self.ambilight_topology = r
+        else:
+            self.ambilight_topology = None            
 
     def getAmbilightMeasured(self):
-        return self._getReq('ambilight/measured')
+        r = self._getReq('ambilight/measured')
+        if r:
+            self.ambilight_measured = r
+        else:
+            self.ambilight_measured = None
 
     def getAmbilightProcessed(self):
-        return self._getReq('ambilight/processed')
+        r = self._getReq('ambilight/processed')
+        if r:
+            self.ambilight_processed = r
+        else:
+            self.ambilight_processed = None
 
     def getAmbilightCached(self):
         r = self._getReq('ambilight/cached')
