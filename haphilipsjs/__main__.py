@@ -1,13 +1,14 @@
 import curses
 import platform
 from . import PhilipsTV
+import asyncio
 
-def monitor_run(stdscr, tv: PhilipsTV):
+async def monitor_run(stdscr, tv: PhilipsTV):
 
     stdscr.clear()
     stdscr.timeout(1000)
 
-    tv.update()
+    await tv.update()
 
     def get_application_name():
 
@@ -23,11 +24,11 @@ def monitor_run(stdscr, tv: PhilipsTV):
         stdscr.clear()
         stdscr.addstr(0, 0, "Source")
         if tv.source_id:
-            stdscr.addstr(1, 0, tv.getSourceName(tv.source_id))
+            stdscr.addstr(1, 0, await tv.getSourceName(tv.source_id))
 
         stdscr.addstr(0, 15, "Channel")
         if tv.channel_id:
-            stdscr.addstr(1, 15, tv.getChannelName(tv.channel_id))
+            stdscr.addstr(1, 15, await tv.getChannelName(tv.channel_id))
 
         stdscr.addstr(0, 30, "Application")
         if tv.application:
@@ -52,7 +53,7 @@ def monitor_run(stdscr, tv: PhilipsTV):
                     "{:>3} {:>3} {:>3}".format(data["r"], data["g"], data["b"])
                 )
 
-        ambilight = tv.getAmbilightProcessed()
+        ambilight = await tv.getAmbilightProcessed()
         if ambilight:
             for idx, layer in enumerate(ambilight.values()):
                 offset_y = 6 + 6*idx
@@ -62,16 +63,39 @@ def monitor_run(stdscr, tv: PhilipsTV):
                 print_pixels("bottom", offset_y, 45)
 
         stdscr.refresh()
-        tv.update()
+        await tv.update()
         key = stdscr.getch()
         
         if key == ord("q"):
             break
 
-def monitor(tv):
+async def monitor(tv):
+
+    try:
+        stdscr = curses.initscr()
+
+        curses.noecho()
+        curses.cbreak()
+
+        stdscr.keypad(True)
+
+        try:
+            curses.start_color()
+        except:
+            pass
+
+        return await monitor_run(stdscr, tv)
+    finally:
+        # Set everything back to normal
+        if 'stdscr' in locals():
+            stdscr.keypad(False)
+            curses.echo()
+            curses.nocbreak()
+            curses.endwin()
+
     curses.wrapper(monitor_run, tv)
 
-if __name__ == '__main__':
+async def main():
     import argparse
     import logging
     import haphilipsjs
@@ -113,58 +137,58 @@ if __name__ == '__main__':
     tv = haphilipsjs.PhilipsTV(args.host, int(args.api), username=args.username, password=args.password)
 
     if args.command == "status":
-        tv.update()
-        tv.getChannelId()
-        tv.getChannels()
+        await tv.update()
+        await tv.getChannelId()
+        await tv.getChannels()
 
         # Simulating homeassistant/components/media_player/philips_js.py
-        print('Source: {}'.format(tv.getSourceName(tv.source_id)))
+        print('Source: {}'.format(await tv.getSourceName(tv.source_id)))
         if tv.sources:
             print(
                 'Sources: {}'.format(
                 ', '.join([
-                    tv.getSourceName(srcid) or "None"
+                    await tv.getSourceName(srcid) or "None"
                     for srcid in tv.sources
                 ]))
             )
-        print('Channel: {}: {}'.format(tv.channel_id, tv.getChannelName(tv.channel_id)))
+        print('Channel: {}: {}'.format(tv.channel_id, await tv.getChannelName(tv.channel_id)))
         if tv.channels:
             print(
                 'Channels: {}'.format(
                 ', '.join([
-                    tv.getChannelName(ccid) or "None"
+                    await tv.getChannelName(ccid) or "None"
                     for ccid in list(tv.channels.keys())
                 ]))
             )
         print('Context: {}'.format(tv.context))
 
-        print('Ambilight mode: {}'.format(tv.getAmbilightMode()))
-        print('Ambilight topology: {}'.format(tv.getAmbilightTopology()))
-        print('Ambilight processed: {}'.format(tv.getAmbilightProcessed()))
-        print('Ambilight measured: {}'.format(tv.getAmbilightMeasured()))
+        print('Ambilight mode: {}'.format(await tv.getAmbilightMode()))
+        print('Ambilight topology: {}'.format(await tv.getAmbilightTopology()))
+        print('Ambilight processed: {}'.format(await tv.getAmbilightProcessed()))
+        print('Ambilight measured: {}'.format(await tv.getAmbilightMeasured()))
 
 
     elif args.command == "ambilight":
         if args.ambilight_mode:
-            if not tv.setAmbilightMode(args.ambilight_mode):
+            if not await tv.setAmbilightMode(args.ambilight_mode):
                 print("Failed to set mode")
 
         if args.ambilight_cached:
-            if not tv.setAmbilightCached(args.ambilight_cached):
+            if not await tv.setAmbilightCached(args.ambilight_cached):
                 print("Failed to set ambilight cached")
 
     elif args.command == "monitor":
-        monitor(tv)
+        await monitor(tv)
 
 
     elif args.command == "pair":
-        tv.getSystem()
-        tv.setTransport(tv.secured_transport, tv.api_version_detected)
-        state = tv.pairRequest("ha-philipsjs", "ha-philipsjs", platform.node(), platform.system(), "native")
+        await tv.getSystem()
+        await tv.setTransport(tv.secured_transport, tv.api_version_detected)
+        state = await tv.pairRequest("ha-philipsjs", "ha-philipsjs", platform.node(), platform.system(), "native")
 
         pin = input("Please enter pin displayed on scree")
 
-        res = tv.pairGrant(state, pin)
+        res = await tv.pairGrant(state, pin)
 
         print(f"Username: {res[0]}")
         print(f"Password: {res[1]}")
@@ -172,3 +196,8 @@ if __name__ == '__main__':
     elif args.command == "markdown":
         import argmark
         argmark.md_help(parser)
+
+    await tv.aclose()
+
+if __name__ == '__main__':
+    asyncio.run(main())
