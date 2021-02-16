@@ -677,7 +677,8 @@ class PhilipsTV(object):
         if r:
             self.ambilight_topology = r
         else:
-            self.ambilight_topology = None            
+            self.ambilight_topology = None
+        return r
 
     def getAmbilightMeasured(self):
         r = self._getReq('ambilight/measured')
@@ -685,6 +686,7 @@ class PhilipsTV(object):
             self.ambilight_measured = r
         else:
             self.ambilight_measured = None
+        return r
 
     def getAmbilightProcessed(self):
         r = self._getReq('ambilight/processed')
@@ -692,6 +694,7 @@ class PhilipsTV(object):
             self.ambilight_processed = r
         else:
             self.ambilight_processed = None
+        return r
 
     def getAmbilightCached(self):
         r = self._getReq('ambilight/cached')
@@ -699,6 +702,7 @@ class PhilipsTV(object):
             self.ambilight_cached = r
         else:
             self.ambilight_cached = None
+        return r
 
     def setAmbilightCached(self, data):
         if self._postReq('ambilight/cached', data) is None:
