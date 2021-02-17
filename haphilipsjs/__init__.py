@@ -115,6 +115,7 @@ class PhilipsTV(object):
         self.ambilight_cached = None
         self.ambilight_measured = None
         self.ambilight_processed = None
+        self.powerstate = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
