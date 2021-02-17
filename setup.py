@@ -12,7 +12,8 @@ VERSION = '1.3.0'
 PACKAGES = find_packages(exclude=['tests', 'tests.*', 'dist', 'ccu', 'build'])
 
 REQUIRES = [
-    "cryptography"
+    "cryptography",
+    "httpx",
 ]
 
 setup(
@@ -42,9 +43,10 @@ setup(
             'tests': [
                 'pytest>3.6.4',
                 'pytest-cov<2.6',
+                'pytest-aiohttp',
                 'coveralls',
                 'pytest-mock',
-                'requests-mock'
+                'respx>=0.16.2',
             ]
         },
         python_requires='>=3.8'
