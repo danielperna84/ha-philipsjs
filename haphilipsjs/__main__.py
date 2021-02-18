@@ -138,8 +138,6 @@ async def main():
 
     if args.command == "status":
         await tv.update()
-        await tv.getChannelId()
-        await tv.getChannels()
 
         # Simulating homeassistant/components/media_player/philips_js.py
         print('Source: {}'.format(await tv.getSourceName(tv.source_id)))
@@ -161,6 +159,17 @@ async def main():
                 ]))
             )
         print('Context: {}'.format(tv.context))
+
+        print('Application: {}'.format(tv.application))
+        if tv.applications:
+            print(
+                'Applications: {}'.format(
+                ', '.join([
+                    application["label"] or "None"
+                    for application in tv.applications["applications"]
+                ]))
+            )
+
 
         print('Ambilight mode: {}'.format(await tv.getAmbilightMode()))
         print('Ambilight topology: {}'.format(await tv.getAmbilightTopology()))
