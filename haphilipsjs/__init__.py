@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Dict, Literal, Optional, Tuple, TypeVar, Union, cast
 import httpx
 import logging
 import warnings
@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, ContextType, SystemType
+from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteType, SystemType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -106,6 +106,7 @@ class PhilipsTV(object):
         self.audio_volume = None
         self.channels: Optional[ChannelsType] = None
         self.channel: Optional[Union[ActivitesTVType, ChannelsCurrentType]] = None
+        self.channel_db_tv: Optional[ChannelDbTv] = None
         self.applications: Optional[ApplicationsType] = None
         self.application: Optional[ApplicationIntentType] = None
         self.context: Optional[ContextType] = None
@@ -394,6 +395,7 @@ class PhilipsTV(object):
                 await self.getSystem()
                 await self.setTransport(self.secured_transport)
                 await self.getSources()
+                await self.getChannelLists()
                 await self.getChannels()
                 await self.getApplications()
 
@@ -441,9 +443,9 @@ class PhilipsTV(object):
     async def getChannels(self):
         if self.api_version >= 5:
             self.channels = {}
-            for channelListId in await self.getChannelLists():
+            for channelList in self.channel_db_tv.get("channelLists"):
                 r = cast(Optional[ChannelListType], await self._getReq(
-                    'channeldb/tv/channelLists/{}'.format(channelListId)
+                    'channeldb/tv/channelLists/{}'.format(channelList["id"])
                 ))
                 if r:
                     for channel in r.get('Channel', []):
@@ -484,10 +486,10 @@ class PhilipsTV(object):
             self.context = r
             return r
 
-    async def setChannel(self, ccid):
+    async def setChannel(self, ccid, list_id: str = "alltv"):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
         if self.api_version >= 5:
-            channel = {"channelList": {"id": "alltv"}, "channel": {"ccid": ccid}}
+            channel = {"channelList": {"id": list_id}, "channel": {"ccid": ccid}}
             if await self._postReq('activities/tv', cast(Dict, channel)) is not None:
                 self.channel = channel
         else:
@@ -499,12 +501,27 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             r = cast(ChannelDbTv, await self._getReq('channeldb/tv'))
             if r:
-                # could be alltv and allsat
-                return [l['id'] for l in r.get('channelLists', [])]
+                self.channel_db_tv = r
             else:
-                return []
+                self.channel_db_tv = None
         else:
-            return []
+            self.channel_db_tv = {
+                "channelLists": [
+                    {"id": "alltv"}
+                ],
+                "favoriteLists": []
+            }
+        return self.channel_db_tv
+
+    async def getChannelList(self, list_type: str, list_id: str):
+        if self.api_version >= 5:
+            return cast(Optional[ChannelListType], await self._getReq(
+                f"channeldb/tv/{list_type}/{list_id}"
+            ))
+        else:
+            if list_type == "channelLists" and list_id == "all":
+                return cast(Optional[ChannelsType], await self._getReq('channels'))
+            return None
 
     async def getSources(self):
         if self.api_version < 5:

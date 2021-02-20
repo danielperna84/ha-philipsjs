@@ -59,7 +59,7 @@ class ChannelType(TypedDict, total=False):
     preset: str
     name: str
 
-class ChannelListType(TypedDict):
+class ChannelListType(TypedDict, total=False):
     id: str
     version: int
     listType: str
