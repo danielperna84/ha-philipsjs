@@ -83,7 +83,6 @@ async def test_get_channel_name(client_mock):
     assert await client_mock.getChannelName("fingerprint-3") == "Irdeto scrambled"
     assert await client_mock.getChannelName("invalid_name") == None
 
-
 async def test_set_source(client_mock):
     """Verify that we can translate channel id to name"""
     route = respx.post(f"http://127.0.0.1:1925/1/sources/current").respond(json={})

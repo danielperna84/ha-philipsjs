@@ -50,7 +50,20 @@ async def test_basic_data(client_mock):
     await client_mock.update()
     assert client_mock.on == True
     assert client_mock.system == SYSTEM_DECRYPTED
-    assert client_mock.sources is None
+    assert client_mock.sources == {
+        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW5" : {
+            "name": "HDMI 1"
+        },
+        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW6" : {
+            "name": "HDMI 2"
+        },
+        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW7" : {
+            "name": "HDMI 3"
+        },
+        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW8" : {
+            "name": "HDMI 4"
+        },
+    }
     assert client_mock.channels == {
         "1648": {
             "ccid": 1648,
