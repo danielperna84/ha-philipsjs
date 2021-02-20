@@ -169,7 +169,8 @@ async def main():
                     for application in tv.applications["applications"]
                 ]))
             )
-
+        print('Power State: {}'.format(tv.powerstate))
+        print('Screen State: {}'.format(tv.screenstate))
 
         print('Ambilight mode: {}'.format(await tv.getAmbilightMode()))
         print('Ambilight topology: {}'.format(await tv.getAmbilightTopology()))
