@@ -562,9 +562,7 @@ class PhilipsTV(object):
     async def getSourceName(self, srcid) -> Optional[str]:
         if not self.sources:
             return None
-        if self.api_version < 5:
-            return self.sources.get(srcid, dict()).get('name', None)
-        return None
+        return self.sources.get(srcid, dict()).get('name', None)
 
     async def setSource(self, source_id):
         if self.api_version == 1:
