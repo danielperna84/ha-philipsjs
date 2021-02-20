@@ -4,6 +4,7 @@ import logging
 import warnings
 import urllib3
 import json
+from urllib.parse import quote
 from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
 
@@ -524,7 +525,24 @@ class PhilipsTV(object):
             return None
 
     async def getSources(self):
-        if self.api_version < 5:
+        if self.api_version == 6:
+            self.sources = {
+                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW5" : {
+                    "name": "HDMI 1"
+                },
+                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW6" : {
+                    "name": "HDMI 2"
+                },
+                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW7" : {
+                    "name": "HDMI 3"
+                },
+                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW8" : {
+                    "name": "HDMI 4"
+                },
+            }
+            return self.sources
+
+        if self.api_version == 1:
             r = await self._getReq('sources')
             if r:
                 self.sources = r
@@ -549,9 +567,24 @@ class PhilipsTV(object):
         return None
 
     async def setSource(self, source_id):
-        if self.api_version < 5:
-            if await self._postReq('sources/current', {'id': source_id}) is not None:
+        if self.api_version == 1:
+            r = await self._postReq('sources/current', {'id': source_id}) 
+            if r is not None:
                 self.source_id = source_id
+                return True
+            return False
+
+        if self.api_version == 6:
+            data = quote(source_id, safe='')
+            intent: ApplicationIntentType = {
+                "extras": {"uri": f"content://android.media.tv/passthrough/{data}"},
+                "action": "org.droidtv.playtv.SELECTURI", 
+                "component": {
+                    "packageName":"org.droidtv.playtv",
+                    "className":"org.droidtv.playtv.PlayTvActivity"
+                }
+            }
+            return await self.setApplication(intent)
 
     async def getApplications(self):
         if self.api_version >= 5:
@@ -619,7 +652,7 @@ class PhilipsTV(object):
                 self.screenstate = state
                 return True
         return False
-
+    
     async def setApplication(self, intent: ApplicationIntentType):
         if self.api_version >= 5:
             data = {

@@ -83,6 +83,25 @@ async def test_get_channel_name(client_mock):
     assert await client_mock.getChannelName("balha") == None
 
 
+async def test_set_source(client_mock):
+    """Verify that we can translate channel id to name"""
+
+    route = respx.post(f"{BASE_URL}/activities/launch").respond(json={})
+    await client_mock.setSource("com.mediatek.tvinput/.hdmi.HDMIInputService/HW5")
+    assert json.loads(route.calls[0].request.content) == {
+        "intent": {
+            "extras": {
+                "uri": "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5"
+            },
+            "action": "org.droidtv.playtv.SELECTURI", 
+            "component": {
+                "packageName":"org.droidtv.playtv",
+                "className":"org.droidtv.playtv.PlayTvActivity"
+            }
+        }
+    }
+
+
 async def test_timeout(client_mock):
     """Test that connect timeouts trigger tv to be considered off"""
     await client_mock.update()

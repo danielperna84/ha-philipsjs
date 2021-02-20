@@ -84,6 +84,14 @@ async def test_get_channel_name(client_mock):
     assert await client_mock.getChannelName("invalid_name") == None
 
 
+async def test_set_source(client_mock):
+    """Verify that we can translate channel id to name"""
+    route = respx.post(f"http://127.0.0.1:1925/1/sources/current").respond(json={})
+    await client_mock.setSource("hdmi1")
+    assert json.loads(route.calls[0].request.content) == {
+        "id": "hdmi1"
+    }
+
 async def test_timeout(client_mock):
     """Test that connect timeouts trigger tv to be considered off"""
     await client_mock.update()
