@@ -75,7 +75,16 @@ def decode_xtv_json(text: str):
 
     return data
 
+PASSTHROUGH_URI = "content://android.media.tv/passthrough"
+def passthrough_uri(data):
+    return f"{PASSTHROUGH_URI}/{quote(data, safe='')}"
 
+CHANNEL_URI = "content://android.media.tv/channel"
+def channel_uri(channel):
+    uri = CHANNEL_URI
+    if channel is not None:
+        uri += f"/{channel}"
+    return uri
 class ConnectionFailure(Exception):
     pass
 
@@ -543,16 +552,19 @@ class PhilipsTV(object):
     async def getSources(self):
         if self.api_version == 6:
             self.sources = {
-                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW5" : {
+                channel_uri(None): {
+                    "name": "Watch TV"
+                },
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW5") : {
                     "name": "HDMI 1"
                 },
-                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW6" : {
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW6") : {
                     "name": "HDMI 2"
                 },
-                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW7" : {
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW7") : {
                     "name": "HDMI 3"
                 },
-                "com.mediatek.tvinput/.hdmi.HDMIInputService/HW8" : {
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW8") : {
                     "name": "HDMI 4"
                 },
             }
@@ -584,14 +596,15 @@ class PhilipsTV(object):
         if self.api_version == 1:
             r = await self._postReq('sources/current', {'id': source_id}) 
             if r is not None:
-                self.source_id = source_id
                 return True
             return False
 
         if self.api_version == 6:
-            data = quote(source_id, safe='')
+            if source_id == CHANNEL_URI and self.channel_id:
+                source_id = channel_uri(self.channel_id)
+
             intent: ApplicationIntentType = {
-                "extras": {"uri": f"content://android.media.tv/passthrough/{data}"},
+                "extras": {"uri": source_id},
                 "action": "org.droidtv.playtv.SELECTURI", 
                 "component": {
                     "packageName":"org.droidtv.playtv",
