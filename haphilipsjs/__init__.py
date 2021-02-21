@@ -107,7 +107,8 @@ class PhilipsTV(object):
         self.audio_volume = None
         self.channels: ChannelsType = {}
         self.channel: Optional[Union[ActivitesTVType, ChannelsCurrentType]] = None
-        self.channel_db_tv: Optional[ChannelDbTv] = None
+        self.channel_lists: Dict[str, ChannelListType] = {}
+        self.favorite_lists: Dict[str, FavoriteListType] = {}
         self.applications: Dict[str, ApplicationType] = {}
         self.application: Optional[ApplicationIntentType] = None
         self.context: Optional[ContextType] = None
@@ -456,8 +457,8 @@ class PhilipsTV(object):
     async def getChannels(self):
         if self.api_version >= 5:
             self.channels = {}
-            for channelList in self.channel_db_tv.get("channelLists"):
-                r = await self.getChannelList(channelList["id"])
+            for list_id in self.channel_lists:
+                r = await self.getChannelList(list_id)
                 if r:
                     for channel in r:
                         self.channels[str(channel['ccid'])] = channel
@@ -512,17 +513,18 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             r = cast(ChannelDbTv, await self._getReq('channeldb/tv'))
             if r:
-                self.channel_db_tv = r
+                self.channel_lists = {
+                    data["id"]: data
+                    for data in r["channelLists"]
+                }
+                self.favorite_lists = {
+                    data["id"]: data
+                    for data in r["favoriteLists"]
+                }
             else:
-                self.channel_db_tv = None
-        else:
-            self.channel_db_tv = {
-                "channelLists": [
-                    {"id": "alltv"}
-                ],
-                "favoriteLists": []
-            }
-        return self.channel_db_tv
+                self.channel_lists = {}
+                self.favorite_lists = {}
+            return r
 
     async def getFavoriteList(self, list_id: str):
         if self.api_version >= 5:

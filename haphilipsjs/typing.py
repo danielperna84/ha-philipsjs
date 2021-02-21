@@ -47,7 +47,7 @@ class FavoriteChannelType(TypedDict):
     ccid: int
     preset: str
 
-class FavoriteListType(TypedDict, total=True):
+class FavoriteListType(TypedDict, total=False):
     id: str
     version: Union[int, str]
     parentId: str
@@ -65,7 +65,7 @@ class ChannelType(TypedDict, total=False):
 
 class ChannelListType(TypedDict, total=False):
     id: str
-    version: int
+    version: Union[int, str]
     listType: str
     medium: str
     active: bool
@@ -75,7 +75,7 @@ class ChannelListType(TypedDict, total=False):
 
 ChannelsType = Dict[str, ChannelType]
 
-class ChannelDbTv(TypedDict):
+class ChannelDbTv(TypedDict, total=False):
     channelLists: List[ChannelListType]
     favoriteLists: List[FavoriteListType]
 

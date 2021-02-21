@@ -5,7 +5,7 @@ from haphilipsjs.typing import (
     ChannelDbTv,
     ChannelListType,
     ComponentType, ContextType,
-    FavoriteType,
+    FavoriteListType,
     SystemType,
 )
 
@@ -278,7 +278,6 @@ CHANNELDB_TV_CHANNELLISTS_ALL: ChannelListType = {
         {"ccid": 1649, "preset": "2"},
     ],
 }
-
 
 CHANNELDB_TV: ChannelDbTv = {
     "channelLists": [CHANNELDB_TV_CHANNELLISTS_ALL],
