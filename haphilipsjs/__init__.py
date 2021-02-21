@@ -278,7 +278,7 @@ class PhilipsTV(object):
                 resp = await self.session.get(self._url(path), timeout=TIMEOUT)
                 if resp.status_code != 200:
                     return None, None
-                return resp.content, resp.headers["Content-Type"]
+                return resp.content, resp.headers.get("content-type")
         except httpx.HTTPError as err:
             raise ConnectionFailure(str(err)) from err
 
