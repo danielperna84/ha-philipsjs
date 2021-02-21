@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelListsType, ChannelsCurrentType, ChannelsType, ContextType, SystemType, ApplicationType
+from .typing import ActivitesTVType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -457,11 +457,9 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             self.channels = {}
             for channelList in self.channel_db_tv.get("channelLists"):
-                r = cast(Optional[ChannelListType], await self._getReq(
-                    'channeldb/tv/channelLists/{}'.format(channelList["id"])
-                ))
+                r = await self.getChannelList(channelList["id"])
                 if r:
-                    for channel in r.get('Channel', []):
+                    for channel in r:
                         self.channels[str(channel['ccid'])] = channel
                 return r
         else:
@@ -526,15 +524,19 @@ class PhilipsTV(object):
             }
         return self.channel_db_tv
 
-    async def getChannelList(self, list_type: str, list_id: str):
+    async def getFavoriteList(self, list_id: str):
         if self.api_version >= 5:
-            return cast(Optional[ChannelListType], await self._getReq(
-                f"channeldb/tv/{list_type}/{list_id}"
+            r = cast(Optional[FavoriteListType], await self._getReq(
+                f"channeldb/tv/favoriteLists/{list_id}"
             ))
-        else:
-            if list_type == "channelLists" and list_id == "all":
-                return cast(Optional[ChannelsType], await self._getReq('channels'))
-            return None
+            return r["channels"]
+
+    async def getChannelList(self, list_id: str):
+        if self.api_version >= 5:
+            r = cast(Optional[ChannelListType], await self._getReq(
+                f"channeldb/tv/channelLists/{list_id}"
+            ))
+            return r["Channel"]
 
     async def getSources(self):
         if self.api_version == 6:

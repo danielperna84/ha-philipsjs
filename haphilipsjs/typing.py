@@ -43,8 +43,11 @@ class ApplicationsType(TypedDict):
     version: int
     applications: List[ApplicationType]
 
+class FavoriteChannelType(TypedDict):
+    ccid: int
+    preset: str
 
-class FavoriteType(TypedDict, total=True):
+class FavoriteListType(TypedDict, total=True):
     id: str
     version: Union[int, str]
     parentId: str
@@ -53,6 +56,7 @@ class FavoriteType(TypedDict, total=True):
     virtual: bool
     modifiable: bool
     name: str
+    channels: List[FavoriteChannelType]
 
 class ChannelType(TypedDict, total=False):
     ccid: int
@@ -73,7 +77,7 @@ ChannelsType = Dict[str, ChannelType]
 
 class ChannelDbTv(TypedDict):
     channelLists: List[ChannelListType]
-    favoriteLists: List[FavoriteType]
+    favoriteLists: List[FavoriteListType]
 
 class JsonFeaturesType(TypedDict, total=False):
     editfavorites: List[str]
