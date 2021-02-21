@@ -13,7 +13,7 @@ async def monitor_run(stdscr, tv: PhilipsTV):
     def get_application_name():
 
         if tv.applications:
-            for app in tv.applications["applications"]:
+            for app in tv.applications.values():
                 if app["intent"] == tv.application:
                     return app["label"]
 
@@ -88,7 +88,7 @@ async def monitor(tv):
     finally:
         # Set everything back to normal
         if 'stdscr' in locals():
-            stdscr.keypad(False)
+            stdscr.keypad(False)  # type: ignore
             curses.echo()
             curses.nocbreak()
             curses.endwin()
@@ -166,7 +166,7 @@ async def main():
                 'Applications: {}'.format(
                 ', '.join([
                     application["label"] or "None"
-                    for application in tv.applications["applications"]
+                    for application in tv.applications.values()
                 ]))
             )
         print('Power State: {}'.format(tv.powerstate))

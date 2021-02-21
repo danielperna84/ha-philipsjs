@@ -77,7 +77,10 @@ async def test_basic_data(client_mock):
     }
     assert client_mock.powerstate == POWERSTATE["powerstate"]
     assert client_mock.screenstate == SCREENSTATE["screenstate"]
-    assert client_mock.applications == APPLICATIONS
+    assert client_mock.applications == {
+        app["id"]: app for app in APPLICATIONS["applications"]
+    }
+    assert client_mock.application_id == 'org.droidtv.nettv.market.MarketMainActivity-org.droidtv.nettv.market'
 
 
 async def test_current_channel_none(client_mock):

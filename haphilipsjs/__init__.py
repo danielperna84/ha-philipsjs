@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteType, SystemType
+from .typing import ActivitesTVType, ActivitiesChannelType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelListsType, ChannelsCurrentType, ChannelsType, ContextType, SystemType, ApplicationType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -105,10 +105,10 @@ class PhilipsTV(object):
         self.sources = None
         self.source_id = None
         self.audio_volume = None
-        self.channels: Optional[ChannelsType] = None
+        self.channels: ChannelsType = {}
         self.channel: Optional[Union[ActivitesTVType, ChannelsCurrentType]] = None
         self.channel_db_tv: Optional[ChannelDbTv] = None
-        self.applications: Optional[ApplicationsType] = None
+        self.applications: Dict[str, ApplicationType] = {}
         self.application: Optional[ApplicationIntentType] = None
         self.context: Optional[ContextType] = None
         self.screenstate: Optional[str] = None
@@ -190,6 +190,18 @@ class PhilipsTV(object):
         if self.source_id in ("tv", "11", None):
             return self.channel_id is not None
         return False
+
+    @property
+    def application_id(self):
+        if self.application and "component" in self.application:
+            component = self.application["component"]
+            app_id = f"{component.get('className', 'None')}-{component.get('packageName', 'None')}"
+            if app_id in self.applications:
+                return app_id
+            else:
+                return None
+        else:
+            return None
 
     @property
     def min_volume(self):
@@ -588,9 +600,12 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             r = cast(ApplicationsType, await self._getReq('applications'))
             if r:
-                self.applications = r
+                self.applications = {
+                    app["id"]: app
+                    for app in r["applications"]
+                }
             else:
-                self.applications = None
+                self.applications = {}
             return r
 
     async def getApplication(self):

@@ -32,7 +32,7 @@ class ApplicationIntentType(TypedDict, total=False):
     component: ComponentType
     action: str
 
-class ApplicationType(TypedDict):
+class ApplicationType(TypedDict, total=False):
     label: str
     intent: ApplicationIntentType
     order: int
