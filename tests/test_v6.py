@@ -51,16 +51,19 @@ async def test_basic_data(client_mock):
     assert client_mock.on == True
     assert client_mock.system == SYSTEM_DECRYPTED
     assert client_mock.sources == {
-        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW5" : {
+        "content://android.media.tv/channel": {
+            "name": "Watch TV"
+        },
+        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5" : {
             "name": "HDMI 1"
         },
-        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW6" : {
+        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW6" : {
             "name": "HDMI 2"
         },
-        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW7" : {
+        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW7" : {
             "name": "HDMI 3"
         },
-        "com.mediatek.tvinput/.hdmi.HDMIInputService/HW8" : {
+        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW8" : {
             "name": "HDMI 4"
         },
     }
@@ -103,7 +106,7 @@ async def test_set_source(client_mock):
     """Verify that we can translate channel id to name"""
 
     route = respx.post(f"{BASE_URL}/activities/launch").respond(json={})
-    await client_mock.setSource("com.mediatek.tvinput/.hdmi.HDMIInputService/HW5")
+    await client_mock.setSource("content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5")
     assert json.loads(route.calls[0].request.content) == {
         "intent": {
             "extras": {
