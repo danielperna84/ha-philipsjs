@@ -143,6 +143,8 @@ async def main():
     if args.command == "status":
         await tv.update()
 
+        print('System: {}'.format(tv.system))
+
         # Simulating homeassistant/components/media_player/philips_js.py
         print('Source: {}'.format(await tv.getSourceName(tv.source_id)))
         if tv.sources:
