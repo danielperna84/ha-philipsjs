@@ -2,7 +2,6 @@ from typing import Any, Dict, Literal, Optional, Tuple, TypeVar, Union, cast
 import httpx
 import logging
 import warnings
-import urllib3
 import json
 from urllib.parse import quote
 from secrets import token_bytes, token_hex
@@ -276,42 +275,35 @@ class PhilipsTV(object):
     async def _getReq(self, path) -> Optional[Dict]:
 
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-                resp = await self.session.get(self._url(path), timeout=TIMEOUT)
-                if resp.status_code != 200:
-                    return None
-                return decode_xtv_json(resp.text)
+            resp = await self.session.get(self._url(path), timeout=TIMEOUT)
+            if resp.status_code != 200:
+                return None
+            return decode_xtv_json(resp.text)
         except httpx.HTTPError as err:
             raise ConnectionFailure(str(err)) from err
 
     async def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
 
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-                resp = await self.session.get(self._url(path), timeout=TIMEOUT)
-                if resp.status_code != 200:
-                    return None, None
-                return resp.content, resp.headers.get("content-type")
+            resp = await self.session.get(self._url(path), timeout=TIMEOUT)
+            if resp.status_code != 200:
+                return None, None
+            return resp.content, resp.headers.get("content-type")
         except httpx.HTTPError as err:
             raise ConnectionFailure(str(err)) from err
 
     async def _postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
         try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-
-                resp = await self.session.post(self._url(path), json=data, timeout=timeout)
-                if resp.status_code == 200:
-                    LOG.debug("Post succeded: %s -> %s", data, resp.text)
-                    if resp.headers.get('content-type', "").startswith("application/json"):
-                        return decode_xtv_json(resp.text)
-                    else:
-                        return {}
+            resp = await self.session.post(self._url(path), json=data, timeout=timeout)
+            if resp.status_code == 200:
+                LOG.debug("Post succeded: %s -> %s", data, resp.text)
+                if resp.headers.get('content-type', "").startswith("application/json"):
+                    return decode_xtv_json(resp.text)
                 else:
-                    LOG.warning("Post failed: %s -> %s", data, resp.text)
-                    return None
+                    return {}
+            else:
+                LOG.warning("Post failed: %s -> %s", data, resp.text)
+                return None
         except httpx.ReadTimeout:
             return None
         except httpx.HTTPError as err:
@@ -345,13 +337,10 @@ class PhilipsTV(object):
         }
 
         LOG.debug("pair/request request: %s", data)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-
-            resp = await self.session.post(self._url("pair/request"), json=data, auth=None)
-            if not resp.headers['content-type'].startswith("application/json"):
-                raise NoneJsonData(resp.text)
-            data_response = resp.json()
+        resp = await self.session.post(self._url("pair/request"), json=data, auth=None)
+        if not resp.headers['content-type'].startswith("application/json"):
+            raise NoneJsonData(resp.text)
+        data_response = resp.json()
 
         LOG.debug("pair/request response: %s", data_response)
         if data_response.get("error_id") != "SUCCESS":
@@ -388,14 +377,11 @@ class PhilipsTV(object):
         }
 
         LOG.debug("pair/grant request: %s", data)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", urllib3.exceptions.InsecureRequestWarning)
-
-            resp = await self.session.post(self._url("pair/grant"), json=data, auth=auth_handler)
-            if not resp.headers['content-type'].startswith("application/json"):
-                raise NoneJsonData(resp.text)
-            data_response = resp.json()
-            LOG.debug("pair/grant response: %s", data_response)
+        resp = await self.session.post(self._url("pair/grant"), json=data, auth=auth_handler)
+        if not resp.headers['content-type'].startswith("application/json"):
+            raise NoneJsonData(resp.text)
+        data_response = resp.json()
+        LOG.debug("pair/grant response: %s", data_response)
 
         if data_response.get("error_id") != "SUCCESS":
             raise PairingFailure(data_response)
