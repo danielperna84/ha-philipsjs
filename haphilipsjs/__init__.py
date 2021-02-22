@@ -181,9 +181,13 @@ class PhilipsTV(object):
         else:
             return None
 
-    def json_feature_supported(self, type: str, value: str):
+    def json_feature_supported(self, type: str, value: Optional[str]):
         if self.system:
-            return value in self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, [])
+            features = self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, [])
+            if value:
+                return value in features
+            else:
+                return features
         else:
             return None
 
@@ -608,7 +612,7 @@ class PhilipsTV(object):
         return False
 
     async def getApplications(self):
-        if self.api_version >= 5:
+        if self.json_feature_supported("applications", None):
             r = cast(ApplicationsType, await self._getReq('applications'))
             if r:
                 self.applications = {
@@ -620,7 +624,7 @@ class PhilipsTV(object):
             return r
 
     async def getApplication(self):
-        if self.api_version >= 5:
+        if self.json_feature_supported("applications", None):
             r = cast(ApplicationIntentType, await self._getReq('activities/current'))
             if r:
                 self.application = r
@@ -629,7 +633,7 @@ class PhilipsTV(object):
             return r
 
     async def getApplicationIcon(self, id) -> Tuple[Optional[bytes], Optional[str]]:
-        if self.api_version >= 5:
+        if self.json_feature_supported("applications", None):
             data, content_type = await self._getBinary(f"applications/{id}/icon")
             return data, content_type
         else:

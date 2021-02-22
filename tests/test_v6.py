@@ -97,9 +97,16 @@ async def test_basic_data(client_mock, param: Param):
     if param.type == "android":
         assert client_mock.system == SYSTEM_ANDROID_DECRYPTED
         assert client_mock.sources == MOCK_ANDROID_SOURCES
+        assert client_mock.applications == {
+            app["id"]: app for app in APPLICATIONS["applications"]
+        }
+        assert client_mock.application_id == 'org.droidtv.nettv.market.MarketMainActivity-org.droidtv.nettv.market'
+
     elif param.type == "saphi":
         assert client_mock.system == SYSTEM_SAPHI_DECRYPTED
         assert client_mock.sources == MOCK_SAPHI_SOURCES
+        assert client_mock.applications == {}
+        assert client_mock.application_id == None
 
     assert client_mock.channels == {
         "1648": {
@@ -114,10 +121,6 @@ async def test_basic_data(client_mock, param: Param):
     }
     assert client_mock.powerstate == POWERSTATE["powerstate"]
     assert client_mock.screenstate == SCREENSTATE["screenstate"]
-    assert client_mock.applications == {
-        app["id"]: app for app in APPLICATIONS["applications"]
-    }
-    assert client_mock.application_id == 'org.droidtv.nettv.market.MarketMainActivity-org.droidtv.nettv.market'
 
 
 async def test_current_channel_none(client_mock, param):
