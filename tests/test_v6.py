@@ -3,7 +3,7 @@ import pytest
 import httpx
 import respx
 import json
-from typing import Dict, cast
+from typing import Dict, NamedTuple, cast
 
 from haphilipsjs.data.v6 import (
     AMBILIGHT,
@@ -13,60 +13,94 @@ from haphilipsjs.data.v6 import (
     ACTIVITIES_CURRENT,
     CONTEXT,
     POWERSTATE,
-    SYSTEM_DECRYPTED,
-    SYSTEM_ENCRYPTED,
+    SYSTEM_ANDROID_DECRYPTED,
+    SYSTEM_ANDROID_ENCRYPTED,
+    SYSTEM_SAPHI_DECRYPTED,
+    SYSTEM_SAPHI_ENCRYPTED,
     VOLUME,
     SCREENSTATE,
 )
 
-BASE_URL = "https://127.0.0.1:1926/6"
+MOCK_ANDROID_SOURCES = {
+    "content://android.media.tv/channel": {
+        "name": "Watch TV"
+    },
+    "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5" : {
+        "name": "HDMI 1"
+    },
+    "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW6" : {
+        "name": "HDMI 2"
+    },
+    "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW7" : {
+        "name": "HDMI 3"
+    },
+    "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW8" : {
+        "name": "HDMI 4"
+    },
+}
 
+MOCK_SAPHI_SOURCES = {}
 
+class Param(NamedTuple):
+    type: str
+    base: str
+
+@pytest.fixture(params=["android", "saphi"], name="param")
+async def param_fixture(request):
+    if request.param == "android":
+        return Param(request.param, "https://127.0.0.1:1926/6")
+    elif request.param == "saphi":
+        return Param(request.param, "http://127.0.0.1:1925/6")
+    else:
+        raise Exception
 
 @pytest.fixture
-async def client_mock(loop):
+async def client_mock(loop, param: Param):
     with respx.mock:
-        client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6, secured_transport=True)
-        respx.get(f"{BASE_URL}/system").respond(json=cast(Dict, SYSTEM_ENCRYPTED))
-        respx.get(f"{BASE_URL}/channeldb/tv").respond(json=cast(Dict, CHANNELDB_TV))
-        respx.get(f"{BASE_URL}/channeldb/tv/channelLists/all").respond(json=cast(Dict, CHANNELDB_TV_CHANNELLISTS_ALL))
-        respx.get(f"{BASE_URL}/activities/current").respond(json=cast(Dict, ACTIVITIES_CURRENT))
-        respx.get(f"{BASE_URL}/activities/tv").respond(json=ACTIVITIES_TV)
-        respx.get(f"{BASE_URL}/applications").respond(json=cast(Dict, APPLICATIONS))
-        respx.get(f"{BASE_URL}/powerstate").respond(json=POWERSTATE)
-        respx.get(f"{BASE_URL}/screenstate").respond(json=SCREENSTATE)
-        respx.get(f"{BASE_URL}/context").respond(json=cast(Dict, CONTEXT))
-        respx.get(f"{BASE_URL}/audio/volume").respond(json=VOLUME)
-        respx.get(f"{BASE_URL}/ambilight/mode").respond(json=AMBILIGHT["mode"])
-        respx.get(f"{BASE_URL}/ambilight/topology").respond(json=AMBILIGHT["topology"])
-        respx.get(f"{BASE_URL}/ambilight/measured").respond(json=AMBILIGHT["measured"])
-        respx.get(f"{BASE_URL}/ambilight/processed").respond(json=AMBILIGHT["processed"])
-        respx.get(f"{BASE_URL}/ambilight/cached").respond(json=AMBILIGHT["cached"])
+        if param.type == "android":
+            respx.get(f"{param.base}/system").respond(json=cast(Dict, SYSTEM_ANDROID_ENCRYPTED))
+        elif param.type == "saphi":
+            respx.get(f"{param.base}/system").respond(json=cast(Dict, SYSTEM_SAPHI_ENCRYPTED))
+        else:
+            raise Exception
+
+        respx.get(f"{param.base}/channeldb/tv").respond(json=cast(Dict, CHANNELDB_TV))
+        respx.get(f"{param.base}/channeldb/tv/channelLists/all").respond(json=cast(Dict, CHANNELDB_TV_CHANNELLISTS_ALL))
+        respx.get(f"{param.base}/activities/current").respond(json=cast(Dict, ACTIVITIES_CURRENT))
+        respx.get(f"{param.base}/activities/tv").respond(json=ACTIVITIES_TV)
+        respx.get(f"{param.base}/applications").respond(json=cast(Dict, APPLICATIONS))
+        respx.get(f"{param.base}/powerstate").respond(json=POWERSTATE)
+        respx.get(f"{param.base}/screenstate").respond(json=SCREENSTATE)
+        respx.get(f"{param.base}/context").respond(json=cast(Dict, CONTEXT))
+        respx.get(f"{param.base}/audio/volume").respond(json=VOLUME)
+        respx.get(f"{param.base}/ambilight/mode").respond(json=AMBILIGHT["mode"])
+        respx.get(f"{param.base}/ambilight/topology").respond(json=AMBILIGHT["topology"])
+        respx.get(f"{param.base}/ambilight/measured").respond(json=AMBILIGHT["measured"])
+        respx.get(f"{param.base}/ambilight/processed").respond(json=AMBILIGHT["processed"])
+        respx.get(f"{param.base}/ambilight/cached").respond(json=AMBILIGHT["cached"])
+
+        if param.type == "android":
+            client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6, secured_transport=True)
+        elif param.type == "saphi":
+            client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6, secured_transport=False)
+        else:
+            raise Exception
+
         yield client
         await client.aclose()
 
-async def test_basic_data(client_mock):
+async def test_basic_data(client_mock, param: Param):
     """Test for basic data"""
     await client_mock.update()
     assert client_mock.on == True
-    assert client_mock.system == SYSTEM_DECRYPTED
-    assert client_mock.sources == {
-        "content://android.media.tv/channel": {
-            "name": "Watch TV"
-        },
-        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5" : {
-            "name": "HDMI 1"
-        },
-        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW6" : {
-            "name": "HDMI 2"
-        },
-        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW7" : {
-            "name": "HDMI 3"
-        },
-        "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW8" : {
-            "name": "HDMI 4"
-        },
-    }
+
+    if param.type == "android":
+        assert client_mock.system == SYSTEM_ANDROID_DECRYPTED
+        assert client_mock.sources == MOCK_ANDROID_SOURCES
+    elif param.type == "saphi":
+        assert client_mock.system == SYSTEM_SAPHI_DECRYPTED
+        assert client_mock.sources == MOCK_SAPHI_SOURCES
+
     assert client_mock.channels == {
         "1648": {
             "ccid": 1648,
@@ -86,11 +120,11 @@ async def test_basic_data(client_mock):
     assert client_mock.application_id == 'org.droidtv.nettv.market.MarketMainActivity-org.droidtv.nettv.market'
 
 
-async def test_current_channel_none(client_mock):
+async def test_current_channel_none(client_mock, param):
     await client_mock.update()
     assert client_mock.channel_id == "1648"
 
-    respx.get(f"{BASE_URL}/activities/tv").respond(json={})
+    respx.get(f"{param.base}/activities/tv").respond(json={})
     await client_mock.update()
     assert client_mock.channel_id == None
 
@@ -102,42 +136,48 @@ async def test_get_channel_name(client_mock):
     assert await client_mock.getChannelName("balha") == None
 
 
-async def test_set_source(client_mock):
+async def test_set_source(client_mock, param):
     """Verify that we can translate channel id to name"""
+    await client_mock.update()
 
-    route = respx.post(f"{BASE_URL}/activities/launch").respond(json={})
-    await client_mock.setSource("content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5")
-    assert json.loads(route.calls[0].request.content) == {
-        "intent": {
-            "extras": {
-                "uri": "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5"
-            },
-            "action": "org.droidtv.playtv.SELECTURI", 
-            "component": {
-                "packageName":"org.droidtv.playtv",
-                "className":"org.droidtv.playtv.PlayTvActivity"
+    if param.type == "android":
+        route = respx.post(f"{param.base}/activities/launch").respond(json={})
+        assert await client_mock.setSource("content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5")
+        assert json.loads(route.calls[0].request.content) == {
+            "intent": {
+                "extras": {
+                    "uri": "content://android.media.tv/passthrough/com.mediatek.tvinput%2F.hdmi.HDMIInputService%2FHW5"
+                },
+                "action": "org.droidtv.playtv.SELECTURI", 
+                "component": {
+                    "packageName":"org.droidtv.playtv",
+                    "className":"org.droidtv.playtv.PlayTvActivity"
+                }
             }
         }
-    }
+    elif param.type == "saphi":
+        assert await client_mock.setSource("a") == False
 
 
-async def test_timeout(client_mock):
+
+
+async def test_timeout(client_mock, param):
     """Test that connect timeouts trigger tv to be considered off"""
     await client_mock.update()
     assert client_mock.on == True
-    respx.get(f"{BASE_URL}/audio/volume").mock(side_effect=httpx.ConnectTimeout)
+    respx.get(f"{param.base}/audio/volume").mock(side_effect=httpx.ConnectTimeout)
 
     await client_mock.update()
     assert client_mock.on == False
 
-    respx.get(f"{BASE_URL}/audio/volume").respond(json=VOLUME)
+    respx.get(f"{param.base}/audio/volume").respond(json=VOLUME)
 
     await client_mock.update()
     assert client_mock.on == True
 
 
-async def test_volume(client_mock):
-    respx.get(f"{BASE_URL}/audio/volume").respond(json={
+async def test_volume(client_mock, param: Param):
+    respx.get(f"{param.base}/audio/volume").respond(json={
         "muted": True,
         "current": 30,
         "min": 0,
@@ -148,7 +188,7 @@ async def test_volume(client_mock):
     assert client_mock.volume == 0.5
     assert client_mock.muted == True
 
-    respx.get(f"{BASE_URL}/audio/volume").respond(json={
+    respx.get(f"{param.base}/audio/volume").respond(json={
         "muted": False,
         "current": 60,
         "min": 0,
@@ -159,7 +199,7 @@ async def test_volume(client_mock):
     assert client_mock.volume == 1.0
     assert client_mock.muted == False
 
-    respx.get(f"{BASE_URL}/audio/volume").respond(json={
+    respx.get(f"{param.base}/audio/volume").respond(json={
         "muted": False,
         "current": 0,
         "min": 0,
@@ -171,13 +211,13 @@ async def test_volume(client_mock):
     assert client_mock.muted == False
 
 
-async def test_set_volume(client_mock):
+async def test_set_volume(client_mock, param: Param):
     await client_mock.update()
-    respx.post(f"{BASE_URL}/audio/volume").respond(json={})
+    respx.post(f"{param.base}/audio/volume").respond(json={})
 
     await client_mock.setVolume(0.5)
 
-    assert respx.calls[-1].request.url == f"{BASE_URL}/audio/volume"
+    assert respx.calls[-1].request.url == f"{param.base}/audio/volume"
     assert json.loads(respx.calls[-1].request.content) == {
         "muted": False,
         "current": 30,
@@ -204,12 +244,12 @@ async def test_set_volume(client_mock):
     }
 
 
-async def test_set_channel(client_mock):
-    respx.post(f"{BASE_URL}/activities/tv").respond(json={})
+async def test_set_channel(client_mock, param: Param):
+    respx.post(f"{param.base}/activities/tv").respond(json={})
 
     await client_mock.setChannel(1649)
 
-    assert respx.calls[-1].request.url == f"{BASE_URL}/activities/tv"
+    assert respx.calls[-1].request.url == f"{param.base}/activities/tv"
     assert json.loads(respx.calls[-1].request.content) == {
         "channelList": {
             "id": "alltv"
@@ -220,13 +260,13 @@ async def test_set_channel(client_mock):
     }
 
 
-async def test_send_key(client_mock):
-    respx.post(f"{BASE_URL}/input/key").respond(json={})
+async def test_send_key(client_mock, param: Param):
+    respx.post(f"{param.base}/input/key").respond(json={})
 
     await client_mock.update()
     await client_mock.sendKey("Standby")
 
-    assert respx.calls[-1].request.url == f"{BASE_URL}/input/key"
+    assert respx.calls[-1].request.url == f"{param.base}/input/key"
     assert json.loads(respx.calls[-1].request.content) == {
         "key": "Standby",
     }
@@ -242,19 +282,19 @@ async def test_send_key(client_mock):
     assert client_mock.audio_volume["current"] == 18
 
 
-async def test_send_key_off(client_mock):
-    respx.post(f"{BASE_URL}/input/key").mock(side_effect=httpx.ConnectTimeout)
+async def test_send_key_off(client_mock, param: Param):
+    respx.post(f"{param.base}/input/key").mock(side_effect=httpx.ConnectTimeout)
 
     with pytest.raises(haphilipsjs.ConnectionFailure):
         await client_mock.sendKey("Standby")
 
-async def test_ambilight_mode(client_mock):
+async def test_ambilight_mode(client_mock, param):
     assert await client_mock.getAmbilightMode() == "internal"
 
-    respx.post(f"{BASE_URL}/ambilight/mode").respond(json={})
+    respx.post(f"{param.base}/ambilight/mode").respond(json={})
     await client_mock.setAmbilightMode("manual")
 
-    assert respx.calls[-1].request.url == f"{BASE_URL}/ambilight/mode"
+    assert respx.calls[-1].request.url == f"{param.base}/ambilight/mode"
     assert json.loads(respx.calls[-1].request.content) == {
         "current": "manual",
     }
@@ -268,10 +308,10 @@ async def test_ambilight_measured(client_mock):
 async def test_ambilight_processed(client_mock):
     assert await client_mock.getAmbilightProcessed() == AMBILIGHT["processed"]
 
-async def test_ambilight_cached(client_mock):
+async def test_ambilight_cached(client_mock, param: Param):
     assert await client_mock.getAmbilightCached() == AMBILIGHT["cached"]
 
-    respx.post(f"{BASE_URL}/ambilight/cached").respond(json={})
+    respx.post(f"{param.base}/ambilight/cached").respond(json={})
 
     data = {
         "r": 100,
@@ -281,7 +321,7 @@ async def test_ambilight_cached(client_mock):
 
     await client_mock.setAmbilightCached(data)
 
-    assert respx.calls[-1].request.url == f"{BASE_URL}/ambilight/cached"
+    assert respx.calls[-1].request.url == f"{param.base}/ambilight/cached"
     assert json.loads(respx.calls[-1].request.content) == data
 
 async def test_buggy_json():

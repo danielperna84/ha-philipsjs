@@ -10,7 +10,7 @@ from haphilipsjs.typing import (
 )
 
 
-SYSTEM: SystemType = {
+SYSTEM_ANDROID: SystemType = {
     "notifyChange": "http",
     "menulanguage": "Swedish",
     "name": "65OLED855/12",
@@ -44,10 +44,10 @@ SYSTEM: SystemType = {
     "os_type": "MSAF_2019_P",
 }
 
-SYSTEM_ENCRYPTED = cast(
+SYSTEM_ANDROID_ENCRYPTED = cast(
     SystemType,
     {
-        **SYSTEM,
+        **SYSTEM_ANDROID,
         "serialnumber_encrypted": "bf1BcncGiQyBVS47ZXFWjNXoynlKUNlqDhxQz5ikPEU=\n",
         "softwareversion_encrypted": "o5VTq/nnyhUzdpj+ac65ItwU2KTv6j6bu8brxNxA+5J78u9D7fdZwqcAilvhFc9L\n",
         "model_encrypted": "3Cdh9HfKdQZb0UJPzeXau15tgTFcLdYcPGb0NqOreDg=\n",
@@ -55,16 +55,89 @@ SYSTEM_ENCRYPTED = cast(
     },
 )
 
-SYSTEM_DECRYPTED = cast(
+SYSTEM_ANDROID_DECRYPTED = cast(
     SystemType,
     {
-        **SYSTEM,
+        **SYSTEM_ANDROID,
         "serialnumber": "ABCDEFGHIJKLF",
         "softwareversion": "TPM191E_R.101.001.208.001",
         "model": "65OLED855/12",
         "deviceid": "1234567890",
     },
 )
+
+SYSTEM_SAPHI: SystemType = {
+	"menulanguage": "Dutch",
+	"name": "50PUS6804/12",
+	"country": "Netherlands",
+	"nettvversion": "4.6.0.1",
+	"epgsource": "no_epg",
+	"api_version": {
+		"Major": 6,
+		"Minor": 1,
+		"Patch": 0
+	},
+	"featuring": {
+		"jsonfeatures": {
+			"recordings": [
+				"List",
+				"Schedule",
+				"Manage"
+			],
+			"ambilight": [
+				"Hue",
+				"HueStreaming",
+				"Ambilight"
+			],
+			"textentry": [
+				"context_based",
+				"initial_string_available"
+			],
+			"inputkey": [
+				"key",
+				"unicode"
+			],
+			"pointer": [
+				"context_based"
+			],
+			"activities": [
+				"browser"
+			]
+		},
+		"systemfeatures": {
+			"tvtype": "consumer",
+			"content": [
+				"dmr"
+			],
+			"pairing_type": "none",
+			"companion_screen": True,
+			"os_type": "Linux"
+		}
+	}
+}
+
+SYSTEM_SAPHI_ENCRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM_SAPHI,
+        "serialnumber_encrypted": "bf1BcncGiQyBVS47ZXFWjNXoynlKUNlqDhxQz5ikPEU=\n",
+        "softwareversion_encrypted": "K2kseVsmQFgkd15gKkJ+amueMe3DHAmDQ8d/R/pbq75SQ3mIJ7KzpbV8Z0lz4DAg",
+        "model_encrypted": "K2kseVsmQFgkd15gKkJ+ajj14v1k18xtrm2jX61cQ9Y=",
+        "deviceid_encrypted": "0dwhYxbc4pu9bo+yXXKsSaAI/GqIoxSMlQIs6osKlCI=\n",
+    },
+)
+
+SYSTEM_SAPHI_DECRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM_SAPHI,
+        "serialnumber": "ABCDEFGHIJKLF",
+        "softwareversion": "mt5887:TPM196E_091.003.255.001",
+        "model": "1_50PUS6804/12",
+        "deviceid": "1234567890",
+    },
+)
+
 
 VOLUME = {"muted": False, "current": 18, "min": 0, "max": 60}
 

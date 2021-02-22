@@ -111,7 +111,7 @@ class PhilipsTV(object):
         self.on = False
         self.name: Optional[str] = None
         self.system: Optional[SystemType] = None
-        self.sources = None
+        self.sources = {}
         self.source_id = None
         self.audio_volume = None
         self.channels: ChannelsType = {}
@@ -179,6 +179,12 @@ class PhilipsTV(object):
     def notify_change_supported(self) -> Optional[str]:
         if self.system:
             return self.system.get("notifyChange", None)
+        else:
+            return None
+
+    def json_feature_supported(self, type: str, value: str):
+        if self.system:
+            return value in self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, [])
         else:
             return None
 
@@ -550,7 +556,7 @@ class PhilipsTV(object):
             return r["Channel"]
 
     async def getSources(self):
-        if self.api_version == 6:
+        if self.json_feature_supported("activities", "intent"):
             self.sources = {
                 channel_uri(None): {
                     "name": "Watch TV"
@@ -599,7 +605,7 @@ class PhilipsTV(object):
                 return True
             return False
 
-        if self.api_version == 6:
+        if self.json_feature_supported("activities", "intent"):
             if source_id == CHANNEL_URI and self.channel_id:
                 source_id = channel_uri(self.channel_id)
 
@@ -612,6 +618,8 @@ class PhilipsTV(object):
                 }
             }
             return await self.setApplication(intent)
+
+        return False
 
     async def getApplications(self):
         if self.api_version >= 5:
@@ -684,7 +692,7 @@ class PhilipsTV(object):
         return False
     
     async def setApplication(self, intent: ApplicationIntentType):
-        if self.api_version >= 5:
+        if self.json_feature_supported("activities", "intent"):
             data = {
                 "intent": intent
             }
@@ -790,13 +798,9 @@ class PhilipsTV(object):
         return True
 
     async def openURL(self, url):
-        if self.api_version >= 6:
-            if (
-                self.system and "browser" in (
-                    self.system.get("featuring", {}).get("jsonfeatures", {}).get("activities", [])
-                )
-            ):
-                await self._postReq('activities/browser', {'url': url})
+        if self.json_feature_supported("activities", "browser"):
+            r = await self._postReq('activities/browser', {'url': url})
+            return r is not None
 
     async def notifyChange(self, timeout = 30):
         """Start a http connection waiting for changes."""

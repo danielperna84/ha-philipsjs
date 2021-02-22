@@ -98,7 +98,11 @@ class SystemFeaturesType(TypedDict, total=False):
     tvsearch: str
     pairing_type: str
     secured_transport: str
-    companion_screen: str
+    companion_screen: Union[str, bool]
+
+    # stored here on saphi
+    os_type: str
+
 class SystemFeaturingType(TypedDict):
     jsonfeatures: JsonFeaturesType
     systemfeatures: SystemFeaturesType
@@ -119,6 +123,8 @@ class SystemType(TypedDict, total=False):
     api_version: Dict
     featuring: SystemFeaturingType
     notifyChange: str
+
+    # here on android systems
     os_type: str
 
 class SourceType(TypedDict, total=False):
