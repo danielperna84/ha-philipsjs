@@ -114,6 +114,7 @@ async def main():
     )
     parser.add_argument("-i", "--host", dest="host", required=True)
     parser.add_argument("-a", "--api", dest="api", required=True)
+    parser.add_argument("-s", "--secured_transport", dest="secured_transport", action='store_true', default=False)
     parser.add_argument("-u", "--username", dest="username", help="Username", required=False)
     parser.add_argument("-p", "--password", dest="password", help="Password", required=False)
 
@@ -129,12 +130,15 @@ async def main():
 
     pair = subparsers.add_parser("pair", help="Pair with tv")
 
+    get = subparsers.add_parser("get", help="Get data from endpoint")
+    get.add_argument("path", help="Sub path to grab from tv")
+
     markdown = subparsers.add_parser("markdown", help="Print markdown for commandline")
 
     args = parser.parse_args()
     logging.basicConfig(level=args.debug and logging.DEBUG or logging.INFO)
     haphilipsjs.TIMEOUT = 60.0
-    tv = haphilipsjs.PhilipsTV(args.host, int(args.api), username=args.username, password=args.password)
+    tv = haphilipsjs.PhilipsTV(args.host, int(args.api), username=args.username, password=args.password, secured_transport=args.secured_transport)
 
     if args.command == "status":
         await tv.update()
@@ -202,6 +206,10 @@ async def main():
 
         print(f"Username: {res[0]}")
         print(f"Password: {res[1]}")
+
+    elif args.command == "get":
+        res = await tv._getReq(args.path)
+        print(res)
 
     elif args.command == "markdown":
         import argmark
