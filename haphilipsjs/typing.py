@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, TypedDict, Union
+from typing import Dict, List, Literal, Optional, TypedDict, Union
 
 class ActivitiesChannelType(TypedDict, total=False):
     ccid: int
@@ -148,3 +148,11 @@ class ContextType2(TypedDict):
     Recording: str
 
 ContextType = Union[ContextType1, ContextType2]
+
+AmbilightPixelType = Dict[Literal["r", "g", "b"], int]
+
+AmbilightSideType = Dict[str, AmbilightPixelType]
+
+AmbilightLayerType = Dict[Literal["left", "top", "right", "bottom"], AmbilightSideType]
+
+AmbilightLayersType = Dict[str, AmbilightLayerType]

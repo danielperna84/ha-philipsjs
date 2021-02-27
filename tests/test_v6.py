@@ -102,12 +102,14 @@ async def test_basic_data(client_mock, param: Param):
             app["id"]: app for app in APPLICATIONS["applications"]
         }
         assert client_mock.application_id == 'org.droidtv.nettv.market.MarketMainActivity-org.droidtv.nettv.market'
+        assert client_mock.quirk_ambilight_mode_ignored == True
 
     elif param.type == "saphi":
         assert client_mock.system == SYSTEM_SAPHI_DECRYPTED
         assert client_mock.sources == MOCK_SAPHI_SOURCES
         assert client_mock.applications == {}
         assert client_mock.application_id == None
+        assert client_mock.quirk_ambilight_mode_ignored == False
 
     assert client_mock.channels == {
         "1648": {
@@ -296,13 +298,23 @@ async def test_send_key_off(client_mock, param: Param):
 async def test_ambilight_mode(client_mock, param):
     await client_mock.getSystem()
 
-    route = respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    respx.post(f"{param.base}/ambilight/mode").respond(json={})
     await client_mock.setAmbilightMode("internal")
 
-    assert respx.calls[-1].request.url == f"{param.base}/ambilight/mode"
-    assert json.loads(respx.calls[-1].request.content) == {
-        "current": "internal",
-    }
+    if client_mock.quirk_ambilight_mode_ignored:
+        assert respx.calls[-2].request.url == f"{param.base}/ambilight/mode"
+        assert json.loads(respx.calls[-2].request.content) == {
+            "current": "internal",
+        }
+        assert respx.calls[-1].request.url == f"{param.base}/ambilight/mode"
+        assert json.loads(respx.calls[-1].request.content) == {
+            "current": "internal_invalid",
+        }
+    else:
+        assert respx.calls[-1].request.url == f"{param.base}/ambilight/mode"
+        assert json.loads(respx.calls[-1].request.content) == {
+            "current": "internal",
+        }
 
     assert await client_mock.getAmbilightMode()
     assert client_mock.ambilight_mode == "internal"
@@ -310,8 +322,9 @@ async def test_ambilight_mode(client_mock, param):
     assert await client_mock.setAmbilightMode("manual")
     assert client_mock.ambilight_mode == "manual"
 
-    assert await client_mock.getAmbilightMode()
-    assert client_mock.ambilight_mode == "manual"
+    if client_mock.quirk_ambilight_mode_ignored:
+        assert await client_mock.getAmbilightMode()
+        assert client_mock.ambilight_mode == "manual"
 
     assert await client_mock.setAmbilightMode("interal")
     assert await client_mock.getAmbilightMode()
@@ -320,19 +333,18 @@ async def test_ambilight_mode(client_mock, param):
 async def test_ambilight_power(client_mock, param):
     route = respx.post(f"{param.base}/ambilight/power").respond(json={})
 
-    await client_mock.getSystem()
-
     assert client_mock.ambilight_power == None
-
+    await client_mock.update()
     await client_mock.getAmbilightPower()
-    assert client_mock.ambilight_power == True
 
-    await client_mock.setAmbilightPower(True)
+    assert client_mock.ambilight_power == "On"
+
+    await client_mock.setAmbilightPower("On")
     assert json.loads(route.calls[0].request.content) == {
         "power": "On"
     }
 
-    await client_mock.setAmbilightPower(False)
+    await client_mock.setAmbilightPower("Off")
     assert json.loads(route.calls[1].request.content) == {
         "power": "Off"
     }
@@ -360,8 +372,10 @@ async def test_ambilight_cached(client_mock, param: Param):
 
     await client_mock.setAmbilightCached(data)
 
-    assert respx.calls[-1].request.url == f"{param.base}/ambilight/cached"
-    assert json.loads(respx.calls[-1].request.content) == data
+    assert respx.calls[-2].request.url == f"{param.base}/ambilight/cached"
+
+    assert respx.calls[-2].request.url == f"{param.base}/ambilight/cached"
+    assert json.loads(respx.calls[-2].request.content) == data
 
 
 async def test_ambilight_modes(client_mock, param):

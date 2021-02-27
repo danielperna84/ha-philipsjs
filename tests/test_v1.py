@@ -223,23 +223,31 @@ async def test_ambilight_mode(client_mock):
     assert await client_mock.setAmbilightMode("manual")
     assert client_mock.ambilight_mode == "manual"
 
-    assert await client_mock.getAmbilightMode()
-    assert client_mock.ambilight_mode == "manual"
 
-    assert await client_mock.setAmbilightMode("interal")
-    assert await client_mock.getAmbilightMode()
-
-
-async def test_ambilight_power(client_mock):
-    await client_mock.getSystem()
+async def test_ambilight_power(client_mock: haphilipsjs.PhilipsTV):
+    respx.post("http://127.0.0.1:1925/1/ambilight/cached").respond(json={})
+    respx.post("http://127.0.0.1:1925/1/ambilight/mode").respond(json={})
 
     assert client_mock.ambilight_power == None
-
+    await client_mock.update()
     await client_mock.getAmbilightPower()
-    assert client_mock.ambilight_power == True
+    await client_mock.getAmbilightCached()
+    await client_mock.getAmbilightMode()
 
-    assert await client_mock.setAmbilightPower(True) is None
-    assert await client_mock.setAmbilightPower(False) is None
+    assert client_mock.ambilight_power == "On"
+
+    assert await client_mock.setAmbilightPower("Off")
+
+    assert respx.calls[-2].request.url == "http://127.0.0.1:1925/1/ambilight/cached"
+    assert json.loads(respx.calls[-2].request.content) == {"r": 0, "g": 0, "b": 0}
+
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/ambilight/cached"
+
+    assert await client_mock.setAmbilightPower("On")
+
+    assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/ambilight/mode"
+    assert json.loads(respx.calls[-1].request.content) == {"current": "internal"}
+
 
 
 async def test_ambilight_topology(client_mock):
@@ -264,5 +272,7 @@ async def test_ambilight_cached(client_mock):
 
     await client_mock.setAmbilightCached(data)
 
+    assert respx.calls[-2].request.url == "http://127.0.0.1:1925/1/ambilight/cached"
+
     assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/ambilight/cached"
-    assert json.loads(respx.calls[-1].request.content) == data
+    assert json.loads(respx.calls[-2].request.content) == data

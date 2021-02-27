@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
+from .typing import ActivitesTVType, AmbilightLayersType, AmbilightSideType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -122,12 +122,12 @@ class PhilipsTV(object):
         self.context: Optional[ContextType] = None
         self.screenstate: Optional[str] = None
         self.ambilight_topology = None
-        self.ambilight_mode = None
         self.ambilight_mode_set = None
-        self.ambilight_cached = None
-        self.ambilight_measured = None
-        self.ambilight_processed = None
-        self.ambilight_power: Optional[str] = None
+        self.ambilight_mode_raw: Optional[str]
+        self.ambilight_cached: Optional[AmbilightLayersType] = None
+        self.ambilight_measured: Optional[AmbilightLayersType] = None
+        self.ambilight_processed: Optional[AmbilightLayersType] = None
+        self.ambilight_power_raw: Optional[Dict] = None
         self.powerstate = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
@@ -303,6 +303,40 @@ class PhilipsTV(object):
                 return []
         else:
             return modes
+
+    @property
+    def ambilight_mode(self) -> Optional[str]:
+        if self.quirk_ambilight_mode_ignored:
+            if self.ambilight_mode_set and self.ambilight_mode_raw == "internal":
+                return self.ambilight_mode_set
+        return self.ambilight_mode_raw
+
+    @property
+    def ambilight_power(self) -> Optional[str]:
+
+        if self.api_version >= 5:
+            if self.ambilight_power_raw is None:
+                return None
+            return self.ambilight_power_raw.get("power")
+
+        if self.api_version == 1:
+            if self.ambilight_cached is None:
+                return None
+
+            if self.ambilight_mode == "manual":
+                if any(
+                    color != 0
+                    for layer in self.ambilight_cached.values()
+                    for side in layer.values()
+                    for pixel in side.values()
+                    for color in pixel.values()
+                ):
+                    return "On"
+                else:
+                    return "Off"
+
+            else:
+                return "On"
 
     async def aclose(self) -> None:
         await self.session.aclose()
@@ -771,16 +805,10 @@ class PhilipsTV(object):
     async def getAmbilightMode(self):
         data = await self._getReq('ambilight/mode')
         if data:
-            current = data["current"]
-
-            if self.quirk_ambilight_mode_ignored:
-                if self.ambilight_mode_set and current == "internal":
-                    current = self.ambilight_mode_set
-
-            self.ambilight_mode = current
-            return data
+            self.ambilight_mode_raw = data["current"]
+            return data["current"]
         else:
-            self.ambilight_mode = None
+            self.ambilight_mode_raw = None
 
     async def setAmbilightMode(self, mode):
         data = {
@@ -797,7 +825,7 @@ class PhilipsTV(object):
             else:
                 self.ambilight_mode_set = mode
 
-        self.ambilight_mode = mode
+        self.ambilight_mode_raw = mode
 
         return True
 
@@ -834,37 +862,46 @@ class PhilipsTV(object):
         return r
 
     async def getAmbilightPower(self):
-        if self.api_version >= 6:
+        if self.api_version >= 5:
             r = await self._getReq('ambilight/power')
             if r:
-                self.ambilight_power = r["power"]
+                self.ambilight_power_raw = r
             else:
-                self.ambilight_power = None
+                self.ambilight_power_raw = None
             return r
-        else:
-            self.ambilight_power = "On"
 
     async def setAmbilightPower(self, power: str):
-        if self.api_version >= 6:
+        if self.api_version >= 5:
             data = {"power": power}
             if await self._postReq('ambilight/power', data) is None:
                 return False
-            self.ambilight_power = power
+            self.ambilight_power_raw = data
 
             if self.quirk_ambilight_mode_ignored:
                 if power == "On" and "lounge" in self.ambilight_modes:
-                    self.ambilight_mode = "lounge"
+                    self.ambilight_mode_raw = "lounge"
                     self.ambilight_mode_set = "lounge"
+
+            return True
+
+        if self.api_version == 1:
+            if power == "On":
+                await self.setAmbilightMode("internal")
+            else:
+                await self.setAmbilightCached({"r": 0, "g": 0, "b": 0})
 
             return True
 
     async def setAmbilightCached(self, data):
         if await self._postReq('ambilight/cached', data) is None:
             return False
-        self.ambilight_cached = data
+
+        # won't do optimistic behavior here since
+        # the data format can differ a lot
+        await self.getAmbilightCached()
 
         if self.quirk_ambilight_mode_ignored:
-            self.ambilight_mode = "manual"
+            self.ambilight_mode_raw = "manual"
             self.ambilight_mode_set = "manual"
 
         return True
