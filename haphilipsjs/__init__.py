@@ -160,7 +160,24 @@ class PhilipsTV(object):
         if self.system:
             return self.system.get("os_type", "").startswith("MSAF_")
         else:
-            return None
+            return False
+
+    @property
+    def quirk_ambilight_mode_ignored(self):
+        """Return if this tv need workaround for ambilight bugs.
+
+        Android XTV app have bugs with their mode management for ambilight. It will
+        forgot to actuate the command to set mode back to internal. But will actually
+        do that if you give it an invalid mode.
+
+        It will also not report a correct ambilight mode after being changed by call.
+        So we need to remember last set mode.
+        """
+
+        if self.system:
+            return self.system.get("os_type", "").startswith("MSAF_")
+        else:
+            return False
 
     @property
     def pairing_type(self):
@@ -752,12 +769,13 @@ class PhilipsTV(object):
     async def getAmbilightMode(self):
         data = await self._getReq('ambilight/mode')
         if data:
-            # Work around bug where set mode via API is not
-            # reported correctly. Just trust the mode set.
-            if self.ambilight_mode_set and data["current"] == "internal":
-                self.ambilight_mode = self.ambilight_mode_set
-            else:
-                self.ambilight_mode = data["current"]
+            current = data["current"]
+
+            if self.quirk_ambilight_mode_ignored:
+                if self.ambilight_mode_set and current == "internal":
+                    current = self.ambilight_mode_set
+
+            self.ambilight_mode = current
             return data
         else:
             self.ambilight_mode = None
@@ -768,11 +786,17 @@ class PhilipsTV(object):
         }
         if await self._postReq('ambilight/mode', data) is None:
             return False
+
+        if self.quirk_ambilight_mode_ignored:
+            if mode == "internal":
+                self.ambilight_mode_set = None
+                if await self._postReq('ambilight/mode', {"current": "internal_invalid"}) is None:
+                        LOG.info("Ignoring error for workaround for ambilight mode")
+            else:
+                self.ambilight_mode_set = mode
+
         self.ambilight_mode = mode
-        if mode != "internal":
-            self.ambilight_mode_set = mode
-        else:
-            self.ambilight_mode_set = None
+
         return True
 
     async def getAmbilightTopology(self):
