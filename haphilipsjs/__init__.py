@@ -182,7 +182,7 @@ class PhilipsTV(object):
         else:
             return None
 
-    def json_feature_supported(self, type: str, value: Optional[str]):
+    def json_feature_supported(self, type: str, value: Optional[str] = None):
         if self.system:
             features = self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, [])
             if value:
@@ -270,6 +270,21 @@ class PhilipsTV(object):
                 if pos > 0:
                     return r['id'][pos+1:]
             return r['id']
+
+    @property
+    def ambilight_modes(self):
+        modes = ["internal", "manual", "expert"]
+
+        if self.api_version >= 6:
+            features = self.json_feature_supported("ambilight")
+            if features:
+                if "LoungeLight" in features:
+                    modes.append("lounge")
+                return modes
+            else:
+                return []
+        else:
+            return modes
 
     async def aclose(self) -> None:
         await self.session.aclose()
@@ -742,7 +757,7 @@ class PhilipsTV(object):
                 self.ambilight_mode = self.ambilight_mode_set
             else:
                 self.ambilight_mode = data["current"]
-            return data["current"]
+            return data
         else:
             self.ambilight_mode = None
 

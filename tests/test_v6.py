@@ -291,16 +291,30 @@ async def test_send_key_off(client_mock, param: Param):
     with pytest.raises(haphilipsjs.ConnectionFailure):
         await client_mock.sendKey("Standby")
 
-async def test_ambilight_mode(client_mock, param):
-    assert await client_mock.getAmbilightMode() == "internal"
 
-    respx.post(f"{param.base}/ambilight/mode").respond(json={})
-    await client_mock.setAmbilightMode("manual")
+async def test_ambilight_mode(client_mock, param):
+    await client_mock.getSystem()
+
+    route = respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    await client_mock.setAmbilightMode("internal")
 
     assert respx.calls[-1].request.url == f"{param.base}/ambilight/mode"
     assert json.loads(respx.calls[-1].request.content) == {
-        "current": "manual",
+        "current": "internal",
     }
+
+    assert await client_mock.getAmbilightMode()
+    assert client_mock.ambilight_mode == "internal"
+
+    assert await client_mock.setAmbilightMode("manual")
+    assert client_mock.ambilight_mode == "manual"
+
+    assert await client_mock.getAmbilightMode()
+    assert client_mock.ambilight_mode == "manual"
+
+    assert await client_mock.setAmbilightMode("interal")
+    assert await client_mock.getAmbilightMode()
+
 
 async def test_ambilight_topology(client_mock):
     assert await client_mock.getAmbilightTopology() == AMBILIGHT["topology"]
@@ -326,6 +340,14 @@ async def test_ambilight_cached(client_mock, param: Param):
 
     assert respx.calls[-1].request.url == f"{param.base}/ambilight/cached"
     assert json.loads(respx.calls[-1].request.content) == data
+
+
+async def test_ambilight_modes(client_mock, param):
+    await client_mock.getSystem()
+    if param.type == "android":
+        assert client_mock.ambilight_modes == ["internal", "manual", "expert", "lounge"]
+    elif param.type == "saphi":
+        assert client_mock.ambilight_modes == ["internal", "manual", "expert"]
 
 async def test_buggy_json():
     assert haphilipsjs.decode_xtv_json("") == {}

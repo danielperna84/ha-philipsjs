@@ -83,13 +83,6 @@ async def test_get_channel_name(client_mock):
     assert await client_mock.getChannelName("fingerprint-3") == "Irdeto scrambled"
     assert await client_mock.getChannelName("invalid_name") == None
 
-async def test_set_source(client_mock):
-    """Verify that we can translate channel id to name"""
-    route = respx.post(f"http://127.0.0.1:1925/1/sources/current").respond(json={})
-    await client_mock.setSource("hdmi1")
-    assert json.loads(route.calls[0].request.content) == {
-        "id": "hdmi1"
-    }
 
 async def test_timeout(client_mock):
     """Test that connect timeouts trigger tv to be considered off"""
@@ -214,15 +207,27 @@ async def test_send_key_off(client_mock):
         await client_mock.sendKey("Standby")
 
 async def test_ambilight_mode(client_mock):
-    assert await client_mock.getAmbilightMode() == "internal"
+    await client_mock.getSystem()
 
     respx.post("http://127.0.0.1:1925/1/ambilight/mode").respond(json={})
-    await client_mock.setAmbilightMode("manual")
+    await client_mock.setAmbilightMode("internal")
 
     assert respx.calls[-1].request.url == "http://127.0.0.1:1925/1/ambilight/mode"
     assert json.loads(respx.calls[-1].request.content) == {
-        "current": "manual",
+        "current": "internal",
     }
+
+    assert await client_mock.getAmbilightMode()
+    assert client_mock.ambilight_mode == "internal"
+
+    assert await client_mock.setAmbilightMode("manual")
+    assert client_mock.ambilight_mode == "manual"
+
+    assert await client_mock.getAmbilightMode()
+    assert client_mock.ambilight_mode == "manual"
+
+    assert await client_mock.setAmbilightMode("interal")
+    assert await client_mock.getAmbilightMode()
 
 async def test_ambilight_topology(client_mock):
     assert await client_mock.getAmbilightTopology() == AMBILIGHT["topology"]
