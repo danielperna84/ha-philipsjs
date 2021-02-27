@@ -123,6 +123,7 @@ class PhilipsTV(object):
         self.screenstate: Optional[str] = None
         self.ambilight_topology = None
         self.ambilight_mode = None
+        self.ambilight_mode_set = None
         self.ambilight_cached = None
         self.ambilight_measured = None
         self.ambilight_processed = None
@@ -735,7 +736,12 @@ class PhilipsTV(object):
     async def getAmbilightMode(self):
         data = await self._getReq('ambilight/mode')
         if data:
-            self.ambilight_mode = data["current"]
+            # Work around bug where set mode via API is not
+            # reported correctly. Just trust the mode set.
+            if self.ambilight_mode_set and data["current"] == "internal":
+                self.ambilight_mode = self.ambilight_mode_set
+            else:
+                self.ambilight_mode = data["current"]
             return data["current"]
         else:
             self.ambilight_mode = None
@@ -747,6 +753,10 @@ class PhilipsTV(object):
         if await self._postReq('ambilight/mode', data) is None:
             return False
         self.ambilight_mode = mode
+        if mode != "internal":
+            self.ambilight_mode_set = mode
+        else:
+            self.ambilight_mode_set = None
         return True
 
     async def getAmbilightTopology(self):
