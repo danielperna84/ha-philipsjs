@@ -178,6 +178,8 @@ async def main():
         print('Power State: {}'.format(tv.powerstate))
         print('Screen State: {}'.format(tv.screenstate))
 
+        await tv.getAmbilightPower()
+        print('Ambilight power: {}'.format(tv.ambilight_power))
         print('Ambilight mode: {}'.format(await tv.getAmbilightMode()))
         print('Ambilight topology: {}'.format(await tv.getAmbilightTopology()))
         print('Ambilight processed: {}'.format(await tv.getAmbilightProcessed()))

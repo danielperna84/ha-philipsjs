@@ -78,6 +78,7 @@ async def client_mock(loop, param: Param):
         respx.get(f"{param.base}/ambilight/measured").respond(json=AMBILIGHT["measured"])
         respx.get(f"{param.base}/ambilight/processed").respond(json=AMBILIGHT["processed"])
         respx.get(f"{param.base}/ambilight/cached").respond(json=AMBILIGHT["cached"])
+        respx.get(f"{param.base}/ambilight/power").respond(json={"power": "On"})
 
         if param.type == "android":
             client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6, secured_transport=True)
@@ -314,6 +315,27 @@ async def test_ambilight_mode(client_mock, param):
 
     assert await client_mock.setAmbilightMode("interal")
     assert await client_mock.getAmbilightMode()
+
+
+async def test_ambilight_power(client_mock, param):
+    route = respx.post(f"{param.base}/ambilight/power").respond(json={})
+
+    await client_mock.getSystem()
+
+    assert client_mock.ambilight_power == None
+
+    await client_mock.getAmbilightPower()
+    assert client_mock.ambilight_power == True
+
+    await client_mock.setAmbilightPower(True)
+    assert json.loads(route.calls[0].request.content) == {
+        "power": "On"
+    }
+
+    await client_mock.setAmbilightPower(False)
+    assert json.loads(route.calls[1].request.content) == {
+        "power": "Off"
+    }
 
 
 async def test_ambilight_topology(client_mock):

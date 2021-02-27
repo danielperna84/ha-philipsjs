@@ -229,6 +229,19 @@ async def test_ambilight_mode(client_mock):
     assert await client_mock.setAmbilightMode("interal")
     assert await client_mock.getAmbilightMode()
 
+
+async def test_ambilight_power(client_mock):
+    await client_mock.getSystem()
+
+    assert client_mock.ambilight_power == None
+
+    await client_mock.getAmbilightPower()
+    assert client_mock.ambilight_power == True
+
+    assert await client_mock.setAmbilightPower(True) is None
+    assert await client_mock.setAmbilightPower(False) is None
+
+
 async def test_ambilight_topology(client_mock):
     assert await client_mock.getAmbilightTopology() == AMBILIGHT["topology"]
 

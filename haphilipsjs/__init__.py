@@ -127,6 +127,7 @@ class PhilipsTV(object):
         self.ambilight_cached = None
         self.ambilight_measured = None
         self.ambilight_processed = None
+        self.ambilight_power: Optional[str] = None
         self.powerstate = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
@@ -805,6 +806,25 @@ class PhilipsTV(object):
         else:
             self.ambilight_cached = None
         return r
+
+    async def getAmbilightPower(self):
+        if self.api_version >= 6:
+            r = await self._getReq('ambilight/power')
+            if r:
+                self.ambilight_power = r["power"]
+            else:
+                self.ambilight_power = None
+            return r
+        else:
+            self.ambilight_power = "On"
+
+    async def setAmbilightPower(self, power: str):
+        if self.api_version >= 6:
+            data = {"power": power}
+            if await self._postReq('ambilight/power', data) is None:
+                return False
+            self.ambilight_power = power
+            return True
 
     async def setAmbilightCached(self, data):
         if await self._postReq('ambilight/cached', data) is None:
