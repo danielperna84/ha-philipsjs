@@ -315,7 +315,9 @@ class PhilipsTV(object):
         try:
             resp = await self.session.get(self._url(path), timeout=TIMEOUT)
             if resp.status_code != 200:
+                LOG.debug("Get failed: %s -> %d %s", path, resp.status_code, resp.text)
                 return None
+            LOG.debug("Get succeded: %s -> %s", path, resp.text)
             return decode_xtv_json(resp.text)
         except httpx.HTTPError as err:
             raise ConnectionFailure(repr(err)) from err
