@@ -301,7 +301,7 @@ class PhilipsTV(object):
                 return None
             return decode_xtv_json(resp.text)
         except httpx.HTTPError as err:
-            raise ConnectionFailure(str(err)) from err
+            raise ConnectionFailure(repr(err)) from err
 
     async def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
 
@@ -311,7 +311,7 @@ class PhilipsTV(object):
                 return None, None
             return resp.content, resp.headers.get("content-type")
         except httpx.HTTPError as err:
-            raise ConnectionFailure(str(err)) from err
+            raise ConnectionFailure(repr(err)) from err
 
     async def _postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
         try:
@@ -328,7 +328,7 @@ class PhilipsTV(object):
         except httpx.ReadTimeout:
             return None
         except httpx.HTTPError as err:
-            raise ConnectionFailure(str(err)) from err
+            raise ConnectionFailure(repr(err)) from err
 
     async def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str, type: str, device_id: Optional[str] = None):
         """Start up a pairing request."""
@@ -445,7 +445,7 @@ class PhilipsTV(object):
             self.on = True
             return True
         except ConnectionFailure as err:
-            LOG.debug("Exception: %s", str(err))
+            LOG.debug("Exception: %s", repr(err))
             self.on = False
             return False
 
@@ -855,7 +855,7 @@ class PhilipsTV(object):
         try:
             result = await self._postReq('notifychange', data=data, timeout=timeout)
         except ConnectionFailure as err:
-            LOG.debug("Exception: %s", str(err))
+            LOG.debug("Exception: %s", repr(err))
             self.on = False
             result = None
         if result:
