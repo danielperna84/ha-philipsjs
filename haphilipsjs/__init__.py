@@ -850,12 +850,23 @@ class PhilipsTV(object):
             if await self._postReq('ambilight/power', data) is None:
                 return False
             self.ambilight_power = power
+
+            if self.quirk_ambilight_mode_ignored:
+                if power == "On" and "lounge" in self.ambilight_modes:
+                    self.ambilight_mode = "lounge"
+                    self.ambilight_mode_set = "lounge"
+
             return True
 
     async def setAmbilightCached(self, data):
         if await self._postReq('ambilight/cached', data) is None:
             return False
         self.ambilight_cached = data
+
+        if self.quirk_ambilight_mode_ignored:
+            self.ambilight_mode = "manual"
+            self.ambilight_mode_set = "manual"
+
         return True
 
     async def openURL(self, url):
