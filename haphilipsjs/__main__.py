@@ -2,6 +2,7 @@ import curses
 import platform
 from . import PhilipsTV
 import asyncio
+from ast import literal_eval
 
 async def monitor_run(stdscr, tv: PhilipsTV):
 
@@ -133,6 +134,12 @@ async def main():
     get = subparsers.add_parser("get", help="Get data from endpoint")
     get.add_argument("path", help="Sub path to grab from tv")
 
+    post = subparsers.add_parser("post", help="Post data to endpoint")
+    post.add_argument("path", help="Sub path to grab from tv")
+    post.add_argument("data", help="Json data to post")
+
+
+
     markdown = subparsers.add_parser("markdown", help="Print markdown for commandline")
 
     args = parser.parse_args()
@@ -216,6 +223,11 @@ async def main():
     elif args.command == "get":
         res = await tv._getReq(args.path)
         print(res)
+
+    elif args.command == "post":
+        res = await tv._postReq(args.path, literal_eval(args.data))
+        print(res)
+
 
     elif args.command == "markdown":
         import argmark
