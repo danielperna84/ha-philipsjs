@@ -136,18 +136,16 @@ SourcesType = Dict[str, SourceType]
 class SourceCurrentType(TypedDict):
     id: str
 
-class ContextType1(TypedDict):
+class ContextType(TypedDict, total=False):
     data: str
     level1: str
     level2: str
     level3: str
 
-class ContextType2(TypedDict):
+    # in some older context these exists
     activity: str
     menu: str
     Recording: str
-
-ContextType = Union[ContextType1, ContextType2]
 
 AmbilightPixelType = Dict[Literal["r", "g", "b"], int]
 

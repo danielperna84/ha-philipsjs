@@ -204,7 +204,7 @@ class PhilipsTV(object):
 
     def json_feature_supported(self, type: str, value: Optional[str] = None):
         if self.system:
-            features = self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, [])
+            features = cast(List[str], self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, []))
             if value:
                 return value in features
             else:
@@ -215,7 +215,7 @@ class PhilipsTV(object):
     @property
     def api_version_detected(self) -> Optional[int]:
         if self.system:
-            return self.system.get("api_version", {}).get("Major")
+            return cast(Optional[int], self.system.get("api_version", {}).get("Major"))
         else:
             return None
 
@@ -339,6 +339,8 @@ class PhilipsTV(object):
 
             else:
                 return "On"
+
+        return None
 
     async def aclose(self) -> None:
         await self.session.aclose()
@@ -579,6 +581,7 @@ class PhilipsTV(object):
             r = cast(Optional[ContextType], await self._getReq(f"context"))
             self.context = r
             return r
+        return None
 
     async def setChannel(self, ccid, list_id: str = "alltv"):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
@@ -586,10 +589,13 @@ class PhilipsTV(object):
             channel = {"channelList": {"id": list_id}, "channel": {"ccid": ccid}}
             if await self._postReq('activities/tv', cast(Dict, channel)) is not None:
                 self.channel = channel
+                return True
         else:
             channel = {'id': ccid}
             if await self._postReq('channels/current', cast(Dict, channel)) is not None:
                 self.channel = channel
+                return True
+        return False
 
     async def getChannelLists(self):
         if self.api_version >= 5:
@@ -613,14 +619,20 @@ class PhilipsTV(object):
             r = cast(Optional[FavoriteListType], await self._getReq(
                 f"channeldb/tv/favoriteLists/{list_id}"
             ))
-            return r["channels"]
+            if r:
+                return r["channels"]
+            else:
+                return None
 
     async def getChannelList(self, list_id: str):
         if self.api_version >= 5:
             r = cast(Optional[ChannelListType], await self._getReq(
                 f"channeldb/tv/channelLists/{list_id}"
             ))
-            return r["Channel"]
+            if r:
+                return r["Channel"]
+            else:
+                return None
 
     async def getSources(self):
         if self.json_feature_supported("activities", "intent"):
