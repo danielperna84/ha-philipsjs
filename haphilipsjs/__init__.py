@@ -143,14 +143,9 @@ class PhilipsTV(object):
             self.protocol = "http"
             self.port = 1925
 
-        # for devices with notify support we must have two
-        if self.api_version > 1:
-            pool_maxsize=2
-        else:
-            pool_maxsize=1
-
-        limits = httpx.Limits(max_keepalive_connections=1, max_connections=pool_maxsize)
-        self.session = httpx.AsyncClient(limits=limits, verify=False)
+        timeout = httpx.Timeout(timeout=5.0, pool=20.0)
+        limits = httpx.Limits(max_keepalive_connections=1, max_connections=2)
+        self.session = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False)
         self.session.headers["Accept"] = "application/json"
 
         if username and password:
