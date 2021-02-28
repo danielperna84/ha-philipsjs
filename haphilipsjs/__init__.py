@@ -495,6 +495,9 @@ class PhilipsTV(object):
             await self.getApplication()
             await self.getContext()
             await self.getScreenState()
+            await self.getAmbilightMode()
+            await self.getAmbilightCached()
+            await self.getAmbilightPower()
             self.on = True
             return True
         except ConnectionFailure as err:
