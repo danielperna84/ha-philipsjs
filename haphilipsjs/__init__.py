@@ -921,8 +921,9 @@ class PhilipsTV(object):
         await self.getAmbilightCached()
 
         if self.quirk_ambilight_mode_ignored:
-            self.ambilight_mode_raw = "manual"
-            self.ambilight_mode_set = "manual"
+            if self.ambilight_mode_set not in ("manual", "expert"):
+                self.ambilight_mode_raw = "manual"
+                self.ambilight_mode_set = "manual"
 
         return True
 
