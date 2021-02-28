@@ -164,8 +164,29 @@ class AmbilightSupportedStyleType(TypedDict, total=False):
 class AmbilightSupportedStylesType(TypedDict):
     supportedStyles: List [AmbilightSupportedStyleType]
 
-class AmbilightCurrentConfiguration(TypedDict):
+
+class AmbilightColorType(TypedDict):
+    hue: int
+    saturation: int
+    brightness: int
+
+class AmbilightAudioSettingsType(TypedDict):
+    color: AmbilightColorType
+    colorDelta: AmbilightColorType
+    tuning: int
+    algorithm: str
+
+class AmbilightColorSettingsType(TypedDict):
+    color: AmbilightColorType
+    colorDelta: AmbilightColorType
+    speed: int
+    algorithm: str
+
+class AmbilightCurrentConfiguration(TypedDict, total=False):
     styleName: str
     isExpert: bool
     menuSetting: str
     stringValue: str
+
+    audioSettings: AmbilightAudioSettingsType
+    colorSettings: AmbilightColorSettingsType
