@@ -1,10 +1,11 @@
 from typing import cast
 from haphilipsjs.typing import (
-    ApplicationIntentType,
+    AmbilightSupportedStylesType, ApplicationIntentType,
     ApplicationsType,
     ChannelDbTv,
     ChannelListType,
-    ComponentType, ContextType,
+    ComponentType,
+    ContextType,
     FavoriteListType,
     SystemType,
 )
@@ -67,53 +68,29 @@ SYSTEM_ANDROID_DECRYPTED = cast(
 )
 
 SYSTEM_SAPHI: SystemType = {
-	"menulanguage": "Dutch",
-	"name": "50PUS6804/12",
-	"country": "Netherlands",
-	"nettvversion": "4.6.0.1",
-	"epgsource": "no_epg",
-	"api_version": {
-		"Major": 6,
-		"Minor": 1,
-		"Patch": 0
-	},
-	"featuring": {
-		"jsonfeatures": {
-			"recordings": [
-				"List",
-				"Schedule",
-				"Manage"
-			],
-			"ambilight": [
-				"Hue",
-				"HueStreaming",
-				"Ambilight"
-			],
-			"textentry": [
-				"context_based",
-				"initial_string_available"
-			],
-			"inputkey": [
-				"key",
-				"unicode"
-			],
-			"pointer": [
-				"context_based"
-			],
-			"activities": [
-				"browser"
-			]
-		},
-		"systemfeatures": {
-			"tvtype": "consumer",
-			"content": [
-				"dmr"
-			],
-			"pairing_type": "none",
-			"companion_screen": True,
-			"os_type": "Linux"
-		}
-	}
+    "menulanguage": "Dutch",
+    "name": "50PUS6804/12",
+    "country": "Netherlands",
+    "nettvversion": "4.6.0.1",
+    "epgsource": "no_epg",
+    "api_version": {"Major": 6, "Minor": 1, "Patch": 0},
+    "featuring": {
+        "jsonfeatures": {
+            "recordings": ["List", "Schedule", "Manage"],
+            "ambilight": ["Hue", "HueStreaming", "Ambilight"],
+            "textentry": ["context_based", "initial_string_available"],
+            "inputkey": ["key", "unicode"],
+            "pointer": ["context_based"],
+            "activities": ["browser"],
+        },
+        "systemfeatures": {
+            "tvtype": "consumer",
+            "content": ["dmr"],
+            "pairing_type": "none",
+            "companion_screen": True,
+            "os_type": "Linux",
+        },
+    },
 }
 
 SYSTEM_SAPHI_ENCRYPTED = cast(
@@ -478,17 +455,48 @@ AMBILIGHT = {
             "bottom": {},
         }
     },
-    "power": {
-        "power": "On"
-    }
+    "power": {"power": "On"},
+}
+
+AMBILIGHT_SUPPORTED_STYLES: AmbilightSupportedStylesType = {
+    "supportedStyles": [
+        {},
+        {},
+        {
+            "styleName": "FOLLOW_AUDIO",
+            "algorithms": [
+                "ENERGY_ADAPTIVE_BRIGHTNESS",
+                "ENERGY_ADAPTIVE_COLORS",
+                "VU_METER",
+                "SPECTRUM_ANALYZER",
+                "KNIGHT_RIDER_CLOCKWISE",
+                "KNIGHT_RIDER_ALTERNATING",
+                "RANDOM_PIXEL_FLASH",
+                "STROBO",
+                "PARTY",
+            ],
+            "maxTuning": 2,
+        },
+        {
+            "styleName": "Lounge light",
+            "algorithms": ["MANUAL_HUE", "AUTOMATIC_HUE"],
+            "maxSpeed": 255,
+        },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+    ]
 }
 
 POWERSTATE = {"powerstate": "On"}
 SCREENSTATE = {"screenstate": "On"}
 
 CONTEXT: ContextType = {
-    'data': 'NA',
-    'level1': 'WatchTv',
-    'level2': 'Playstate',
-    'level3': 'NA'
+    "data": "NA",
+    "level1": "WatchTv",
+    "level2": "Playstate",
+    "level3": "NA",
 }

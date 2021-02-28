@@ -7,7 +7,7 @@ from typing import Dict, NamedTuple, cast
 
 from haphilipsjs.data.v6 import (
     AMBILIGHT,
-    ACTIVITIES_TV, APPLICATIONS,
+    ACTIVITIES_TV, AMBILIGHT_SUPPORTED_STYLES, APPLICATIONS,
     CHANNELDB_TV,
     CHANNELDB_TV_CHANNELLISTS_ALL,
     ACTIVITIES_CURRENT,
@@ -79,6 +79,7 @@ async def client_mock(loop, param: Param):
         respx.get(f"{param.base}/ambilight/processed").respond(json=AMBILIGHT["processed"])
         respx.get(f"{param.base}/ambilight/cached").respond(json=AMBILIGHT["cached"])
         respx.get(f"{param.base}/ambilight/power").respond(json={"power": "On"})
+        respx.get(f"{param.base}/ambilight/supportedstyles").respond(json=cast(Dict,AMBILIGHT_SUPPORTED_STYLES))
 
         if param.type == "android":
             client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6, secured_transport=True)
@@ -384,6 +385,11 @@ async def test_ambilight_modes(client_mock, param):
         assert client_mock.ambilight_modes == ["internal", "manual", "expert", "lounge"]
     elif param.type == "saphi":
         assert client_mock.ambilight_modes == ["internal", "manual", "expert"]
+
+async def test_ambilight_supported_stypes(client_mock, param):
+    await client_mock.getSystem()
+    await client_mock.getAmbilightSupportedStyles()
+    assert client_mock.ambilight_styles == {style["styleName"]: style for style in AMBILIGHT_SUPPORTED_STYLES["supportedStyles"] if style}
 
 async def test_buggy_json():
     assert haphilipsjs.decode_xtv_json("") == {}

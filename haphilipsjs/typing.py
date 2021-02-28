@@ -156,3 +156,10 @@ AmbilightSideType = Dict[str, AmbilightPixelType]
 AmbilightLayerType = Dict[Literal["left", "top", "right", "bottom"], AmbilightSideType]
 
 AmbilightLayersType = Dict[str, AmbilightLayerType]
+class AmbilightSupportedStyleType(TypedDict, total=False):
+    styleName: str
+    algorithms: List[str]
+    maxTuning: int
+    maxSpeed: int
+class AmbilightSupportedStylesType(TypedDict):
+    supportedStyles: List [AmbilightSupportedStyleType]

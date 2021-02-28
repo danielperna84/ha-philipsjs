@@ -1,4 +1,4 @@
-from typing import Any, Dict, Literal, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Tuple, TypeVar, Union, cast
 import httpx
 import logging
 import warnings
@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, AmbilightLayersType, AmbilightSideType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
+from .typing import ActivitesTVType, AmbilightLayersType, AmbilightSideType, AmbilightSupportedStyleType, AmbilightSupportedStylesType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -123,11 +123,12 @@ class PhilipsTV(object):
         self.screenstate: Optional[str] = None
         self.ambilight_topology = None
         self.ambilight_mode_set = None
-        self.ambilight_mode_raw: Optional[str]
+        self.ambilight_mode_raw: Optional[str] = None
         self.ambilight_cached: Optional[AmbilightLayersType] = None
         self.ambilight_measured: Optional[AmbilightLayersType] = None
         self.ambilight_processed: Optional[AmbilightLayersType] = None
         self.ambilight_power_raw: Optional[Dict] = None
+        self.ambilight_styles: Optional[Dict[str, AmbilightSupportedStyleType]] = None
         self.powerstate = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
@@ -487,6 +488,7 @@ class PhilipsTV(object):
                 await self.getChannelLists()
                 await self.getChannels()
                 await self.getApplications()
+                await self.getAmbilightSupportedStyles()
 
             await self.getPowerState()
             await self.getAudiodata()
@@ -909,6 +911,17 @@ class PhilipsTV(object):
             self.ambilight_mode_set = "manual"
 
         return True
+
+    async def getAmbilightSupportedStyles(self):
+        if self.json_feature_supported("ambilight", "Ambilight"):
+            r = cast(Optional[AmbilightSupportedStylesType], await self._getReq('ambilight/supportedstyles'))
+            if r:
+                self.ambilight_styles = {
+                    style["styleName"]: style for style in r["supportedStyles"] if style
+                }
+            else:
+                self.ambilight_styles = {}
+            return r
 
     async def openURL(self, url):
         if self.json_feature_supported("activities", "browser"):
