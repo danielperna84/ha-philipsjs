@@ -1,4 +1,5 @@
 from aiohttp import web
+from aiohttp.web_request import Request
 from aiohttp.web_response import json_response
 
 from haphilipsjs.data.v1 import (
@@ -12,30 +13,35 @@ from haphilipsjs.data.v1 import (
     VOLUME,
 )
 
-def put_ambilight_cached(req):
+async def put_ambilight_cached(req):
     print("cached")
     return web.json_response({})
 
 
-def put_ambilight_mode(req):
+async def put_ambilight_mode(req):
     print("mode")
     return web.json_response({})
 
+def get_data(data):
+    async def get(req: Request):
+        return web.json_response(data)
+    return get
+
 app = web.Application()
 app.add_routes([
-    web.get('/1/system', lambda req: web.json_response(SYSTEM)),
-    web.get('/1/sources', lambda req: web.json_response(SOURCES)),
-    web.get('/1/sources/current', lambda req: web.json_response(SOURCES_CURRENT)),
-    web.get('/1/channels', lambda req: web.json_response(CHANNELS)),
-    web.get('/1/channels/current', lambda req: web.json_response(CHANNELS_CURRENT)),
-    web.get('/1/audio/volume', lambda req: web.json_response(VOLUME)),
-    web.get('/1/channellists', lambda req: web.json_response(CHANNELLISTS)),
-    web.get('/1/ambilight/mode', lambda req: web.json_response(AMBILIGHT["mode"])),
+    web.get('/1/system', get_data(SYSTEM)),
+    web.get('/1/sources', get_data(SOURCES)),
+    web.get('/1/sources/current', get_data(SOURCES_CURRENT)),
+    web.get('/1/channels', get_data(CHANNELS)),
+    web.get('/1/channels/current', get_data(CHANNELS_CURRENT)),
+    web.get('/1/audio/volume', get_data(VOLUME)),
+    web.get('/1/channellists', get_data(CHANNELLISTS)),
+    web.get('/1/ambilight/mode', get_data(AMBILIGHT["mode"])),
     web.post('/1/ambilight/mode', put_ambilight_mode),
-    web.get('/1/ambilight/topology', lambda req: web.json_response(AMBILIGHT["topology"])),
-    web.get('/1/ambilight/measured', lambda req: web.json_response(AMBILIGHT["measured"])),
-    web.get('/1/ambilight/processed', lambda req: web.json_response(AMBILIGHT["processed"])),
-    web.get('/1/ambilight/cached', lambda req: web.json_response(AMBILIGHT["cached"])),
+    web.get('/1/ambilight/topology', get_data(AMBILIGHT["topology"])),
+    web.get('/1/ambilight/measured', get_data(AMBILIGHT["measured"])),
+    web.get('/1/ambilight/processed', get_data(AMBILIGHT["processed"])),
+    web.get('/1/ambilight/cached', get_data(AMBILIGHT["cached"])),
     web.post('/1/ambilight/cached', put_ambilight_cached),
 ])
 
