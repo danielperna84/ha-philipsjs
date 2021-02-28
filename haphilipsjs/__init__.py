@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, AmbilightLayersType, AmbilightSideType, AmbilightSupportedStyleType, AmbilightSupportedStylesType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
+from .typing import ActivitesTVType, AmbilightCurrentConfiguration, AmbilightLayersType, AmbilightSideType, AmbilightSupportedStyleType, AmbilightSupportedStylesType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -128,7 +128,8 @@ class PhilipsTV(object):
         self.ambilight_measured: Optional[AmbilightLayersType] = None
         self.ambilight_processed: Optional[AmbilightLayersType] = None
         self.ambilight_power_raw: Optional[Dict] = None
-        self.ambilight_styles: Optional[Dict[str, AmbilightSupportedStyleType]] = None
+        self.ambilight_styles: Dict[str, AmbilightSupportedStyleType] = {}
+        self.ambilight_current_configuration: Optional[AmbilightCurrentConfiguration] = None
         self.powerstate = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
@@ -923,7 +924,25 @@ class PhilipsTV(object):
                 self.ambilight_styles = {}
             return r
 
-    async def openURL(self, url):
+    async def getAmbilightCurrentConfiguration(self):
+        if self.json_feature_supported("ambilight", "Ambilight"):
+            r = cast(Optional[AmbilightCurrentConfiguration], await self._getReq('ambilight/currentconfiguration'))
+            if r:
+                self.ambilight_current_configuration = r
+            else:
+                self.ambilight_current_configuration = None
+            return r
+
+    async def setAmbilightCurrentConfiguration(self, config: AmbilightCurrentConfiguration):
+        if self.json_feature_supported("ambilight", "Ambilight"):
+            r = await self._postReq('ambilight/currentconfiguration', cast(Dict, config))
+            if r is not None:
+                self.ambilight_current_configuration = config
+            else:
+                self.ambilight_current_configuration = None
+            return r
+
+    async def openURL(self, url: str):
         if self.json_feature_supported("activities", "browser"):
             r = await self._postReq('activities/browser', {'url': url})
             return r is not None

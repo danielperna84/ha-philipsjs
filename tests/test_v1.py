@@ -35,14 +35,15 @@ async def client_mock(loop):
         yield client
         await client.aclose()
 
-async def test_basic_data(client_mock):
+async def test_basic_data(client_mock: haphilipsjs.PhilipsTV):
     """Test for basic data"""
     await  client_mock.update()
     assert client_mock.on == True
     assert client_mock.system == SYSTEM
     assert client_mock.sources == SOURCES
     assert client_mock.channels == CHANNELS
-
+    assert client_mock.ambilight_current_configuration is None
+    assert client_mock.ambilight_styles == {}
 
 async def test_current_source_none(client_mock):
     await client_mock.update()

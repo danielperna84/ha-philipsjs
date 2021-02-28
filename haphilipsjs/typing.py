@@ -163,3 +163,9 @@ class AmbilightSupportedStyleType(TypedDict, total=False):
     maxSpeed: int
 class AmbilightSupportedStylesType(TypedDict):
     supportedStyles: List [AmbilightSupportedStyleType]
+
+class AmbilightCurrentConfiguration(TypedDict):
+    styleName: str
+    isExpert: bool
+    menuSetting: str
+    stringValue: str

@@ -1,6 +1,8 @@
 from typing import cast
 from haphilipsjs.typing import (
-    AmbilightSupportedStylesType, ApplicationIntentType,
+    AmbilightCurrentConfiguration,
+    AmbilightSupportedStylesType,
+    ApplicationIntentType,
     ApplicationsType,
     ChannelDbTv,
     ChannelListType,
@@ -489,6 +491,13 @@ AMBILIGHT_SUPPORTED_STYLES: AmbilightSupportedStylesType = {
         {},
         {},
     ]
+}
+
+AMBILIGHT_CURRENT_CONFIGURATION: AmbilightCurrentConfiguration = {
+    "styleName": "FOLLOW_VIDEO",
+    "isExpert": False,
+    "menuSetting": "STANDARD",
+    "stringValue": "Standard",
 }
 
 POWERSTATE = {"powerstate": "On"}
