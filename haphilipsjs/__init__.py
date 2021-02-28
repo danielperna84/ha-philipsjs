@@ -888,6 +888,7 @@ class PhilipsTV(object):
             if power == "On":
                 await self.setAmbilightMode("internal")
             else:
+                await self.setAmbilightMode("manual")
                 await self.setAmbilightCached({"r": 0, "g": 0, "b": 0})
 
             return True
