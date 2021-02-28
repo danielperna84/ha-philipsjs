@@ -180,10 +180,12 @@ async def main():
 
         await tv.getAmbilightPower()
         print('Ambilight power: {}'.format(tv.ambilight_power))
-        print('Ambilight mode: {}'.format(await tv.getAmbilightMode()))
+        print('Ambilight mode: {}'.format(tv.ambilight_mode))
         print('Ambilight topology: {}'.format(await tv.getAmbilightTopology()))
         print('Ambilight processed: {}'.format(await tv.getAmbilightProcessed()))
         print('Ambilight measured: {}'.format(await tv.getAmbilightMeasured()))
+        print('Ambilight styles: {}'.format(list(tv.ambilight_styles.values())))
+        print('Ambilight currentconfiguration: {}'.format(tv.ambilight_current_configuration))
 
 
     elif args.command == "ambilight":
