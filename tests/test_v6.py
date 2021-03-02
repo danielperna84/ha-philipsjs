@@ -135,13 +135,15 @@ async def test_basic_data(client_mock, param: Param):
             == "org.droidtv.nettv.market.MarketMainActivity-org.droidtv.nettv.market"
         )
         assert client_mock.quirk_ambilight_mode_ignored == True
+        assert client_mock.os_type == "MSAF_2019_P"
 
     elif param.type == "saphi":
         assert client_mock.system == SYSTEM_SAPHI_DECRYPTED
         assert client_mock.sources == MOCK_SAPHI_SOURCES
         assert client_mock.applications == {}
         assert client_mock.application_id == None
-        assert client_mock.quirk_ambilight_mode_ignored == False
+        assert client_mock.quirk_ambilight_mode_ignored == True
+        assert client_mock.os_type == "Linux"
 
     assert client_mock.channels == {
         "1648": {"ccid": 1648, "preset": "1", "name": "Irdeto scrambled"},

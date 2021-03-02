@@ -6,6 +6,7 @@ import json
 from urllib.parse import quote
 from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
+from packaging import version
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
@@ -160,21 +161,50 @@ class PhilipsTV(object):
             return False
 
     @property
+    def os_type(self):
+        if self.system is None:
+            return None
+
+        # android system have in direclty in root
+        os_type = self.system.get("os_type")
+        if os_type:
+            return os_type
+
+        #saphi stores in in features
+        os_type = self.system.get("featuring", {}).get("systemfeatures", {}).get("os_type")
+        if os_type:
+            return os_type
+
+        return None
+
+    @property
     def quirk_ambilight_mode_ignored(self):
         """Return if this tv need workaround for ambilight bugs.
 
-        Android XTV app have bugs with their mode management for ambilight. It will
+        XTV app have bugs with their mode management for ambilight. It will
         forgot to actuate the command to set mode back to internal. But will actually
         do that if you give it an invalid mode.
 
-        It will also not report a correct ambilight mode after being changed by call.
-        So we need to remember last set mode.
+        It will also not report a correct ambilight mode after being
+        changed by call. So we need to remember last set mode.
+
+        Versions known affected:
+            - Android - 9.0.0
+            - Saphi - 4.6.0.2
+
+        Version known good
+            - Legacy - QF1EU-0.150.102.0
         """
 
-        if self.system:
-            return self.system.get("os_type", "").startswith("MSAF_")
-        else:
-            return False
+        os_type = self.os_type
+        if os_type:
+            if os_type.startswith("MSAF_"):
+                return True
+
+            if os_type == "Linux":
+                return True
+
+        return False
 
     @property
     def pairing_type(self):
