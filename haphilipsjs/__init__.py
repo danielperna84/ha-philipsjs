@@ -334,7 +334,7 @@ class PhilipsTV(object):
     @property
     def ambilight_mode(self) -> Optional[str]:
         if self.quirk_ambilight_mode_ignored:
-            if self.ambilight_mode_set and self.ambilight_mode_raw == "internal":
+            if self.ambilight_mode_set:
                 return self.ambilight_mode_set
         return self.ambilight_mode_raw
 
@@ -850,7 +850,15 @@ class PhilipsTV(object):
         data = await self._getReq('ambilight/mode')
         if data:
             self.ambilight_mode_raw = data["current"]
+
+            if self.quirk_ambilight_mode_ignored:
+                # we could probably disable quirk here
+                if data["current"] != "internal" and self.ambilight_mode_set:
+                    LOG.warning("TV properly report ambilight mode, quirk should be disabled")
+                    self.ambilight_mode_set = None
+
             return data["current"]
+
         else:
             self.ambilight_mode_raw = None
 
@@ -975,11 +983,16 @@ class PhilipsTV(object):
     async def setAmbilightCurrentConfiguration(self, config: AmbilightCurrentConfiguration):
         if self.json_feature_supported("ambilight", "Ambilight"):
             r = await self._postReq('ambilight/currentconfiguration', cast(Dict, config))
-            if r is not None:
-                self.ambilight_current_configuration = config
-            else:
+            if r is None:
                 self.ambilight_current_configuration = None
-            return r
+                return False
+
+            self.ambilight_current_configuration = config
+
+            if self.quirk_ambilight_mode_ignored:
+                self.ambilight_mode_set = None
+
+            return True
 
     async def openURL(self, url: str):
         if self.json_feature_supported("activities", "browser"):
