@@ -1,3 +1,4 @@
+from typing import cast
 from haphilipsjs.typing import (
     ChannelsCurrentType, SourcesType,
     SystemType,
@@ -14,6 +15,36 @@ SYSTEM: SystemType = {
 	"softwareversion": "abcd",
 	"model": "55PFL6007T/12"
 }
+
+SYSTEM_47PFH6309_88: SystemType = {
+    "menulanguage": "Spanish",
+    "name": "PHILIPS TV",
+    "country": "Spain",
+    "nettvversion": "",
+    "epgsource": "broadcast"
+}
+
+SYSTEM_47PFH6309_88_ENCRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM_47PFH6309_88,
+        "serialnumber_encrypted": "bf1BcncGiQyBVS47ZXFWjNXoynlKUNlqDhxQz5ikPEU=",
+        "softwareversion_encrypted": "K2kseVsmQFgkd15gKkJ+ao+IN30u9WA8apvZ8LuQYkrUGEcxIhN1tkDM7wnn3V+5",
+        "model_encrypted": "K2kseVsmQFgkd15gKkJ+akRXrm2rweXcLkCrwpCecFY=",
+        "deviceid_encrypted": "",
+    },
+)
+
+SYSTEM_47PFH6309_88_DECRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM_47PFH6309_88,
+        "serialnumber": "ABCDEFGHIJKLF",
+        "softwareversion": "mt5880:TPN141E_010.003.086.128",
+        "model": "1_47PFH6309/88",
+        "deviceid": "",
+    },
+)
 
 SOURCES: SourcesType = {
     "tv":
