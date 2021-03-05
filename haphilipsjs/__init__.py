@@ -39,8 +39,10 @@ def hmac_signature(key: bytes, timestamp: str, data: str):
 
 def cbc_decode(key: bytes, data: str):
     """Decoded encrypted fields based on shared key."""
+    if data == "":
+        return ""
     raw = b64decode(data)
-    assert len(raw) >= 16
+    assert len(raw) >= 16, f"Lenght of data too short: '{data}'"
     decryptor = Cipher(algorithms.AES(key[0:16]), modes.CBC(raw[0:16])).decryptor()
     unpadder = PKCS7(128).unpadder()
     result = decryptor.update(raw[16:]) + decryptor.finalize()
