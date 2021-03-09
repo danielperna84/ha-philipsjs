@@ -331,7 +331,7 @@ CHANNELDB_TV_CHANNELLISTS_ALL: ChannelListType = {
     ],
 }
 
-CHANNELDB_TV: ChannelDbTv = {
+CHANNELDB_TV_ANDROID: ChannelDbTv = {
     "channelLists": [CHANNELDB_TV_CHANNELLISTS_ALL],
     "favoriteLists": [
         {
@@ -355,6 +355,11 @@ CHANNELDB_TV: ChannelDbTv = {
             "modifiable": True,
         },
     ],
+}
+
+
+CHANNELDB_TV_SAPHI: ChannelDbTv = {
+    "channelLists": [CHANNELDB_TV_CHANNELLISTS_ALL],
 }
 
 

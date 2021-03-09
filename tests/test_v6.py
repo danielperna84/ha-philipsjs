@@ -11,7 +11,8 @@ from haphilipsjs.data.v6 import (
     AMBILIGHT_CURRENT_CONFIGURATION,
     AMBILIGHT_SUPPORTED_STYLES,
     APPLICATIONS,
-    CHANNELDB_TV,
+    CHANNELDB_TV_ANDROID,
+    CHANNELDB_TV_SAPHI,
     CHANNELDB_TV_CHANNELLISTS_ALL,
     ACTIVITIES_CURRENT,
     CONTEXT,
@@ -65,14 +66,15 @@ async def client_mock(loop, param: Param):
             respx.get(f"{param.base}/system").respond(
                 json=cast(Dict, SYSTEM_ANDROID_ENCRYPTED)
             )
+            respx.get(f"{param.base}/channeldb/tv").respond(json=cast(Dict, CHANNELDB_TV_ANDROID))
         elif param.type == "saphi":
             respx.get(f"{param.base}/system").respond(
                 json=cast(Dict, SYSTEM_SAPHI_ENCRYPTED)
             )
+            respx.get(f"{param.base}/channeldb/tv").respond(json=cast(Dict, CHANNELDB_TV_SAPHI))
         else:
             raise Exception
 
-        respx.get(f"{param.base}/channeldb/tv").respond(json=cast(Dict, CHANNELDB_TV))
         respx.get(f"{param.base}/channeldb/tv/channelLists/all").respond(
             json=cast(Dict, CHANNELDB_TV_CHANNELLISTS_ALL)
         )
