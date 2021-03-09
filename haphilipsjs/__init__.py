@@ -522,11 +522,11 @@ class PhilipsTV(object):
             if r:
                 self.channel_lists = {
                     data["id"]: data
-                    for data in r["channelLists"]
+                    for data in r.get("channelLists", {})
                 }
                 self.favorite_lists = {
                     data["id"]: data
-                    for data in r["favoriteLists"]
+                    for data in r.get("favoriteLists", {})
                 }
             else:
                 self.channel_lists = {}
