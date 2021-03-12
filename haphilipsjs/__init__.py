@@ -17,6 +17,8 @@ from .typing import ActivitesTVType, AmbilightCurrentConfiguration, AmbilightLay
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
+TIMEOUT_POOL = 20
+TIMEOUT_NOTIFYREAD = 130
 DEFAULT_API_VERSION = 1
 
 AUTH_SHARED_KEY = b64decode("ZmVay1EQVFOaZhwQ4Kv81ypLAZNczV9sG4KkseXWn1NEk6cXmPKO/MCa9sryslvLCFMnNe4Z4CPXzToowvhHvA==")
@@ -87,15 +89,22 @@ def channel_uri(channel):
     if channel is not None:
         uri += f"/{channel}"
     return uri
-class ConnectionFailure(Exception):
-    pass
 
-class PairingFailure(Exception):
+class GeneralFailure(Exception):
+    """Base class for component failures."""
+
+class ConnectionFailure(GeneralFailure):
+    """Failed to connect to tv it's likely turned off."""
+
+class ProtocolFailure(GeneralFailure):
+    """Wrapper to contain erros that are the server closing a connection before response."""
+
+class PairingFailure(GeneralFailure):
     def __init__(self, data):
         super().__init__(f"Failed to start pairing: {data}")
         self.data = data
 
-class NoneJsonData(Exception):
+class NoneJsonData(GeneralFailure):
     def __init__(self, data):
         super().__init__(f"Non json data received: {data}")
         self.data = data
@@ -146,7 +155,7 @@ class PhilipsTV(object):
             self.protocol = "http"
             self.port = 1925
 
-        timeout = httpx.Timeout(timeout=5.0, pool=20.0)
+        timeout = httpx.Timeout(timeout=TIMEOUT, pool=TIMEOUT_POOL)
         limits = httpx.Limits(max_keepalive_connections=1, max_connections=2)
         self.session = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False)
         self.session.headers["Accept"] = "application/json"
@@ -384,8 +393,10 @@ class PhilipsTV(object):
                 return None
             LOG.debug("Get succeded: %s -> %s", path, resp.text)
             return decode_xtv_json(resp.text)
+        except (httpx.ConnectTimeout, httpx.ConnectError) as err:
+            raise ConnectionFailure(err) from err
         except httpx.HTTPError as err:
-            raise ConnectionFailure(repr(err)) from err
+            raise GeneralFailure(err) from err        
 
     async def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
 
@@ -394,8 +405,10 @@ class PhilipsTV(object):
             if resp.status_code != 200:
                 return None, None
             return resp.content, resp.headers.get("content-type")
+        except (httpx.ConnectTimeout, httpx.ConnectError) as err:
+            raise ConnectionFailure(err) from err
         except httpx.HTTPError as err:
-            raise ConnectionFailure(repr(err)) from err
+            raise GeneralFailure(err) from err
 
     async def postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
         try:
@@ -410,9 +423,14 @@ class PhilipsTV(object):
                 LOG.warning("Post failed: %s -> %s", data, resp.text)
                 return None
         except httpx.ReadTimeout:
+            LOG.debug("Read time out on postReq", exc_info=True)
             return None
+        except (httpx.ConnectTimeout, httpx.ConnectError) as err:
+            raise ConnectionFailure(err) from err
+        except httpx.ProtocolError as err:
+            raise ProtocolFailure(err) from err
         except httpx.HTTPError as err:
-            raise ConnectionFailure(repr(err)) from err
+            raise GeneralFailure(err) from err
 
     async def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str, type: str, device_id: Optional[str] = None):
         """Start up a pairing request."""
@@ -534,7 +552,7 @@ class PhilipsTV(object):
             self.on = True
             return True
         except ConnectionFailure as err:
-            LOG.debug("Exception: %s", repr(err))
+            LOG.debug("TV not available: %s", repr(err))
             self.on = False
             return False
 
@@ -1001,7 +1019,7 @@ class PhilipsTV(object):
             r = await self.postReq('activities/browser', {'url': url})
             return r is not None
 
-    async def notifyChange(self, timeout = 30):
+    async def notifyChange(self, timeout = TIMEOUT_NOTIFYREAD):
         """Start a http connection waiting for changes."""
         if not self.notify_change_supported:
             return None
@@ -1016,12 +1034,19 @@ class PhilipsTV(object):
                 "screenstate": {"screenstate": self.screenstate},
             }
         }
+
+        timeout_ctx = httpx.Timeout(timeout=TIMEOUT, pool=TIMEOUT_POOL, read=timeout)
         try:
-            result = await self.postReq('notifychange', data=data, timeout=timeout)
+            result = await self.postReq('notifychange', data=data, timeout=timeout_ctx)
+        except ProtocolFailure as err:
+            # not uncommon for tv to close connection on the lingering connection
+            LOG.debug("Protocol failure from device: %s", repr(err))
+            result = None
         except ConnectionFailure as err:
-            LOG.debug("Exception: %s", repr(err))
+            LOG.debug("Connection failure to device: %s", repr(err))
             self.on = False
             result = None
+
         if result:
             if "activities/tv" in result:
                 self.channel = result["activities/tv"]
