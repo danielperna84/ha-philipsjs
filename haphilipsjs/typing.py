@@ -1,5 +1,6 @@
 from typing import Dict, List, Literal, Optional, TypedDict, Union
 
+
 class ActivitiesChannelType(TypedDict, total=False):
     ccid: int
     name: str
@@ -16,21 +17,26 @@ class ActivitiesChannelListType(TypedDict, total=False):
     id: str
     version: str
 
+
 class ActivitesTVType(TypedDict):
     channel: ActivitiesChannelType
     channelList: ActivitiesChannelListType
 
+
 class ChannelsCurrentType(TypedDict):
     id: str
+
 
 class ComponentType(TypedDict):
     packageName: str
     className: str
 
+
 class ApplicationIntentType(TypedDict, total=False):
     extras: Dict
     component: ComponentType
     action: str
+
 
 class ApplicationType(TypedDict, total=False):
     label: str
@@ -39,13 +45,16 @@ class ApplicationType(TypedDict, total=False):
     id: str
     type: str
 
+
 class ApplicationsType(TypedDict):
     version: int
     applications: List[ApplicationType]
 
+
 class FavoriteChannelType(TypedDict):
     ccid: int
     preset: str
+
 
 class FavoriteListType(TypedDict, total=False):
     id: str
@@ -58,10 +67,12 @@ class FavoriteListType(TypedDict, total=False):
     name: str
     channels: List[FavoriteChannelType]
 
+
 class ChannelType(TypedDict, total=False):
     ccid: int
     preset: str
     name: str
+
 
 class ChannelListType(TypedDict, total=False):
     id: str
@@ -73,11 +84,14 @@ class ChannelListType(TypedDict, total=False):
     modifiable: bool
     Channel: List[ChannelType]
 
+
 ChannelsType = Dict[str, ChannelType]
+
 
 class ChannelDbTv(TypedDict, total=False):
     channelLists: List[ChannelListType]
     favoriteLists: List[FavoriteListType]
+
 
 class JsonFeaturesType(TypedDict, total=False):
     editfavorites: List[str]
@@ -92,6 +106,7 @@ class JsonFeaturesType(TypedDict, total=False):
     channels: List[str]
     mappings: List[str]
 
+
 class SystemFeaturesType(TypedDict, total=False):
     tvtype: str
     content: List[str]
@@ -103,9 +118,11 @@ class SystemFeaturesType(TypedDict, total=False):
     # stored here on saphi
     os_type: str
 
+
 class SystemFeaturingType(TypedDict):
     jsonfeatures: JsonFeaturesType
     systemfeatures: SystemFeaturesType
+
 
 class SystemType(TypedDict, total=False):
     menulanguage: str
@@ -127,14 +144,17 @@ class SystemType(TypedDict, total=False):
     # here on android systems
     os_type: str
 
+
 class SourceType(TypedDict, total=False):
     name: str
 
 
 SourcesType = Dict[str, SourceType]
 
+
 class SourceCurrentType(TypedDict):
     id: str
+
 
 class ContextType(TypedDict, total=False):
     data: str
@@ -147,6 +167,7 @@ class ContextType(TypedDict, total=False):
     menu: str
     Recording: str
 
+
 AmbilightPixelType = Dict[Literal["r", "g", "b"], int]
 
 AmbilightSideType = Dict[str, AmbilightPixelType]
@@ -154,13 +175,17 @@ AmbilightSideType = Dict[str, AmbilightPixelType]
 AmbilightLayerType = Dict[Literal["left", "top", "right", "bottom"], AmbilightSideType]
 
 AmbilightLayersType = Dict[str, AmbilightLayerType]
+
+
 class AmbilightSupportedStyleType(TypedDict, total=False):
     styleName: str
     algorithms: List[str]
     maxTuning: int
     maxSpeed: int
+
+
 class AmbilightSupportedStylesType(TypedDict):
-    supportedStyles: List [AmbilightSupportedStyleType]
+    supportedStyles: List[AmbilightSupportedStyleType]
 
 
 class AmbilightColorType(TypedDict):
@@ -168,17 +193,20 @@ class AmbilightColorType(TypedDict):
     saturation: int
     brightness: int
 
+
 class AmbilightAudioSettingsType(TypedDict):
     color: AmbilightColorType
     colorDelta: AmbilightColorType
     tuning: int
     algorithm: str
 
+
 class AmbilightColorSettingsType(TypedDict):
     color: AmbilightColorType
     colorDelta: AmbilightColorType
     speed: int
     algorithm: str
+
 
 class AmbilightCurrentConfiguration(TypedDict, total=False):
     styleName: str

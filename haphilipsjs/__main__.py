@@ -4,6 +4,7 @@ from . import PhilipsTV
 import asyncio
 from ast import literal_eval
 
+
 async def monitor_run(stdscr, tv: PhilipsTV):
 
     stdscr.clear()
@@ -44,20 +45,20 @@ async def monitor_run(stdscr, tv: PhilipsTV):
 
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
-            stdscr.addstr(offset_y+1, offset_x, "-----------")
+            stdscr.addstr(offset_y + 1, offset_x, "-----------")
             if side not in layer:
                 return
             for pixel, data in layer[side].items():
                 stdscr.addstr(
-                    offset_y+2+int(pixel),
-                    offset_x, 
-                    "{:>3} {:>3} {:>3}".format(data["r"], data["g"], data["b"])
+                    offset_y + 2 + int(pixel),
+                    offset_x,
+                    "{:>3} {:>3} {:>3}".format(data["r"], data["g"], data["b"]),
                 )
 
         ambilight = await tv.getAmbilightProcessed()
         if ambilight:
             for idx, layer in enumerate(ambilight.values()):
-                offset_y = 6 + 6*idx
+                offset_y = 6 + 6 * idx
                 print_pixels("left", offset_y, 0)
                 print_pixels("top", offset_y, 15)
                 print_pixels("right", offset_y, 30)
@@ -66,9 +67,10 @@ async def monitor_run(stdscr, tv: PhilipsTV):
         stdscr.refresh()
         await tv.update()
         key = stdscr.getch()
-        
+
         if key == ord("q"):
             break
+
 
 async def monitor(tv):
 
@@ -88,13 +90,14 @@ async def monitor(tv):
         return await monitor_run(stdscr, tv)
     finally:
         # Set everything back to normal
-        if 'stdscr' in locals():
+        if "stdscr" in locals():
             stdscr.keypad(False)  # type: ignore
             curses.echo()
             curses.nocbreak()
             curses.endwin()
 
     curses.wrapper(monitor_run, tv)
+
 
 async def main():
     import argparse
@@ -115,19 +118,36 @@ async def main():
     )
     parser.add_argument("-i", "--host", dest="host", required=True)
     parser.add_argument("-a", "--api", dest="api", required=True)
-    parser.add_argument("-s", "--secured_transport", dest="secured_transport", action='store_true', default=False)
-    parser.add_argument("-u", "--username", dest="username", help="Username", required=False)
-    parser.add_argument("-p", "--password", dest="password", help="Password", required=False)
+    parser.add_argument(
+        "-s",
+        "--secured_transport",
+        dest="secured_transport",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
+        "-u", "--username", dest="username", help="Username", required=False
+    )
+    parser.add_argument(
+        "-p", "--password", dest="password", help="Password", required=False
+    )
 
-    subparsers = parser.add_subparsers(help='commands', dest="command")
+    subparsers = parser.add_subparsers(help="commands", dest="command")
 
     status = subparsers.add_parser("status", help="Show current tv status")
 
     mon = subparsers.add_parser("monitor", help="Monitor current tv status")
 
     ambilight = subparsers.add_parser("ambilight", help="Control ambilight")
-    ambilight.add_argument("--ambilight_mode", dest="ambilight_mode", type=str, required=False)
-    ambilight.add_argument("--ambilight_cached", dest="ambilight_cached", type=ast.literal_eval, required=False)
+    ambilight.add_argument(
+        "--ambilight_mode", dest="ambilight_mode", type=str, required=False
+    )
+    ambilight.add_argument(
+        "--ambilight_cached",
+        dest="ambilight_cached",
+        type=ast.literal_eval,
+        required=False,
+    )
 
     pair = subparsers.add_parser("pair", help="Pair with tv")
 
@@ -138,62 +158,82 @@ async def main():
     post.add_argument("path", help="Sub path to grab from tv")
     post.add_argument("data", help="Json data to post")
 
-
-
     markdown = subparsers.add_parser("markdown", help="Print markdown for commandline")
 
     args = parser.parse_args()
     logging.basicConfig(level=args.debug and logging.DEBUG or logging.INFO)
     haphilipsjs.TIMEOUT = 60.0
-    tv = haphilipsjs.PhilipsTV(args.host, int(args.api), username=args.username, password=args.password, secured_transport=args.secured_transport)
+    tv = haphilipsjs.PhilipsTV(
+        args.host,
+        int(args.api),
+        username=args.username,
+        password=args.password,
+        secured_transport=args.secured_transport,
+    )
 
     if args.command == "status":
         await tv.update()
 
-        print('System: {}'.format(tv.system))
+        print("System: {}".format(tv.system))
 
         # Simulating homeassistant/components/media_player/philips_js.py
-        print('Source: {}'.format(await tv.getSourceName(tv.source_id)))
+        print("Source: {}".format(await tv.getSourceName(tv.source_id)))
         if tv.sources:
             print(
-                'Sources: {}'.format(
-                ', '.join([
-                    await tv.getSourceName(srcid) or "None"
-                    for srcid in tv.sources
-                ]))
+                "Sources: {}".format(
+                    ", ".join(
+                        [
+                            await tv.getSourceName(srcid) or "None"
+                            for srcid in tv.sources
+                        ]
+                    )
+                )
             )
-        print('Channel: {}: {}'.format(tv.channel_id, await tv.getChannelName(tv.channel_id)))
+        print(
+            "Channel: {}: {}".format(
+                tv.channel_id, await tv.getChannelName(tv.channel_id)
+            )
+        )
         if tv.channels:
             print(
-                'Channels: {}'.format(
-                ', '.join([
-                    await tv.getChannelName(ccid) or "None"
-                    for ccid in list(tv.channels.keys())
-                ]))
+                "Channels: {}".format(
+                    ", ".join(
+                        [
+                            await tv.getChannelName(ccid) or "None"
+                            for ccid in list(tv.channels.keys())
+                        ]
+                    )
+                )
             )
-        print('Context: {}'.format(tv.context))
+        print("Context: {}".format(tv.context))
 
-        print('Application: {}'.format(tv.application))
+        print("Application: {}".format(tv.application))
         if tv.applications:
             print(
-                'Applications: {}'.format(
-                ', '.join([
-                    application["label"] or "None"
-                    for application in tv.applications.values()
-                ]))
+                "Applications: {}".format(
+                    ", ".join(
+                        [
+                            application["label"] or "None"
+                            for application in tv.applications.values()
+                        ]
+                    )
+                )
             )
-        print('Power State: {}'.format(tv.powerstate))
-        print('Screen State: {}'.format(tv.screenstate))
+        print("Power State: {}".format(tv.powerstate))
+        print("Screen State: {}".format(tv.screenstate))
 
         await tv.getAmbilightPower()
-        print('Ambilight power: {}'.format(tv.ambilight_power))
-        print('Ambilight mode: {}'.format(tv.ambilight_mode))
-        print('Ambilight topology: {}'.format(await tv.getAmbilightTopology()))
-        print('Ambilight processed: {}'.format(await tv.getAmbilightProcessed()))
-        print('Ambilight measured: {}'.format(await tv.getAmbilightMeasured()))
-        print('Ambilight styles: {}'.format(list(tv.ambilight_styles.values())))
-        print('Ambilight currentconfiguration: {}'.format(tv.ambilight_current_configuration))
-
+        print("Ambilight power: {}".format(tv.ambilight_power))
+        print("Ambilight mode: {}".format(tv.ambilight_mode))
+        print("Ambilight topology: {}".format(await tv.getAmbilightTopology()))
+        print("Ambilight processed: {}".format(await tv.getAmbilightProcessed()))
+        print("Ambilight measured: {}".format(await tv.getAmbilightMeasured()))
+        print("Ambilight styles: {}".format(list(tv.ambilight_styles.values())))
+        print(
+            "Ambilight currentconfiguration: {}".format(
+                tv.ambilight_current_configuration
+            )
+        )
 
     elif args.command == "ambilight":
         if args.ambilight_mode:
@@ -207,11 +247,12 @@ async def main():
     elif args.command == "monitor":
         await monitor(tv)
 
-
     elif args.command == "pair":
         await tv.getSystem()
         await tv.setTransport(tv.secured_transport, tv.api_version_detected)
-        state = await tv.pairRequest("ha-philipsjs", "ha-philipsjs", platform.node(), platform.system(), "native")
+        state = await tv.pairRequest(
+            "ha-philipsjs", "ha-philipsjs", platform.node(), platform.system(), "native"
+        )
 
         pin = input("Please enter pin displayed on scree")
 
@@ -228,12 +269,13 @@ async def main():
         res = await tv._postReq(args.path, literal_eval(args.data))
         print(res)
 
-
     elif args.command == "markdown":
         import argmark
+
         argmark.md_help(parser)
 
     await tv.aclose()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())

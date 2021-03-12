@@ -1,19 +1,33 @@
-from typing import Any, Dict, List, Literal, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, cast
 import httpx
 import logging
-import warnings
 import json
 from urllib.parse import quote
 from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
-from packaging import version
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.hazmat.primitives.hmac import HMAC
 
-from .typing import ActivitesTVType, AmbilightCurrentConfiguration, AmbilightLayersType, AmbilightSideType, AmbilightSupportedStyleType, AmbilightSupportedStylesType, ApplicationIntentType, ApplicationsType, ChannelDbTv, ChannelListType, ChannelsCurrentType, ChannelsType, ContextType, FavoriteListType, SystemType, ApplicationType
+from .typing import (
+    ActivitesTVType,
+    AmbilightCurrentConfiguration,
+    AmbilightLayersType,
+    AmbilightSupportedStyleType,
+    AmbilightSupportedStylesType,
+    ApplicationIntentType,
+    ApplicationsType,
+    ChannelDbTv,
+    ChannelListType,
+    ChannelsCurrentType,
+    ChannelsType,
+    ContextType,
+    FavoriteListType,
+    SystemType,
+    ApplicationType,
+)
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 5.0
@@ -21,17 +35,20 @@ TIMEOUT_POOL = 20
 TIMEOUT_NOTIFYREAD = 130
 DEFAULT_API_VERSION = 1
 
-AUTH_SHARED_KEY = b64decode("ZmVay1EQVFOaZhwQ4Kv81ypLAZNczV9sG4KkseXWn1NEk6cXmPKO/MCa9sryslvLCFMnNe4Z4CPXzToowvhHvA==")
+AUTH_SHARED_KEY = b64decode(
+    "ZmVay1EQVFOaZhwQ4Kv81ypLAZNczV9sG4KkseXWn1NEk6cXmPKO/MCa9sryslvLCFMnNe4Z4CPXzToowvhHvA=="
+)
 """Key used for hmac signatures and decoding of cbc data."""
 
 TV_PLAYBACK_INTENTS = [
     {
-        'component': {
-            'className': 'org.droidtv.playtv.PlayTvActivity',
-            'packageName': 'org.droidtv.playtv'
+        "component": {
+            "className": "org.droidtv.playtv.PlayTvActivity",
+            "packageName": "org.droidtv.playtv",
         }
     }
 ]
+
 
 def hmac_signature(key: bytes, timestamp: str, data: str):
     """Calculate a timestamped signature."""
@@ -39,6 +56,7 @@ def hmac_signature(key: bytes, timestamp: str, data: str):
     hmac.update(timestamp.encode("utf-8"))
     hmac.update(data.encode("utf-8"))
     return b64encode(hmac.finalize()).decode("utf-8")
+
 
 def cbc_decode(key: bytes, data: str):
     """Decoded encrypted fields based on shared key."""
@@ -52,6 +70,7 @@ def cbc_decode(key: bytes, data: str):
     result = unpadder.update(result) + unpadder.finalize()
     return result.decode("utf-8")
 
+
 def cbc_encode(key: bytes, data: str):
     """Decoded encrypted fields based on shared key."""
     raw = data.encode("utf-8")
@@ -61,6 +80,7 @@ def cbc_encode(key: bytes, data: str):
     result = padder.update(raw) + padder.finalize()
     result = encryptor.update(result) + encryptor.finalize()
     return b64encode(iv + result).decode("utf-8")
+
 
 def decode_xtv_json(text: str):
     if text == "" or text == "}":
@@ -73,49 +93,70 @@ def decode_xtv_json(text: str):
         LOG.debug("Invalid json received, trying adjusted version")
         text = text.replace("{,", "{")
         text = text.replace(",}", "}")
-        while (p:= text.find(",,")) >= 0:
-            text = text[:p] + text[p+1:]
+        while (p := text.find(",,")) >= 0:
+            text = text[:p] + text[p + 1 :]
         data = json.loads(text)
 
     return data
 
+
 PASSTHROUGH_URI = "content://android.media.tv/passthrough"
+
+
 def passthrough_uri(data):
     return f"{PASSTHROUGH_URI}/{quote(data, safe='')}"
 
+
 CHANNEL_URI = "content://android.media.tv/channel"
+
+
 def channel_uri(channel):
     uri = CHANNEL_URI
     if channel is not None:
         uri += f"/{channel}"
     return uri
 
+
 class GeneralFailure(Exception):
     """Base class for component failures."""
+
 
 class ConnectionFailure(GeneralFailure):
     """Failed to connect to tv it's likely turned off."""
 
+
 class ProtocolFailure(GeneralFailure):
     """Wrapper to contain erros that are the server closing a connection before response."""
+
 
 class PairingFailure(GeneralFailure):
     def __init__(self, data):
         super().__init__(f"Failed to start pairing: {data}")
         self.data = data
 
+
 class NoneJsonData(GeneralFailure):
     def __init__(self, data):
         super().__init__(f"Non json data received: {data}")
         self.data = data
+
     """API Returned non json data when json was expected."""
 
 
-T = TypeVar('T') 
+T = TypeVar("T")
+
 
 class PhilipsTV(object):
-
-    def __init__(self, host=None, api_version=DEFAULT_API_VERSION, secured_transport=None, username=None, password=None, verify=False, auth_shared_key=None):
+    def __init__(
+        self,
+        host=None,
+        api_version=DEFAULT_API_VERSION,
+        secured_transport=None,
+        username=None,
+        password=None,
+        verify=False,
+        auth_shared_key=None,
+    ):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
@@ -141,7 +182,9 @@ class PhilipsTV(object):
         self.ambilight_processed: Optional[AmbilightLayersType] = None
         self.ambilight_power_raw: Optional[Dict] = None
         self.ambilight_styles: Dict[str, AmbilightSupportedStyleType] = {}
-        self.ambilight_current_configuration: Optional[AmbilightCurrentConfiguration] = None
+        self.ambilight_current_configuration: Optional[
+            AmbilightCurrentConfiguration
+        ] = None
         self.powerstate = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
@@ -181,8 +224,10 @@ class PhilipsTV(object):
         if os_type:
             return os_type
 
-        #saphi stores in in features
-        os_type = self.system.get("featuring", {}).get("systemfeatures", {}).get("os_type")
+        # saphi stores in in features
+        os_type = (
+            self.system.get("featuring", {}).get("systemfeatures", {}).get("os_type")
+        )
         if os_type:
             return os_type
 
@@ -220,14 +265,23 @@ class PhilipsTV(object):
     @property
     def pairing_type(self):
         if self.system:
-            return self.system.get("featuring", {}).get("systemfeatures", {}).get("pairing_type")
+            return (
+                self.system.get("featuring", {})
+                .get("systemfeatures", {})
+                .get("pairing_type")
+            )
         else:
             return None
 
     @property
     def secured_transport(self) -> Optional[bool]:
         if self.system:
-            return self.system.get("featuring", {}).get("systemfeatures", {}).get("secured_transport") == "true"
+            return (
+                self.system.get("featuring", {})
+                .get("systemfeatures", {})
+                .get("secured_transport")
+                == "true"
+            )
         else:
             return None
 
@@ -240,7 +294,10 @@ class PhilipsTV(object):
 
     def json_feature_supported(self, type: str, value: Optional[str] = None):
         if self.system:
-            features = cast(List[str], self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, []))
+            features = cast(
+                List[str],
+                self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, []),
+            )
             if value:
                 return value in features
             else:
@@ -282,28 +339,28 @@ class PhilipsTV(object):
     @property
     def min_volume(self):
         if self.audio_volume:
-            return int(self.audio_volume['min'])
+            return int(self.audio_volume["min"])
         else:
             return None
 
     @property
     def max_volume(self):
         if self.audio_volume:
-            return int(self.audio_volume['max'])
+            return int(self.audio_volume["max"])
         else:
             return None
 
     @property
     def volume(self):
-        if self.audio_volume and int(self.audio_volume['max']):
-            return self.audio_volume['current'] / int(self.audio_volume['max'])
+        if self.audio_volume and int(self.audio_volume["max"]):
+            return self.audio_volume["current"] / int(self.audio_volume["max"])
         else:
             return None
 
     @property
     def muted(self):
         if self.audio_volume:
-            return self.audio_volume['muted']
+            return self.audio_volume["muted"]
         else:
             return None
 
@@ -311,9 +368,9 @@ class PhilipsTV(object):
     def channel_id(self):
         if self.api_version >= 5:
             r = cast(Optional[ActivitesTVType], self.channel)
-            if r and r['channel']:
+            if r and r["channel"]:
                 # it could be empty if HDMI is set
-                return str(r['channel']['ccid'])
+                return str(r["channel"]["ccid"])
             else:
                 return None
         else:
@@ -321,11 +378,11 @@ class PhilipsTV(object):
             if not r:
                 return None
 
-            if not self.channels.get(r['id']):
-                pos = r['id'].find('_')
+            if not self.channels.get(r["id"]):
+                pos = r["id"].find("_")
                 if pos > 0:
-                    return r['id'][pos+1:]
-            return r['id']
+                    return r["id"][pos + 1 :]
+            return r["id"]
 
     @property
     def ambilight_modes(self):
@@ -382,7 +439,7 @@ class PhilipsTV(object):
         await self.session.aclose()
 
     def _url(self, path):
-        return f'{self.protocol}://{self._host}:{self.port}/{self.api_version}/{path}'
+        return f"{self.protocol}://{self._host}:{self.port}/{self.api_version}/{path}"
 
     async def getReq(self, path) -> Optional[Dict]:
 
@@ -396,7 +453,7 @@ class PhilipsTV(object):
         except (httpx.ConnectTimeout, httpx.ConnectError) as err:
             raise ConnectionFailure(err) from err
         except httpx.HTTPError as err:
-            raise GeneralFailure(err) from err        
+            raise GeneralFailure(err) from err
 
     async def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
 
@@ -415,7 +472,7 @@ class PhilipsTV(object):
             resp = await self.session.post(self._url(path), json=data, timeout=timeout)
             if resp.status_code == 200:
                 LOG.debug("Post succeded: %s -> %s", data, resp.text)
-                if resp.headers.get('content-type', "").startswith("application/json"):
+                if resp.headers.get("content-type", "").startswith("application/json"):
                     return decode_xtv_json(resp.text)
                 else:
                     return {}
@@ -432,7 +489,15 @@ class PhilipsTV(object):
         except httpx.HTTPError as err:
             raise GeneralFailure(err) from err
 
-    async def pairRequest(self, app_id: str, app_name: str, device_name: str, device_os: str, type: str, device_id: Optional[str] = None):
+    async def pairRequest(
+        self,
+        app_id: str,
+        app_name: str,
+        device_name: str,
+        device_os: str,
+        type: str,
+        device_id: Optional[str] = None,
+    ):
         """Start up a pairing request."""
         if device_id is None:
             device_id = token_hex(16)
@@ -440,28 +505,19 @@ class PhilipsTV(object):
         device = {
             "device_name": device_name,
             "device_os": device_os,
-            "type" : type,
+            "type": type,
             "id": device_id,
             "app_id": app_id,
             "app_name": app_name,
         }
 
-        state = {
-            "device": device
-        }
+        state = {"device": device}
 
-        data = {
-            "scope" : [
-                "read",
-                "write",
-                "control"
-            ],
-            "device": device
-        }
+        data = {"scope": ["read", "write", "control"], "device": device}
 
         LOG.debug("pair/request request: %s", data)
         resp = await self.session.post(self._url("pair/request"), json=data, auth=None)
-        if not resp.headers['content-type'].startswith("application/json"):
+        if not resp.headers["content-type"].startswith("application/json"):
             raise NoneJsonData(resp.text)
         data_response = resp.json()
 
@@ -476,32 +532,24 @@ class PhilipsTV(object):
 
     async def pairGrant(self, state: Dict[str, Any], pin: str):
         """Finish a pairing sequence"""
-        auth_handler = httpx.DigestAuth(
-            state["device"]["id"],
-            state["auth_key"]
-        )
+        auth_handler = httpx.DigestAuth(state["device"]["id"], state["auth_key"])
 
-        signature = hmac_signature(
-            self.auth_shared_key,
-            str(state['timestamp']),
-            pin
-        )
+        signature = hmac_signature(self.auth_shared_key, str(state["timestamp"]), pin)
 
         auth = {
-            "auth_appId" : "1",
+            "auth_appId": "1",
             "auth_timestamp": state["timestamp"],
             "auth_signature": signature,
             "pin": pin,
         }
 
-        data = {
-            "auth": auth,
-            "device": state["device"]
-        }
+        data = {"auth": auth, "device": state["device"]}
 
         LOG.debug("pair/grant request: %s", data)
-        resp = await self.session.post(self._url("pair/grant"), json=data, auth=auth_handler)
-        if not resp.headers['content-type'].startswith("application/json"):
+        resp = await self.session.post(
+            self._url("pair/grant"), json=data, auth=auth_handler
+        )
+        if not resp.headers["content-type"].startswith("application/json"):
             raise NoneJsonData(resp.text)
         data_response = resp.json()
         LOG.debug("pair/grant response: %s", data_response)
@@ -512,7 +560,11 @@ class PhilipsTV(object):
         self.session.auth = auth_handler
         return state["device"]["id"], state["auth_key"]
 
-    async def setTransport(self, secured_transport: Optional[bool] = None, api_version: Optional[int] = None):
+    async def setTransport(
+        self,
+        secured_transport: Optional[bool] = None,
+        api_version: Optional[int] = None,
+    ):
         if secured_transport == True and self.protocol != "https":
             LOG.info("Switching to secured transport")
             self.protocol = "https"
@@ -525,7 +577,6 @@ class PhilipsTV(object):
         if api_version and api_version != self.api_version:
             LOG.info("Switching to api_version %d", api_version)
             self.api_version = api_version
-
 
     async def update(self):
         try:
@@ -566,17 +617,17 @@ class PhilipsTV(object):
         return cast(SystemType, result)
 
     async def getSystem(self):
-        r = cast(Optional[SystemType], await self.getReq('system'))
+        r = cast(Optional[SystemType], await self.getReq("system"))
         if r:
             self.system = self._decodeSystem(r)
-            self.name = r['name']
+            self.name = r["name"]
         else:
             self.system = {}
             self.name = None
         return r
 
     async def getAudiodata(self):
-        r = await self.getReq('audio/volume')
+        r = await self.getReq("audio/volume")
         if r:
             self.audio_volume = r
         else:
@@ -590,10 +641,10 @@ class PhilipsTV(object):
                 r = await self.getChannelList(list_id)
                 if r:
                     for channel in r:
-                        self.channels[str(channel['ccid'])] = channel
+                        self.channels[str(channel["ccid"])] = channel
                 return r
         else:
-            r = cast(Optional[ChannelsType], await self.getReq('channels'))
+            r = cast(Optional[ChannelsType], await self.getReq("channels"))
             if r:
                 self.channels = r
             else:
@@ -602,9 +653,11 @@ class PhilipsTV(object):
 
     async def getChannelId(self):
         if self.api_version >= 5:
-            r = cast(Optional[ActivitesTVType], await self.getReq('activities/tv'))
+            r = cast(Optional[ActivitesTVType], await self.getReq("activities/tv"))
         else:
-            r = cast(Optional[ChannelsCurrentType], await self.getReq('channels/current'))
+            r = cast(
+                Optional[ChannelsCurrentType], await self.getReq("channels/current")
+            )
 
         self.channel = r
         return r
@@ -612,11 +665,15 @@ class PhilipsTV(object):
     async def getChannelName(self, ccid) -> Optional[str]:
         if not self.channels:
             return None
-        return self.channels.get(ccid, dict()).get('name', None)
+        return self.channels.get(ccid, dict()).get("name", None)
 
-    async def getChannelLogo(self, ccid, channel_list="all") -> Tuple[Optional[bytes], Optional[str]]:
+    async def getChannelLogo(
+        self, ccid, channel_list="all"
+    ) -> Tuple[Optional[bytes], Optional[str]]:
         if self.api_version >= 5:
-            data, content_type = await self._getBinary(f"channeldb/tv/channelLists/{channel_list}/{ccid}/logo")
+            data, content_type = await self._getBinary(
+                f"channeldb/tv/channelLists/{channel_list}/{ccid}/logo"
+            )
         else:
             data, content_type = await self._getBinary(f"channels/{ccid}/logo.png")
         return data, content_type
@@ -632,27 +689,25 @@ class PhilipsTV(object):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
         if self.api_version >= 5:
             channel = {"channelList": {"id": list_id}, "channel": {"ccid": ccid}}
-            if await self.postReq('activities/tv', cast(Dict, channel)) is not None:
+            if await self.postReq("activities/tv", cast(Dict, channel)) is not None:
                 self.channel = channel
                 return True
         else:
-            channel = {'id': ccid}
-            if await self.postReq('channels/current', cast(Dict, channel)) is not None:
+            channel = {"id": ccid}
+            if await self.postReq("channels/current", cast(Dict, channel)) is not None:
                 self.channel = channel
                 return True
         return False
 
     async def getChannelLists(self):
         if self.api_version >= 5:
-            r = cast(ChannelDbTv, await self.getReq('channeldb/tv'))
+            r = cast(ChannelDbTv, await self.getReq("channeldb/tv"))
             if r:
                 self.channel_lists = {
-                    data["id"]: data
-                    for data in r.get("channelLists", {})
+                    data["id"]: data for data in r.get("channelLists", {})
                 }
                 self.favorite_lists = {
-                    data["id"]: data
-                    for data in r.get("favoriteLists", {})
+                    data["id"]: data for data in r.get("favoriteLists", {})
                 }
             else:
                 self.channel_lists = {}
@@ -661,9 +716,10 @@ class PhilipsTV(object):
 
     async def getFavoriteList(self, list_id: str):
         if self.api_version >= 5:
-            r = cast(Optional[FavoriteListType], await self.getReq(
-                f"channeldb/tv/favoriteLists/{list_id}"
-            ))
+            r = cast(
+                Optional[FavoriteListType],
+                await self.getReq(f"channeldb/tv/favoriteLists/{list_id}"),
+            )
             if r:
                 return r["channels"]
             else:
@@ -671,9 +727,10 @@ class PhilipsTV(object):
 
     async def getChannelList(self, list_id: str):
         if self.api_version >= 5:
-            r = cast(Optional[ChannelListType], await self.getReq(
-                f"channeldb/tv/channelLists/{list_id}"
-            ))
+            r = cast(
+                Optional[ChannelListType],
+                await self.getReq(f"channeldb/tv/channelLists/{list_id}"),
+            )
             if r:
                 return r["Channel"]
             else:
@@ -682,26 +739,24 @@ class PhilipsTV(object):
     async def getSources(self):
         if self.json_feature_supported("activities", "intent"):
             self.sources = {
-                channel_uri(None): {
-                    "name": "Watch TV"
-                },
-                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW5") : {
+                channel_uri(None): {"name": "Watch TV"},
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW5"): {
                     "name": "HDMI 1"
                 },
-                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW6") : {
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW6"): {
                     "name": "HDMI 2"
                 },
-                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW7") : {
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW7"): {
                     "name": "HDMI 3"
                 },
-                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW8") : {
+                passthrough_uri("com.mediatek.tvinput/.hdmi.HDMIInputService/HW8"): {
                     "name": "HDMI 4"
                 },
             }
             return self.sources
 
         if self.api_version == 1:
-            r = await self.getReq('sources')
+            r = await self.getReq("sources")
             if r:
                 self.sources = r
             else:
@@ -710,9 +765,9 @@ class PhilipsTV(object):
 
     async def getSourceId(self):
         if self.api_version < 5:
-            r = await self.getReq('sources/current')
+            r = await self.getReq("sources/current")
             if r:
-                self.source_id = r['id']
+                self.source_id = r["id"]
             else:
                 self.source_id = None
             return r
@@ -720,11 +775,11 @@ class PhilipsTV(object):
     async def getSourceName(self, srcid) -> Optional[str]:
         if not self.sources:
             return None
-        return self.sources.get(srcid, dict()).get('name', None)
+        return self.sources.get(srcid, dict()).get("name", None)
 
     async def setSource(self, source_id):
         if self.api_version == 1:
-            r = await self.postReq('sources/current', {'id': source_id}) 
+            r = await self.postReq("sources/current", {"id": source_id})
             if r is not None:
                 return True
             return False
@@ -735,11 +790,11 @@ class PhilipsTV(object):
 
             intent: ApplicationIntentType = {
                 "extras": {"uri": source_id},
-                "action": "org.droidtv.playtv.SELECTURI", 
+                "action": "org.droidtv.playtv.SELECTURI",
                 "component": {
-                    "packageName":"org.droidtv.playtv",
-                    "className":"org.droidtv.playtv.PlayTvActivity"
-                }
+                    "packageName": "org.droidtv.playtv",
+                    "className": "org.droidtv.playtv.PlayTvActivity",
+                },
             }
             return await self.setApplication(intent)
 
@@ -747,19 +802,16 @@ class PhilipsTV(object):
 
     async def getApplications(self):
         if self.json_feature_supported("applications", None):
-            r = cast(ApplicationsType, await self.getReq('applications'))
+            r = cast(ApplicationsType, await self.getReq("applications"))
             if r:
-                self.applications = {
-                    app["id"]: app
-                    for app in r["applications"]
-                }
+                self.applications = {app["id"]: app for app in r["applications"]}
             else:
                 self.applications = {}
             return r
 
     async def getApplication(self):
         if self.json_feature_supported("applications", None):
-            r = cast(ApplicationIntentType, await self.getReq('activities/current'))
+            r = cast(ApplicationIntentType, await self.getReq("activities/current"))
             if r:
                 self.application = r
             else:
@@ -775,7 +827,7 @@ class PhilipsTV(object):
 
     async def getPowerState(self):
         if self.api_version >= 5:
-            r = await self.getReq('powerstate')
+            r = await self.getReq("powerstate")
             if r:
                 self.powerstate = cast(str, r["powerstate"])
             else:
@@ -786,17 +838,15 @@ class PhilipsTV(object):
 
     async def setPowerState(self, state):
         if self.api_version >= 5:
-            data = {
-                "powerstate": state
-            }
-            if await self.postReq('powerstate', data) is not None:
+            data = {"powerstate": state}
+            if await self.postReq("powerstate", data) is not None:
                 self.powerstate = state
                 return True
         return False
 
     async def getScreenState(self):
         if self.api_version >= 5:
-            r = await self.getReq('screenstate')
+            r = await self.getReq("screenstate")
             if r:
                 self.screenstate = cast(str, r["screenstate"])
             else:
@@ -807,20 +857,16 @@ class PhilipsTV(object):
 
     async def setScreenState(self, state):
         if self.api_version >= 5:
-            data = {
-                "screenstate": state
-            }
-            if await self.postReq('screenstate', data) is not None:
+            data = {"screenstate": state}
+            if await self.postReq("screenstate", data) is not None:
                 self.screenstate = state
                 return True
         return False
-    
+
     async def setApplication(self, intent: ApplicationIntentType):
         if self.json_feature_supported("activities", "intent"):
-            data = {
-                "intent": intent
-            }
-            if await self.postReq('activities/launch', data) is not None:
+            data = {"intent": intent}
+            if await self.postReq("activities/launch", data) is not None:
                 self.application = intent
                 return True
         return False
@@ -830,8 +876,8 @@ class PhilipsTV(object):
         if level is not None:
             if self.min_volume is None or self.max_volume is None:
                 await self.getAudiodata()
-            assert(self.max_volume is not None)
-            assert(self.min_volume is not None)
+            assert self.max_volume is not None
+            assert self.min_volume is not None
 
             try:
                 targetlevel = int(level * self.max_volume)
@@ -839,42 +885,52 @@ class PhilipsTV(object):
                 LOG.warning("Invalid audio level %s" % str(level))
                 return False
             if targetlevel < self.min_volume or targetlevel > self.max_volume:
-                LOG.warning("Level not in range (%i - %i)" % (self.min_volume, self.max_volume))
+                LOG.warning(
+                    "Level not in range (%i - %i)" % (self.min_volume, self.max_volume)
+                )
                 return False
-            data['current'] = targetlevel
+            data["current"] = targetlevel
 
-        data['muted'] = muted
+        data["muted"] = muted
 
-        if await self.postReq('audio/volume', data) is None:
+        if await self.postReq("audio/volume", data) is None:
             return False
 
         self.audio_volume.update(data)
 
     async def sendKey(self, key):
-        res = await self.postReq('input/key', {'key': key}) is not None
+        res = await self.postReq("input/key", {"key": key}) is not None
         if res:
             if key == "Mute":
                 if self.audio_volume:
                     self.audio_volume["muted"] = not self.audio_volume["muted"]
             elif key == "VolumeUp":
-                if self.audio_volume and self.audio_volume["current"] < self.audio_volume["max"]:
+                if (
+                    self.audio_volume
+                    and self.audio_volume["current"] < self.audio_volume["max"]
+                ):
                     self.audio_volume["current"] += 1
             elif key == "VolumeDown":
-                if self.audio_volume and self.audio_volume["current"] > self.audio_volume["min"]:
+                if (
+                    self.audio_volume
+                    and self.audio_volume["current"] > self.audio_volume["min"]
+                ):
                     self.audio_volume["current"] -= 1
 
     async def sendUnicode(self, key: str):
-        return await self.postReq('input/key', {'unicode': key}) is not None
+        return await self.postReq("input/key", {"unicode": key}) is not None
 
     async def getAmbilightMode(self):
-        data = await self.getReq('ambilight/mode')
+        data = await self.getReq("ambilight/mode")
         if data:
             self.ambilight_mode_raw = data["current"]
 
             if self.quirk_ambilight_mode_ignored:
                 # we could probably disable quirk here
                 if data["current"] != "internal" and self.ambilight_mode_set:
-                    LOG.warning("TV properly report ambilight mode, quirk should be disabled")
+                    LOG.warning(
+                        "TV properly report ambilight mode, quirk should be disabled"
+                    )
                     self.ambilight_mode_set = None
 
             return data["current"]
@@ -883,17 +939,20 @@ class PhilipsTV(object):
             self.ambilight_mode_raw = None
 
     async def setAmbilightMode(self, mode):
-        data = {
-            "current": mode
-        }
-        if await self.postReq('ambilight/mode', data) is None:
+        data = {"current": mode}
+        if await self.postReq("ambilight/mode", data) is None:
             return False
 
         if self.quirk_ambilight_mode_ignored:
             if mode == "internal":
                 self.ambilight_mode_set = None
-                if await self.postReq('ambilight/mode', {"current": "internal_invalid"}) is None:
-                        LOG.info("Ignoring error for workaround for ambilight mode")
+                if (
+                    await self.postReq(
+                        "ambilight/mode", {"current": "internal_invalid"}
+                    )
+                    is None
+                ):
+                    LOG.info("Ignoring error for workaround for ambilight mode")
             else:
                 self.ambilight_mode_set = mode
 
@@ -902,7 +961,7 @@ class PhilipsTV(object):
         return True
 
     async def getAmbilightTopology(self):
-        r = await self.getReq('ambilight/topology')
+        r = await self.getReq("ambilight/topology")
         if r:
             self.ambilight_topology = r
         else:
@@ -910,7 +969,7 @@ class PhilipsTV(object):
         return r
 
     async def getAmbilightMeasured(self):
-        r = await self.getReq('ambilight/measured')
+        r = await self.getReq("ambilight/measured")
         if r:
             self.ambilight_measured = r
         else:
@@ -918,7 +977,7 @@ class PhilipsTV(object):
         return r
 
     async def getAmbilightProcessed(self):
-        r = await self.getReq('ambilight/processed')
+        r = await self.getReq("ambilight/processed")
         if r:
             self.ambilight_processed = r
         else:
@@ -926,7 +985,7 @@ class PhilipsTV(object):
         return r
 
     async def getAmbilightCached(self):
-        r = await self.getReq('ambilight/cached')
+        r = await self.getReq("ambilight/cached")
         if r:
             self.ambilight_cached = r
         else:
@@ -935,7 +994,7 @@ class PhilipsTV(object):
 
     async def getAmbilightPower(self):
         if self.api_version >= 5:
-            r = await self.getReq('ambilight/power')
+            r = await self.getReq("ambilight/power")
             if r:
                 self.ambilight_power_raw = r
             else:
@@ -945,7 +1004,7 @@ class PhilipsTV(object):
     async def setAmbilightPower(self, power: str):
         if self.api_version >= 5:
             data = {"power": power}
-            if await self.postReq('ambilight/power', data) is None:
+            if await self.postReq("ambilight/power", data) is None:
                 return False
             self.ambilight_power_raw = data
 
@@ -966,7 +1025,7 @@ class PhilipsTV(object):
             return True
 
     async def setAmbilightCached(self, data):
-        if await self.postReq('ambilight/cached', data) is None:
+        if await self.postReq("ambilight/cached", data) is None:
             return False
 
         # won't do optimistic behavior here since
@@ -982,7 +1041,10 @@ class PhilipsTV(object):
 
     async def getAmbilightSupportedStyles(self):
         if self.json_feature_supported("ambilight", "Ambilight"):
-            r = cast(Optional[AmbilightSupportedStylesType], await self.getReq('ambilight/supportedstyles'))
+            r = cast(
+                Optional[AmbilightSupportedStylesType],
+                await self.getReq("ambilight/supportedstyles"),
+            )
             if r:
                 self.ambilight_styles = {
                     style["styleName"]: style for style in r["supportedStyles"] if style
@@ -993,16 +1055,21 @@ class PhilipsTV(object):
 
     async def getAmbilightCurrentConfiguration(self):
         if self.json_feature_supported("ambilight", "Ambilight"):
-            r = cast(Optional[AmbilightCurrentConfiguration], await self.getReq('ambilight/currentconfiguration'))
+            r = cast(
+                Optional[AmbilightCurrentConfiguration],
+                await self.getReq("ambilight/currentconfiguration"),
+            )
             if r:
                 self.ambilight_current_configuration = r
             else:
                 self.ambilight_current_configuration = None
             return r
 
-    async def setAmbilightCurrentConfiguration(self, config: AmbilightCurrentConfiguration):
+    async def setAmbilightCurrentConfiguration(
+        self, config: AmbilightCurrentConfiguration
+    ):
         if self.json_feature_supported("ambilight", "Ambilight"):
-            r = await self.postReq('ambilight/currentconfiguration', cast(Dict, config))
+            r = await self.postReq("ambilight/currentconfiguration", cast(Dict, config))
             if r is None:
                 self.ambilight_current_configuration = None
                 return False
@@ -1016,10 +1083,10 @@ class PhilipsTV(object):
 
     async def openURL(self, url: str):
         if self.json_feature_supported("activities", "browser"):
-            r = await self.postReq('activities/browser', {'url': url})
+            r = await self.postReq("activities/browser", {"url": url})
             return r is not None
 
-    async def notifyChange(self, timeout = TIMEOUT_NOTIFYREAD):
+    async def notifyChange(self, timeout=TIMEOUT_NOTIFYREAD):
         """Start a http connection waiting for changes."""
         if not self.notify_change_supported:
             return None
@@ -1037,7 +1104,7 @@ class PhilipsTV(object):
 
         timeout_ctx = httpx.Timeout(timeout=TIMEOUT, pool=TIMEOUT_POOL, read=timeout)
         try:
-            result = await self.postReq('notifychange', data=data, timeout=timeout_ctx)
+            result = await self.postReq("notifychange", data=data, timeout=timeout_ctx)
         except ProtocolFailure as err:
             # not uncommon for tv to close connection on the lingering connection
             LOG.debug("Protocol failure from device: %s", repr(err))

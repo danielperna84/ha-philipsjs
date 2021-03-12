@@ -66,12 +66,16 @@ async def client_mock(loop, param: Param):
             respx.get(f"{param.base}/system").respond(
                 json=cast(Dict, SYSTEM_ANDROID_ENCRYPTED)
             )
-            respx.get(f"{param.base}/channeldb/tv").respond(json=cast(Dict, CHANNELDB_TV_ANDROID))
+            respx.get(f"{param.base}/channeldb/tv").respond(
+                json=cast(Dict, CHANNELDB_TV_ANDROID)
+            )
         elif param.type == "saphi":
             respx.get(f"{param.base}/system").respond(
                 json=cast(Dict, SYSTEM_SAPHI_ENCRYPTED)
             )
-            respx.get(f"{param.base}/channeldb/tv").respond(json=cast(Dict, CHANNELDB_TV_SAPHI))
+            respx.get(f"{param.base}/channeldb/tv").respond(
+                json=cast(Dict, CHANNELDB_TV_SAPHI)
+            )
         else:
             raise Exception
 
