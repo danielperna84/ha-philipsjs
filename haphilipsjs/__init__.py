@@ -99,6 +99,19 @@ def decode_xtv_json(text: str):
 
     return data
 
+def decode_xtv_response(response: httpx.Response):
+    try:
+        text = response.text
+    except UnicodeDecodeError:
+        LOG.warning("Unable to decode unicode on endpoint, ignoring", exc_info=True)
+        return {}
+
+    if not response.headers.get('content-type', "").startswith("application/json"):
+        LOG.warning("Non json data: %s", text)
+        return {}
+
+    return decode_xtv_json(text)
+
 
 PASSTHROUGH_URI = "content://android.media.tv/passthrough"
 
@@ -449,7 +462,7 @@ class PhilipsTV(object):
                 LOG.debug("Get failed: %s -> %d %s", path, resp.status_code, resp.text)
                 return None
             LOG.debug("Get succeded: %s -> %s", path, resp.text)
-            return decode_xtv_json(resp.text)
+            return decode_xtv_response(resp)
         except (httpx.ConnectTimeout, httpx.ConnectError) as err:
             raise ConnectionFailure(err) from err
         except httpx.HTTPError as err:
@@ -472,10 +485,7 @@ class PhilipsTV(object):
             resp = await self.session.post(self._url(path), json=data, timeout=timeout)
             if resp.status_code == 200:
                 LOG.debug("Post succeded: %s -> %s", data, resp.text)
-                if resp.headers.get("content-type", "").startswith("application/json"):
-                    return decode_xtv_json(resp.text)
-                else:
-                    return {}
+                return decode_xtv_response(resp)
             else:
                 LOG.warning("Post failed: %s -> %s", data, resp.text)
                 return None

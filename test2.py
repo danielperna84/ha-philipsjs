@@ -201,4 +201,9 @@ async def main():
 
 #('7669647ae9ae2e3bdec2ecdc083cae5e', '168a45bcfb40dac840880ee60b75687fc9124ead41421efb5c366df18c49728d')
 
-asyncio.run(main())
+#asyncio.run(main())
+
+print (haphilipsjs.cbc_decode(haphilipsjs.AUTH_SHARED_KEY, "K2kseVsmQFgkd15gKkJ+aq9g8Hrpv4zrBylaoZ2nbC0="))
+print (haphilipsjs.cbc_decode(haphilipsjs.AUTH_SHARED_KEY, "K2kseVsmQFgkd15gKkJ+ao+IN30u9WA8apvZ8LuQYkrUGEcxIhN1tkDM7wnn3V+5"))
+print (haphilipsjs.cbc_decode(haphilipsjs.AUTH_SHARED_KEY, "K2kseVsmQFgkd15gKkJ+akRXrm2rweXcLkCrwpCecFY="))
+print (haphilipsjs.cbc_decode(haphilipsjs.AUTH_SHARED_KEY, ""))
