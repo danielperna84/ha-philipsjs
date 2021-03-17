@@ -1143,5 +1143,8 @@ class PhilipsTV(object):
             if "screenstate" in result:
                 self.screenstate = result["screenstate"]["screenstate"]
             return True
-        else:
-            return False
+
+        if result is None:
+            return None
+
+        return False
