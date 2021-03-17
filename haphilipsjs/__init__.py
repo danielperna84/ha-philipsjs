@@ -141,6 +141,8 @@ class ConnectionFailure(GeneralFailure):
 class ProtocolFailure(GeneralFailure):
     """Wrapper to contain erros that are the server closing a connection before response."""
 
+class AutenticationFailure(GeneralFailure):
+    """Wrapper to contain failures due to authentication."""
 
 class PairingFailure(GeneralFailure):
     def __init__(self, data):
@@ -458,9 +460,13 @@ class PhilipsTV(object):
 
         try:
             resp = await self.session.get(self._url(path), timeout=TIMEOUT)
+            if resp.status_code == 401:
+                raise AutenticationFailure("Authenticaion failed to device")
+
             if resp.status_code != 200:
                 LOG.debug("Get failed: %s -> %d %s", path, resp.status_code, resp.text)
                 return None
+
             LOG.debug("Get succeded: %s -> %s", path, resp.text)
             return decode_xtv_response(resp)
         except (httpx.ConnectTimeout, httpx.ConnectError) as err:
@@ -472,6 +478,9 @@ class PhilipsTV(object):
 
         try:
             resp = await self.session.get(self._url(path), timeout=TIMEOUT)
+            if resp.status_code == 401:
+                raise AutenticationFailure("Authenticaion failed to device")
+
             if resp.status_code != 200:
                 return None, None
             return resp.content, resp.headers.get("content-type")
@@ -483,12 +492,15 @@ class PhilipsTV(object):
     async def postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
         try:
             resp = await self.session.post(self._url(path), json=data, timeout=timeout)
+            if resp.status_code == 401:
+                raise AutenticationFailure("Authenticaion failed to device")
+
             if resp.status_code == 200:
                 LOG.debug("Post succeded: %s -> %s", data, resp.text)
                 return decode_xtv_response(resp)
-            else:
-                LOG.warning("Post failed: %s -> %s", data, resp.text)
-                return None
+
+            LOG.warning("Post failed: %s -> %s", data, resp.text)
+            return None
         except httpx.ReadTimeout:
             LOG.debug("Read time out on postReq", exc_info=True)
             return None
