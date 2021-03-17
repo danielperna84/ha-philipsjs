@@ -7,7 +7,7 @@ def readme():
 
 PACKAGE_NAME = 'ha-philipsjs'
 HERE = os.path.abspath(os.path.dirname(__file__))
-VERSION = '2.6.1'
+VERSION = '2.7.0'
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*', 'dist', 'ccu', 'build'])
 
