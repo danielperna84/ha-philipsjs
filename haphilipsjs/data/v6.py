@@ -1,5 +1,6 @@
 from typing import cast
 from haphilipsjs.typing import (
+    ActivitesTVType,
     AmbilightCurrentConfiguration,
     AmbilightSupportedStylesType,
     ApplicationIntentType,
@@ -315,7 +316,7 @@ ACTIVITIES_CURRENT: ApplicationIntentType = {
     }
 }
 
-ACTIVITIES_TV = {"channel": {"ccid": 1648}}
+ACTIVITIES_TV: ActivitesTVType = {"channel": {"ccid": 1648}}
 
 CHANNELDB_TV_CHANNELLISTS_ALL: ChannelListType = {
     "id": "all",

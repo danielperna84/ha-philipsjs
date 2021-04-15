@@ -8,7 +8,7 @@ from haphilipsjs.typing import (
 )
 
 
-SYSTEM: SystemType = {
+SYSTEM_55PFL6007T: SystemType = {
     "menulanguage": "English",
     "name": "Philips TV",
     "country": "Sweden",
@@ -17,7 +17,7 @@ SYSTEM: SystemType = {
     "model": "55PFL6007T/12",
 }
 
-SYSTEM_47PFH6309_88: SystemType = {
+SYSTEM_47PFH6309: SystemType = {
     "menulanguage": "Spanish",
     "name": "PHILIPS TV",
     "country": "Spain",
@@ -25,10 +25,10 @@ SYSTEM_47PFH6309_88: SystemType = {
     "epgsource": "broadcast",
 }
 
-SYSTEM_47PFH6309_88_ENCRYPTED = cast(
+SYSTEM_47PFH6309_ENCRYPTED = cast(
     SystemType,
     {
-        **SYSTEM_47PFH6309_88,
+        **SYSTEM_47PFH6309,
         "serialnumber_encrypted": "bf1BcncGiQyBVS47ZXFWjNXoynlKUNlqDhxQz5ikPEU=",
         "softwareversion_encrypted": "K2kseVsmQFgkd15gKkJ+ao+IN30u9WA8apvZ8LuQYkrUGEcxIhN1tkDM7wnn3V+5",
         "model_encrypted": "K2kseVsmQFgkd15gKkJ+akRXrm2rweXcLkCrwpCecFY=",
@@ -36,16 +36,69 @@ SYSTEM_47PFH6309_88_ENCRYPTED = cast(
     },
 )
 
-SYSTEM_47PFH6309_88_DECRYPTED = cast(
+SYSTEM_47PFH6309_DECRYPTED = cast(
     SystemType,
     {
-        **SYSTEM_47PFH6309_88,
+        **SYSTEM_47PFH6309,
         "serialnumber": "ABCDEFGHIJKLF",
         "softwareversion": "mt5880:TPN141E_010.003.086.128",
         "model": "1_47PFH6309/88",
         "deviceid": "",
     },
 )
+
+SYSTEM_65PUS6121: SystemType = {
+    "menulanguage": "Dutch",
+    "name": "65PUS6121",
+    "country": "Netherlands",
+    "nettvversion": "4.5.0",
+    "epgsource": "broadcast",
+    "featuring": {
+        "jsonfeatures": {
+            "recordings": ["List", "Schedule", "Manage"],
+            "ambilight": ["LoungeLight"],
+            "textentry": ["context_based", "initial_string_available"],
+            "inputkey": ["key", "unicode"],
+            "pointer": ["context_based"],
+            "activities": ["browser"],
+        },
+        "systemfeatures": {"tvtype": "consumer", "content": ["dmr", "dms_tad"]},
+    },
+}
+
+SYSTEM_65PUS6121_ENCRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM_65PUS6121,
+        "serialnumber_encrypted": "bf1BcncGiQyBVS47ZXFWjNXoynlKUNlqDhxQz5ikPEU=",
+        "softwareversion_encrypted": "K2kseVsmQFgkd15gKkJ+avGAg/2Fns000yNVcCibCqJc8lV5YE2qHdE/pFg2ib2M",
+        "model_encrypted": "K2kseVsmQFgkd15gKkJ+ai592Vkjcax6Xprb+fzv08s=",
+        "deviceid_encrypted": "K2kseVsmQFgkd15gKkJ+arY7DmesJhIol3fe863YYY0=",
+    },
+)
+
+SYSTEM_65PUS6121_DECRYPTED = cast(
+    SystemType,
+    {
+        **SYSTEM_65PUS6121,
+        "serialnumber": "ABCDEFGHIJKLF",
+        "softwareversion": "mt5891:TPL161E_012.003.039.001",
+        "model": "1_65PUS6121/12",
+        "deviceid": "54885869",
+    },
+)
+
+SYSTEM_ENCRYPTED = {
+    "55PFL6007T": SYSTEM_55PFL6007T,
+    "47PFH6309": SYSTEM_47PFH6309_ENCRYPTED,
+    "65PUS6121": SYSTEM_65PUS6121_ENCRYPTED,
+}
+
+SYSTEM_DECRYPTED = {
+    "55PFL6007T": SYSTEM_55PFL6007T,
+    "47PFH6309": SYSTEM_47PFH6309_DECRYPTED,
+    "65PUS6121": SYSTEM_65PUS6121_DECRYPTED,
+}
 
 SOURCES: SourcesType = {
     "tv": {"name": "Watch TV"},
@@ -169,3 +222,15 @@ AMBILIGHT = {
         }
     },
 }
+
+POWERSTATE_65PUS6121 = {"powerstate": "On"}
+
+POWERSTATE = {"65PUS6121": POWERSTATE_65PUS6121}
+
+CONTEXT_65PUS6121 = {
+    "activity": "WatchExtension",
+    "menu": "Source Menu",
+    "Recording": "Off",
+}
+
+CONTEXT = {"65PUS6121": CONTEXT_65PUS6121}

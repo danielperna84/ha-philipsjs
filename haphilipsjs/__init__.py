@@ -99,6 +99,7 @@ def decode_xtv_json(text: str):
 
     return data
 
+
 def decode_xtv_response(response: httpx.Response):
     try:
         text = response.text
@@ -106,7 +107,7 @@ def decode_xtv_response(response: httpx.Response):
         LOG.warning("Unable to decode unicode on endpoint, ignoring", exc_info=True)
         return {}
 
-    if not response.headers.get('content-type', "").startswith("application/json"):
+    if not response.headers.get("content-type", "").startswith("application/json"):
         LOG.warning("Non json data: %s", text)
         return {}
 
@@ -141,8 +142,10 @@ class ConnectionFailure(GeneralFailure):
 class ProtocolFailure(GeneralFailure):
     """Wrapper to contain erros that are the server closing a connection before response."""
 
+
 class AutenticationFailure(GeneralFailure):
     """Wrapper to contain failures due to authentication."""
+
 
 class PairingFailure(GeneralFailure):
     def __init__(self, data):
@@ -701,11 +704,9 @@ class PhilipsTV(object):
         return data, content_type
 
     async def getContext(self) -> Optional[ContextType]:
-        if self.api_version >= 5:
-            r = cast(Optional[ContextType], await self.getReq(f"context"))
-            self.context = r
-            return r
-        return None
+        r = cast(Optional[ContextType], await self.getReq(f"context"))
+        self.context = r
+        return r
 
     async def setChannel(self, ccid, list_id: str = "alltv"):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
@@ -848,22 +849,18 @@ class PhilipsTV(object):
             return None, None
 
     async def getPowerState(self):
-        if self.api_version >= 5:
-            r = await self.getReq("powerstate")
-            if r:
-                self.powerstate = cast(str, r["powerstate"])
-            else:
-                self.powerstate = None
-            return r
+        r = await self.getReq("powerstate")
+        if r:
+            self.powerstate = cast(str, r["powerstate"])
         else:
             self.powerstate = None
+        return r
 
     async def setPowerState(self, state):
-        if self.api_version >= 5:
-            data = {"powerstate": state}
-            if await self.postReq("powerstate", data) is not None:
-                self.powerstate = state
-                return True
+        data = {"powerstate": state}
+        if await self.postReq("powerstate", data) is not None:
+            self.powerstate = state
+            return True
         return False
 
     async def getScreenState(self):

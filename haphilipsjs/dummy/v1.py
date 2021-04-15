@@ -9,7 +9,7 @@ from haphilipsjs.data.v1 import (
     CHANNELS,
     SOURCES_CURRENT,
     SOURCES,
-    SYSTEM,
+    SYSTEM_55PFL6007T,
     VOLUME,
 )
 
@@ -34,7 +34,7 @@ def get_data(data):
 app = web.Application()
 app.add_routes(
     [
-        web.get("/1/system", get_data(SYSTEM)),
+        web.get("/1/system", get_data(SYSTEM_55PFL6007T)),
         web.get("/1/sources", get_data(SOURCES)),
         web.get("/1/sources/current", get_data(SOURCES_CURRENT)),
         web.get("/1/channels", get_data(CHANNELS)),

@@ -18,7 +18,7 @@ class ActivitiesChannelListType(TypedDict, total=False):
     version: str
 
 
-class ActivitesTVType(TypedDict):
+class ActivitesTVType(TypedDict, total=False):
     channel: ActivitiesChannelType
     channelList: ActivitiesChannelListType
 

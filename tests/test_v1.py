@@ -10,11 +10,12 @@ from haphilipsjs.data.v1 import (
     CHANNELLISTS,
     CHANNELS_CURRENT,
     CHANNELS,
+    CONTEXT,
+    POWERSTATE,
     SOURCES_CURRENT,
     SOURCES,
-    SYSTEM,
-    SYSTEM_47PFH6309_88_DECRYPTED,
-    SYSTEM_47PFH6309_88_ENCRYPTED,
+    SYSTEM_DECRYPTED,
+    SYSTEM_ENCRYPTED,
     VOLUME,
 )
 
@@ -24,7 +25,7 @@ class Param(NamedTuple):
     base: str
 
 
-@pytest.fixture(params=["standard", "47PFH6309_88"], name="param")
+@pytest.fixture(params=["55PFL6007T", "47PFH6309", "65PUS6121"], name="param")
 async def param_fixture(request):
     return Param(request.param, "http://127.0.0.1:1925/1")
 
@@ -33,12 +34,10 @@ async def param_fixture(request):
 async def client_mock(loop, param: Param):
     with respx.mock:
         client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=1)
-        if param.type == "47PFH6309_88":
-            respx.get(f"{param.base}/system").respond(
-                json=cast(Dict, SYSTEM_47PFH6309_88_ENCRYPTED)
-            )
-        else:
-            respx.get(f"{param.base}/system").respond(json=cast(Dict, SYSTEM))
+
+        respx.get(f"{param.base}/system").respond(
+            json=cast(Dict, SYSTEM_ENCRYPTED[param.type])
+        )
         respx.get(f"{param.base}/sources").respond(json=SOURCES)
         respx.get(f"{param.base}/sources/current").respond(
             json=cast(Dict, SOURCES_CURRENT)
@@ -60,6 +59,15 @@ async def client_mock(loop, param: Param):
             json=AMBILIGHT["processed"]
         )
         respx.get(f"{param.base}/ambilight/cached").respond(json=AMBILIGHT["cached"])
+        if param.type in POWERSTATE:
+            respx.get(f"{param.base}/powerstate").respond(json=POWERSTATE[param.type])
+        else:
+            respx.get(f"{param.base}/powerstate").respond(404)
+        if param.type in CONTEXT:
+            respx.get(f"{param.base}/context").respond(json=CONTEXT[param.type])
+        else:
+            respx.get(f"{param.base}/context").respond(404)
+
         yield client
         await client.aclose()
 
@@ -68,14 +76,13 @@ async def test_basic_data(client_mock: haphilipsjs.PhilipsTV, param: Param):
     """Test for basic data"""
     await client_mock.update()
     assert client_mock.on == True
-    if param.type == "47PFH6309_88":
-        assert client_mock.system == SYSTEM_47PFH6309_88_DECRYPTED
-    else:
-        assert client_mock.system == SYSTEM
+    assert client_mock.system == SYSTEM_DECRYPTED[param.type]
     assert client_mock.sources == SOURCES
     assert client_mock.channels == CHANNELS
     assert client_mock.ambilight_current_configuration is None
     assert client_mock.ambilight_styles == {}
+    assert client_mock.powerstate == POWERSTATE.get(param.type, {}).get("powerstate")
+    assert client_mock.context == CONTEXT.get(param.type)
 
 
 async def test_current_source_none(client_mock, param: Param):
