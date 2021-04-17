@@ -233,6 +233,13 @@ class PhilipsTV(object):
             return False
 
     @property
+    def quirk_ambilight_styles_menuitems(self):
+        if self.system:
+            return self.system.get("os_type", "").startswith("MSAF_")
+        else:
+            return False
+
+    @property
     def os_type(self):
         if self.system is None:
             return None
@@ -1068,6 +1075,37 @@ class PhilipsTV(object):
                 self.ambilight_styles = {
                     style["styleName"]: style for style in r["supportedStyles"] if style
                 }
+
+                if self.quirk_ambilight_styles_menuitems:
+                    style = self.ambilight_styles.setdefault("FOLLOW_VIDEO", {"styleName": "FOLLOW_VIDEO"})
+                    style["menuSettings"] = [
+                        "STANDARD",
+                        "VIVID",
+                        "IMMERSIVE",
+                        "NATURAL",
+                        "GAME"
+                    ]
+
+                    style = self.ambilight_styles.setdefault("FOLLOW_AUDIO", {"styleName": "FOLLOW_AUDIO"})
+                    style["menuSettings"] = [
+                        "ENERGY_ADAPTIVE_BRIGHTNESS",
+                        "VU_METER",
+                        "RANDOM_PIXEL_FLASH",
+                    ]
+
+                    if "Lounge light" in self.ambilight_styles:
+                        style = self.ambilight_styles["Lounge light"]
+                    elif "FOLLOW_COLOR" in self.ambilight_styles:
+                        style = self.ambilight_styles["FOLLOW_COLOR"]
+                    else:
+                        style = self.ambilight_styles.setdefault("Lounge light", {"styleName": "Lounge light"})
+                    style["menuSettings"] = [
+                        "HOT_LAVA",
+                        "DEEP_WATER",
+                        "FRESH_NATURE",
+                        "ISF",
+                        "CUSTOM_COLOR"
+                    ]
             else:
                 self.ambilight_styles = {}
             return r

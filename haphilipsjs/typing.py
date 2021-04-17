@@ -183,6 +183,9 @@ class AmbilightSupportedStyleType(TypedDict, total=False):
     maxTuning: int
     maxSpeed: int
 
+    # Extension to get the non expert modes too
+    menuSettings: List[str]
+
 
 class AmbilightSupportedStylesType(TypedDict):
     supportedStyles: List[AmbilightSupportedStyleType]
