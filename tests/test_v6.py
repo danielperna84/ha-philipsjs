@@ -10,6 +10,7 @@ from haphilipsjs.data.v6 import (
     ACTIVITIES_TV,
     AMBILIGHT_CURRENT_CONFIGURATION,
     AMBILIGHT_SUPPORTED_STYLES,
+    AMBILIGHT_SUPPORTED_STYLES_EXTENDED,
     APPLICATIONS,
     CHANNELDB_TV_ANDROID,
     CHANNELDB_TV_SAPHI,
@@ -423,11 +424,7 @@ async def test_ambilight_current_configuration(client_mock, param):
 async def test_ambilight_supported_stypes(client_mock, param):
     await client_mock.getSystem()
     await client_mock.getAmbilightSupportedStyles()
-    assert client_mock.ambilight_styles == {
-        style["styleName"]: style
-        for style in AMBILIGHT_SUPPORTED_STYLES["supportedStyles"]
-        if style
-    }
+    assert client_mock.ambilight_styles == AMBILIGHT_SUPPORTED_STYLES_EXTENDED[param.type]
 
 
 async def test_buggy_json():

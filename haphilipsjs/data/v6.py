@@ -1,8 +1,9 @@
-from typing import cast
+from typing import cast, Dict
 from haphilipsjs.typing import (
     ActivitesTVType,
     AmbilightCurrentConfiguration,
     AmbilightSupportedStylesType,
+    AmbilightSupportedStyleType,
     ApplicationIntentType,
     ApplicationsType,
     ChannelDbTv,
@@ -497,6 +498,69 @@ AMBILIGHT_SUPPORTED_STYLES: AmbilightSupportedStylesType = {
         {},
         {},
     ]
+}
+
+AMBILIGHT_SUPPORTED_STYLES_EXTENDED_ANDROID: Dict[str, AmbilightSupportedStyleType] = {
+    "FOLLOW_VIDEO": {
+        "styleName": "FOLLOW_VIDEO",
+        "menuSettings": ["STANDARD", "VIVID", "IMMERSIVE", "NATURAL", "GAME"],
+    },
+    "FOLLOW_AUDIO": {
+        "styleName": "FOLLOW_AUDIO",
+        "algorithms": [
+            "ENERGY_ADAPTIVE_BRIGHTNESS",
+            "ENERGY_ADAPTIVE_COLORS",
+            "VU_METER",
+            "SPECTRUM_ANALYZER",
+            "KNIGHT_RIDER_CLOCKWISE",
+            "KNIGHT_RIDER_ALTERNATING",
+            "RANDOM_PIXEL_FLASH",
+            "STROBO",
+            "PARTY",
+        ],
+        "menuSettings": ["ENERGY_ADAPTIVE_BRIGHTNESS", "VU_METER", "RANDOM_PIXEL_FLASH"],
+        "maxTuning": 2,
+    },
+    "Lounge light": {
+        "styleName": "Lounge light",
+        "algorithms": ["MANUAL_HUE", "AUTOMATIC_HUE"],
+        "menuSettings": [
+            "HOT_LAVA",
+            "DEEP_WATER",
+            "FRESH_NATURE",
+            "ISF",
+            "CUSTOM_COLOR",
+        ],
+        "maxSpeed": 255,
+    },
+}
+
+AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI: Dict[str, AmbilightSupportedStyleType] = {
+    "FOLLOW_AUDIO": {
+        "styleName": "FOLLOW_AUDIO",
+        "algorithms": [
+            "ENERGY_ADAPTIVE_BRIGHTNESS",
+            "ENERGY_ADAPTIVE_COLORS",
+            "VU_METER",
+            "SPECTRUM_ANALYZER",
+            "KNIGHT_RIDER_CLOCKWISE",
+            "KNIGHT_RIDER_ALTERNATING",
+            "RANDOM_PIXEL_FLASH",
+            "STROBO",
+            "PARTY",
+        ],
+        "maxTuning": 2,
+    },
+    "Lounge light": {
+        "styleName": "Lounge light",
+        "algorithms": ["MANUAL_HUE", "AUTOMATIC_HUE"],
+        "maxSpeed": 255,
+    },
+}
+
+AMBILIGHT_SUPPORTED_STYLES_EXTENDED = {
+    "android": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_ANDROID,
+    "saphi": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI
 }
 
 AMBILIGHT_CURRENT_CONFIGURATION: AmbilightCurrentConfiguration = {
