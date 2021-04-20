@@ -262,11 +262,11 @@ async def main():
         print(f"Password: {res[1]}")
 
     elif args.command == "get":
-        res = await tv._getReq(args.path)
+        res = await tv.getReq(args.path)
         print(res)
 
     elif args.command == "post":
-        res = await tv._postReq(args.path, literal_eval(args.data))
+        res = await tv.postReq(args.path, literal_eval(args.data))
         print(res)
 
     elif args.command == "markdown":
