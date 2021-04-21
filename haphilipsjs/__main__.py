@@ -1,5 +1,7 @@
 import curses
 import platform
+import json
+import sys
 from . import PhilipsTV
 import asyncio
 from ast import literal_eval
@@ -263,11 +265,11 @@ async def main():
 
     elif args.command == "get":
         res = await tv.getReq(args.path)
-        print(res)
+        json.dump(res, sys.stdout, indent=2)
 
     elif args.command == "post":
         res = await tv.postReq(args.path, literal_eval(args.data))
-        print(res)
+        json.dump(res, sys.stdout, indent=2)
 
     elif args.command == "markdown":
         import argmark
