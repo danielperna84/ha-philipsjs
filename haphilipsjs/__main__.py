@@ -160,6 +160,13 @@ async def main():
     post.add_argument("path", help="Sub path to grab from tv")
     post.add_argument("data", help="Json data to post")
 
+    strings = subparsers.add_parser("strings", help="Get translations")
+    strings.add_argument("string_ids", help="List of string id to request", nargs="+")
+    strings.add_argument("--language", help="Language code to request")
+    strings.add_argument("--country", help="Country code to request")
+    strings.add_argument("--variant", help="Variant")
+
+
     markdown = subparsers.add_parser("markdown", help="Print markdown for commandline")
 
     args = parser.parse_args()
@@ -269,6 +276,10 @@ async def main():
 
     elif args.command == "post":
         res = await tv.postReq(args.path, literal_eval(args.data))
+        json.dump(res, sys.stdout, indent=2)
+
+    elif args.command == "strings":
+        res = await tv.getStrings(args.string_ids, args.language, args.country, args.variant)
         json.dump(res, sys.stdout, indent=2)
 
     elif args.command == "markdown":

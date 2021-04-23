@@ -1143,6 +1143,27 @@ class PhilipsTV(object):
             r = await self.postReq("activities/browser", {"url": url})
             return r is not None
 
+    async def getStrings(self, strings: List[str], language: Optional[str] = None, country: Optional[str] = None, variant: Optional[str] = None):
+        data = {
+            "strings": [
+                {"string_id": string}
+                for string in strings
+            ],
+            "locale": {
+                "language": language or "",
+                "country": country or "",
+                "variant": variant or "",
+            }
+        }
+        res = await self.postReq("strings", data)
+        if res:
+            return {
+                translation["string_id"]: translation["string_translation"]
+                for translation in res["translations"]
+            }
+        return None
+
+
     async def notifyChange(self, timeout=TIMEOUT_NOTIFYREAD):
         """Start a http connection waiting for changes."""
         if not self.notify_change_supported:
