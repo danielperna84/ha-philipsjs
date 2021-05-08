@@ -629,7 +629,6 @@ class PhilipsTV(object):
             await self.getContext()
             await self.getScreenState()
             await self.getAmbilightMode()
-            await self.getAmbilightCached()
             await self.getAmbilightPower()
             await self.getAmbilightCurrentConfiguration()
             self.on = True
@@ -1011,6 +1010,10 @@ class PhilipsTV(object):
         return r
 
     async def getAmbilightCached(self):
+        """Grab cached ambilight data from device. There are some unconfirmed reports where
+        it seems the server crashes while grabbing this data from time to time. So use
+        sparingly.
+        """
         r = await self.getReq("ambilight/cached")
         if r:
             self.ambilight_cached = r
