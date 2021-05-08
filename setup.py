@@ -7,7 +7,7 @@ def readme():
 
 PACKAGE_NAME = 'ha-philipsjs'
 HERE = os.path.abspath(os.path.dirname(__file__))
-VERSION = '2.7.2'
+VERSION = '2.7.3'
 
 PACKAGES = find_packages(exclude=['tests', 'tests.*', 'dist', 'ccu', 'build'])
 
@@ -46,7 +46,7 @@ setup(
                 'pytest-aiohttp',
                 'coveralls',
                 'pytest-mock',
-                'respx>=0.16.2',
+                'respx>=0.17.0',
             ]
         },
         python_requires='>=3.8'
