@@ -620,6 +620,7 @@ class PhilipsTV(object):
                 await self.getChannels()
                 await self.getApplications()
                 await self.getAmbilightSupportedStyles()
+                await self.getAmbilightCached()
 
             await self.getPowerState()
             await self.getAudiodata()
