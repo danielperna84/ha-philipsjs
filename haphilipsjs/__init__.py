@@ -1080,16 +1080,20 @@ class PhilipsTV(object):
                 }
 
                 if self.quirk_ambilight_styles_menuitems:
-                    style = self.ambilight_styles.setdefault("FOLLOW_VIDEO", {"styleName": "FOLLOW_VIDEO"})
+                    style = self.ambilight_styles.setdefault(
+                        "FOLLOW_VIDEO", {"styleName": "FOLLOW_VIDEO"}
+                    )
                     style["menuSettings"] = [
                         "STANDARD",
                         "VIVID",
                         "IMMERSIVE",
                         "NATURAL",
-                        "GAME"
+                        "GAME",
                     ]
 
-                    style = self.ambilight_styles.setdefault("FOLLOW_AUDIO", {"styleName": "FOLLOW_AUDIO"})
+                    style = self.ambilight_styles.setdefault(
+                        "FOLLOW_AUDIO", {"styleName": "FOLLOW_AUDIO"}
+                    )
                     style["menuSettings"] = [
                         "ENERGY_ADAPTIVE_BRIGHTNESS",
                         "VU_METER",
@@ -1101,13 +1105,15 @@ class PhilipsTV(object):
                     elif "FOLLOW_COLOR" in self.ambilight_styles:
                         style = self.ambilight_styles["FOLLOW_COLOR"]
                     else:
-                        style = self.ambilight_styles.setdefault("Lounge light", {"styleName": "Lounge light"})
+                        style = self.ambilight_styles.setdefault(
+                            "Lounge light", {"styleName": "Lounge light"}
+                        )
                     style["menuSettings"] = [
                         "HOT_LAVA",
                         "DEEP_WATER",
                         "FRESH_NATURE",
                         "ISF",
-                        "CUSTOM_COLOR"
+                        "CUSTOM_COLOR",
                     ]
             else:
                 self.ambilight_styles = {}
@@ -1146,17 +1152,20 @@ class PhilipsTV(object):
             r = await self.postReq("activities/browser", {"url": url})
             return r is not None
 
-    async def getStrings(self, strings: List[str], language: Optional[str] = None, country: Optional[str] = None, variant: Optional[str] = None):
+    async def getStrings(
+        self,
+        strings: List[str],
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        variant: Optional[str] = None,
+    ):
         data = {
-            "strings": [
-                {"string_id": string}
-                for string in strings
-            ],
+            "strings": [{"string_id": string} for string in strings],
             "locale": {
                 "language": language or "",
                 "country": country or "",
                 "variant": variant or "",
-            }
+            },
         }
         res = await self.postReq("strings", data)
         if res:
@@ -1165,7 +1174,6 @@ class PhilipsTV(object):
                 for translation in res["translations"]
             }
         return None
-
 
     async def notifyChange(self, timeout=TIMEOUT_NOTIFYREAD):
         """Start a http connection waiting for changes."""
