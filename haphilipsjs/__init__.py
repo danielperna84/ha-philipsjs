@@ -403,12 +403,14 @@ class PhilipsTV(object):
     def channel_id(self):
         if self.api_version >= 5:
             r = cast(Optional[ActivitesTVType], self.channel)
-            ccid = r.get("channel", {}).get("ccid")
-            if ccid:
-                # it could be empty if HDMI is set
-                return str(ccid)
-            else:
+            if not r:
                 return None
+
+            ccid = r.get("channel", {}).get("ccid")
+            # it could be empty if HDMI is set
+            if not ccid:
+                return None
+            return str(ccid)
         else:
             r = cast(Optional[ChannelsCurrentType], self.channel)
             if not r:
@@ -667,9 +669,9 @@ class PhilipsTV(object):
 
     async def getSystem(self):
         r = cast(Optional[SystemType], await self.getReq("system"))
-        if r and "name" in r:
+        if r:
             self.system = self._decodeSystem(r)
-            self.name = r["name"]
+            self.name = r.get("name")
         else:
             self.system = {}
             self.name = None
@@ -778,7 +780,7 @@ class PhilipsTV(object):
                 Optional[ChannelListType],
                 await self.getReq(f"channeldb/tv/channelLists/{list_id}"),
             )
-            if r and "channels" in r:
+            if r and "Channel" in r:
                 return r["Channel"]
             else:
                 return None
