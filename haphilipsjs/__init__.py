@@ -30,8 +30,8 @@ from .typing import (
 )
 
 LOG = logging.getLogger(__name__)
-TIMEOUT = 5.0
-TIMEOUT_POOL = 20
+TIMEOUT = 20.0
+TIMEOUT_CONNECT = 5.0
 TIMEOUT_NOTIFYREAD = 130
 DEFAULT_API_VERSION = 1
 
@@ -218,7 +218,7 @@ class PhilipsTV(object):
         else:
             self.protocol = "http"
 
-        timeout = httpx.Timeout(timeout=TIMEOUT, pool=TIMEOUT_POOL)
+        timeout = httpx.Timeout(timeout=TIMEOUT, connect=TIMEOUT_CONNECT)
         limits = httpx.Limits(max_keepalive_connections=0, max_connections=3)
         self.session = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False)
         self.session.headers["Accept"] = "application/json"
@@ -488,7 +488,7 @@ class PhilipsTV(object):
     async def getReq(self, path) -> Optional[Dict]:
 
         try:
-            resp = await self.session.get(self._url(path), timeout=TIMEOUT)
+            resp = await self.session.get(self._url(path))
             if resp.status_code == 401:
                 raise AutenticationFailure("Authenticaion failed to device")
 
@@ -506,7 +506,7 @@ class PhilipsTV(object):
     async def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
 
         try:
-            resp = await self.session.get(self._url(path), timeout=TIMEOUT)
+            resp = await self.session.get(self._url(path))
             if resp.status_code == 401:
                 raise AutenticationFailure("Authenticaion failed to device")
 
@@ -518,9 +518,9 @@ class PhilipsTV(object):
         except httpx.HTTPError as err:
             raise GeneralFailure(err) from err
 
-    async def postReq(self, path: str, data: Dict, timeout=TIMEOUT) -> Optional[Dict]:
+    async def postReq(self, path: str, data: Dict, timeout=None, protocol=None) -> Optional[Dict]:
         try:
-            resp = await self.session.post(self._url(path), json=data, timeout=timeout)
+            resp = await self.session.post(self._url(path, protocol), json=data, timeout=timeout)
             if resp.status_code == 401:
                 raise AutenticationFailure("Authenticaion failed to device")
 
@@ -1209,9 +1209,9 @@ class PhilipsTV(object):
             }
         }
 
-        timeout_ctx = httpx.Timeout(timeout=TIMEOUT, pool=TIMEOUT_POOL, read=timeout)
+        timeout_ctx = httpx.Timeout(timeout=TIMEOUT, connect=TIMEOUT_CONNECT, read=timeout)
         try:
-            result = await self.postReq("notifychange", data=data, timeout=timeout_ctx)
+            result = await self.postReq("notifychange", data=data, timeout=timeout_ctx, protocol="https")
         except ProtocolFailure as err:
             # not uncommon for tv to close connection on the lingering connection
             LOG.debug("Protocol failure from device: %s", repr(err))
