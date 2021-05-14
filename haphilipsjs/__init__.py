@@ -1215,7 +1215,7 @@ class PhilipsTV(object):
         except ProtocolFailure as err:
             # not uncommon for tv to close connection on the lingering connection
             LOG.debug("Protocol failure from device: %s", repr(err))
-            result = None
+            result = False
         except ConnectionFailure as err:
             LOG.debug("Connection failure to device: %s", repr(err))
             self.on = False
