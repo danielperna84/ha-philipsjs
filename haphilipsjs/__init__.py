@@ -692,7 +692,8 @@ class PhilipsTV(object):
                 r = await self.getChannelList(list_id)
                 if r:
                     for channel in r:
-                        self.channels[str(channel["ccid"])] = channel
+                        if "ccid" in channel:
+                            self.channels[str(channel["ccid"])] = channel
                 return r
         else:
             r = cast(Optional[ChannelsType], await self.getReq("channels"))

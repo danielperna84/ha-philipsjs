@@ -86,7 +86,7 @@ async def client_mock(loop, param: Param):
         respx.get(f"{param.base}/activities/current").respond(
             json=cast(Dict, ACTIVITIES_CURRENT)
         )
-        respx.get(f"{param.base}/activities/tv").respond(json=ACTIVITIES_TV)
+        respx.get(f"{param.base}/activities/tv").respond(json=cast(Dict, ACTIVITIES_TV))
         respx.get(f"{param.base}/applications").respond(json=cast(Dict, APPLICATIONS))
         respx.get(f"{param.base}/powerstate").respond(json=POWERSTATE)
         respx.get(f"{param.base}/screenstate").respond(json=SCREENSTATE)
@@ -135,7 +135,7 @@ async def test_basic_data(client_mock, param: Param):
         assert client_mock.system == SYSTEM_ANDROID_DECRYPTED
         assert client_mock.sources == MOCK_ANDROID_SOURCES
         assert client_mock.applications == {
-            app["id"]: app for app in APPLICATIONS["applications"]
+            app["id"]: app for app in APPLICATIONS["applications"] if "id" in app
         }
         assert (
             client_mock.application_id
