@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, cast, overload
 import httpx
 import logging
 import json
@@ -317,6 +317,14 @@ class PhilipsTV(object):
         else:
             return None
 
+    @overload
+    def json_feature_supported(self, type: str) -> Optional[List[str]]:
+        ...
+
+    @overload
+    def json_feature_supported(self, type: str, value: str) -> Optional[bool]:
+        ...
+
     def json_feature_supported(self, type: str, value: Optional[str] = None):
         if self.system:
             features = cast(
@@ -393,9 +401,10 @@ class PhilipsTV(object):
     def channel_id(self):
         if self.api_version >= 5:
             r = cast(Optional[ActivitesTVType], self.channel)
-            if r and r["channel"]:
+            ccid = r.get("channel", {}).get("ccid")
+            if ccid:
                 # it could be empty if HDMI is set
-                return str(r["channel"]["ccid"])
+                return str(ccid)
             else:
                 return None
         else:
@@ -650,7 +659,7 @@ class PhilipsTV(object):
 
     async def getSystem(self):
         r = cast(Optional[SystemType], await self.getReq("system"))
-        if r:
+        if r and "name" in r:
             self.system = self._decodeSystem(r)
             self.name = r["name"]
         else:
@@ -750,7 +759,7 @@ class PhilipsTV(object):
                 Optional[FavoriteListType],
                 await self.getReq(f"channeldb/tv/favoriteLists/{list_id}"),
             )
-            if r:
+            if r and "channels" in r:
                 return r["channels"]
             else:
                 return None
@@ -761,7 +770,7 @@ class PhilipsTV(object):
                 Optional[ChannelListType],
                 await self.getReq(f"channeldb/tv/channelLists/{list_id}"),
             )
-            if r:
+            if r and "channels" in r:
                 return r["Channel"]
             else:
                 return None
@@ -831,16 +840,16 @@ class PhilipsTV(object):
         return False
 
     async def getApplications(self):
-        if self.json_feature_supported("applications", None):
+        if self.json_feature_supported("applications"):
             r = cast(ApplicationsType, await self.getReq("applications"))
             if r:
-                self.applications = {app["id"]: app for app in r["applications"]}
+                self.applications = {app["id"]: app for app in r["applications"] if "id" in app}
             else:
                 self.applications = {}
             return r
 
     async def getApplication(self):
-        if self.json_feature_supported("applications", None):
+        if self.json_feature_supported("applications"):
             r = cast(ApplicationIntentType, await self.getReq("activities/current"))
             if r:
                 self.application = r
@@ -849,7 +858,7 @@ class PhilipsTV(object):
             return r
 
     async def getApplicationIcon(self, id) -> Tuple[Optional[bytes], Optional[str]]:
-        if self.json_feature_supported("applications", None):
+        if self.json_feature_supported("applications"):
             data, content_type = await self._getBinary(f"applications/{id}/icon")
             return data, content_type
         else:
@@ -1077,7 +1086,7 @@ class PhilipsTV(object):
             )
             if r:
                 self.ambilight_styles = {
-                    style["styleName"]: style for style in r["supportedStyles"] if style
+                    style["styleName"]: style for style in r["supportedStyles"] if "styleName" in style
                 }
 
                 if self.quirk_ambilight_styles_menuitems:
