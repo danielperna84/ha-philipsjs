@@ -49,6 +49,9 @@ TV_PLAYBACK_INTENTS = [
     }
 ]
 
+HTTP_PORT = 1925
+HTTPS_PORT = 1926
+
 
 def hmac_signature(key: bytes, timestamp: str, data: str):
     """Calculate a timestamped signature."""
@@ -212,10 +215,8 @@ class PhilipsTV(object):
 
         if secured_transport:
             self.protocol = "https"
-            self.port = 1926
         else:
             self.protocol = "http"
-            self.port = 1925
 
         timeout = httpx.Timeout(timeout=TIMEOUT, pool=TIMEOUT_POOL)
         limits = httpx.Limits(max_keepalive_connections=0, max_connections=3)
@@ -473,8 +474,16 @@ class PhilipsTV(object):
     async def aclose(self) -> None:
         await self.session.aclose()
 
-    def _url(self, path):
-        return f"{self.protocol}://{self._host}:{self.port}/{self.api_version}/{path}"
+    def _url(self, path, protocol = None):
+        if protocol is None:
+            protocol = self.protocol
+
+        if self.protocol == "https":
+            port = HTTPS_PORT
+        else:
+            port = HTTP_PORT
+
+        return f"{protocol}://{self._host}:{port}/{self.api_version}/{path}"
 
     async def getReq(self, path) -> Optional[Dict]:
 
@@ -610,11 +619,9 @@ class PhilipsTV(object):
         if secured_transport == True and self.protocol != "https":
             LOG.info("Switching to secured transport")
             self.protocol = "https"
-            self.port = 1926
         elif secured_transport == False and self.protocol != "http":
             LOG.info("Switching to unsecured transport")
             self.protocol = "http"
-            self.port = 1925
 
         if api_version and api_version != self.api_version:
             LOG.info("Switching to api_version %d", api_version)
