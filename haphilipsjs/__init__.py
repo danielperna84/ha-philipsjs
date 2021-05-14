@@ -108,7 +108,8 @@ def decode_xtv_response(response: httpx.Response):
         return {}
 
     if not response.headers.get("content-type", "").startswith("application/json"):
-        LOG.warning("Non json data: %s", text)
+        if text:
+            LOG.warning("Non json data: %s", text)
         return {}
 
     return decode_xtv_json(text)
