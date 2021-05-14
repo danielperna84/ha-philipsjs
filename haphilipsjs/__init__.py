@@ -1211,7 +1211,7 @@ class PhilipsTV(object):
 
         timeout_ctx = httpx.Timeout(timeout=TIMEOUT, connect=TIMEOUT_CONNECT, read=timeout)
         try:
-            result = await self.postReq("notifychange", data=data, timeout=timeout_ctx, protocol="https")
+            result = await self.postReq("notifychange", data=data, timeout=timeout_ctx)
         except ProtocolFailure as err:
             # not uncommon for tv to close connection on the lingering connection
             LOG.debug("Protocol failure from device: %s", repr(err))
