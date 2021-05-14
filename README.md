@@ -12,7 +12,7 @@ Print system data
 ```python
 from haphilipsjs import PhilipsTV
 
-tv = PhilipsTV("tv2.ecce.loc", 6)
+tv = PhilipsTV("tv2.example.com", 6)
 tv.getSystem()
 print(tv.system)
 ```
@@ -21,7 +21,7 @@ Pairing with TV
 ```python
 from haphilipsjs import PhilipsTV
 
-tv = PhilipsTV("tv2.ecce.loc", 6)
+tv = PhilipsTV("tv2.example.com", 6)
 tv.getSystem()
 
 state = tv.pairRequest("my_test_app", "My Test App", "mox", "OSX", "native")
