@@ -920,12 +920,13 @@ class PhilipsTV(object):
 
     async def setVolume(self, level, muted=False):
         data = {}
-        if level is not None:
-            if self.min_volume is None or self.max_volume is None:
-                await self.getAudiodata()
-            assert self.max_volume is not None
-            assert self.min_volume is not None
+        if self.audio_volume is None or self.min_volume is None or self.max_volume is None:
+            await self.getAudiodata()
+        assert self.audio_volume is not None
+        assert self.max_volume is not None
+        assert self.min_volume is not None
 
+        if level is not None:
             try:
                 targetlevel = int(level * self.max_volume)
             except ValueError:
