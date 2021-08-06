@@ -26,6 +26,13 @@ def unquote(value: str) -> str:
     return value[1:-1] if value[0] == value[-1] == '"' else value
 
 class CachedDigestAuth(Auth):
+    """Digest authentication with a cached challange response.
+    
+    Known issues:
+     * Only a single challenge is every cached, no checks is done for hostname being correct
+     * Nonce counting is not implemented since philips TV's don't seem to require it.
+    """
+
     _ALGORITHM_TO_HASH_FUNCTION: typing.Dict[str, typing.Callable] = {
         "MD5": hashlib.md5,
         "MD5-SESS": hashlib.md5,
@@ -40,10 +47,14 @@ class CachedDigestAuth(Auth):
     def __init__(
         self, username: typing.Union[str, bytes], password: typing.Union[str, bytes]
     ) -> None:
+        self._challenge = None
         self._username = to_bytes(username)
         self._password = to_bytes(password)
 
     def auth_flow(self, request: Request) -> typing.Generator[Request, Response, None]:
+        if self._challenge:
+            request.headers["Authorization"] = self._build_auth_header(request, self._challenge)
+
         response = yield request
 
         if response.status_code != 401 or "www-authenticate" not in response.headers:
@@ -59,8 +70,8 @@ class CachedDigestAuth(Auth):
             # header, then we don't need to build an authenticated request.
             return
 
-        challenge = self._parse_challenge(request, response, auth_header)
-        request.headers["Authorization"] = self._build_auth_header(request, challenge)
+        self._challenge = self._parse_challenge(request, response, auth_header)
+        request.headers["Authorization"] = self._build_auth_header(request, self._challenge)
         yield request
 
     def _parse_challenge(
