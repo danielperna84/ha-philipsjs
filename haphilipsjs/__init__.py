@@ -28,6 +28,7 @@ from .typing import (
     SystemType,
     ApplicationType,
 )
+from .auth import CachedDigestAuth
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 20.0
@@ -224,7 +225,7 @@ class PhilipsTV(object):
         self.session.headers["Accept"] = "application/json"
 
         if username and password:
-            self.session.auth = httpx.DigestAuth(username, password)
+            self.session.auth = CachedDigestAuth(username, password)
 
     @property
     def quirk_playpause_spacebar(self):
