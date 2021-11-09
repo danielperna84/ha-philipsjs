@@ -2,6 +2,8 @@ import curses
 import platform
 import json
 import sys
+
+from setuptools import find_namespace_packages
 from . import PhilipsTV
 import asyncio
 from ast import literal_eval
@@ -67,7 +69,9 @@ async def monitor_run(stdscr, tv: PhilipsTV):
                 print_pixels("bottom", offset_y, 45)
 
         stdscr.refresh()
-        await tv.update()
+        if not await tv.notifyChange():
+            await tv.update()
+
         key = stdscr.getch()
 
         if key == ord("q"):
@@ -179,7 +183,13 @@ async def main():
         password=args.password,
         secured_transport=args.secured_transport,
     )
+    try:
+        await run(args, parser, tv)
+    finally:
+        await tv.aclose()
 
+
+async def run(args, parser, tv):
     if args.command == "status":
         await tv.update()
 
@@ -286,8 +296,6 @@ async def main():
         import argmark
 
         argmark.md_help(parser)
-
-    await tv.aclose()
 
 
 if __name__ == "__main__":
