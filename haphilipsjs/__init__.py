@@ -29,6 +29,7 @@ from .typing import (
     ApplicationType,
 )
 from .auth import CachedDigestAuth
+from httpcore import AsyncConnectionPool
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 20.0
@@ -168,6 +169,47 @@ class NoneJsonData(GeneralFailure):
 
 T = TypeVar("T")
 
+def track_removed_connections(session: httpx.AsyncClient):
+    """
+    httpcore version up to at least 1.13.7 series contain a bug where a session is leaked
+    if the server closes the connection, a pull request to solve the issue exists here
+    https://github.com/encode/httpcore/pull/117 but so far it's not been merged.
+
+    Version 1.14.x of httpx library is re-designed and is not yet known to suffer this bug,
+    it however might suffer another similar: https://github.com/encode/httpcore/issues/431
+    """
+    removed_connections = set()
+    
+    try:
+        pool: AsyncConnectionPool = session._transport._pools
+        original_add_to_pool = pool._add_to_pool
+        original_remove_from_pool = pool._remove_from_pool
+    except AttributeError:
+        LOG.debug("Object to patch is missing, maybe library have been upgraded so skipping")
+        return removed_connections
+
+    async def _add_to_pool(
+        connection, timeout
+    ) -> None:
+        if connection in removed_connections:
+            removed_connections.remove(connection)
+        await original_add_to_pool(connection, timeout)
+    pool._add_to_pool = _add_to_pool
+    async def _remove_from_pool(
+        connection
+    ) -> None:
+        removed_connections.add(connection)
+        await original_remove_from_pool(connection)
+    pool._remove_from_pool = _remove_from_pool
+    return removed_connections
+
+
+async def close_removed_connections(removed_connections: set):
+    for connection in removed_connections:
+        LOG.warning("Closing connection leaked from pool")
+        if connection.should_close():
+            await connection.aclose()
+    removed_connections.clear()
 
 class PhilipsTV(object):
     def __init__(
@@ -223,6 +265,8 @@ class PhilipsTV(object):
         limits = httpx.Limits(max_keepalive_connections=0, max_connections=3)
         self.session = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False)
         self.session.headers["Accept"] = "application/json"
+
+        self.removed_connections = track_removed_connections(self.session)
 
         if username and password:
             self.session.auth = CachedDigestAuth(username, password)
@@ -505,6 +549,8 @@ class PhilipsTV(object):
             raise ConnectionFailure(err) from err
         except httpx.HTTPError as err:
             raise GeneralFailure(err) from err
+        finally:
+            await close_removed_connections(self.removed_connections)
 
     async def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
 
@@ -520,6 +566,8 @@ class PhilipsTV(object):
             raise ConnectionFailure(err) from err
         except httpx.HTTPError as err:
             raise GeneralFailure(err) from err
+        finally:
+            await close_removed_connections(self.removed_connections)
 
     async def postReq(self, path: str, data: Dict, timeout=None, protocol=None) -> Optional[Dict]:
         try:
@@ -542,6 +590,8 @@ class PhilipsTV(object):
             raise ProtocolFailure(err) from err
         except httpx.HTTPError as err:
             raise GeneralFailure(err) from err
+        finally:
+            await close_removed_connections(self.removed_connections)
 
     async def pairRequest(
         self,
