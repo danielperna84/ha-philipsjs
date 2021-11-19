@@ -219,3 +219,35 @@ class AmbilightCurrentConfiguration(TypedDict, total=False):
 
     audioSettings: AmbilightAudioSettingsType
     colorSettings: AmbilightColorSettingsType
+
+class MenuItemsSettingsNodeDataSliderData(TypedDict):
+    min: int
+    max: int
+    step_size: int
+
+class MenuItemsSettingsNodeDataSlider(TypedDict):
+    slider_id: str
+    slider_data: MenuItemsSettingsNodeDataSliderData
+
+class MenuItemsSettingsNodeDataEnum(TypedDict, total=False):
+    enum_id: int
+    string_id: str
+    icon: str
+
+class MenuItemsSettingsNodeData(TypedDict, total=False):
+    nodes: List["MenuItemsSettingsNode"]              # PARENT_NODE
+    enums: List["MenuItemsSettingsNodeDataEnum"]      # LIST_NODE
+    slider_data: MenuItemsSettingsNodeDataSliderData  # SLIDER_NODE
+    sliders: List[MenuItemsSettingsNodeDataSlider]    # MULTIPLE_SLIDERS
+    colors: List[int]                                 # WALL_COLOR_NODE
+
+class MenuItemsSettingsNode(TypedDict, total=False):
+    node_id: int
+    type: str
+    string_id: str
+    icon: Optional[str]
+    context: str
+    data: MenuItemsSettingsNodeData
+
+class MenuItemsSettingsStructure(TypedDict, total=False):
+    node: MenuItemsSettingsNode
