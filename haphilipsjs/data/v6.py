@@ -11,8 +11,11 @@ from haphilipsjs.typing import (
     ComponentType,
     ContextType,
     FavoriteListType,
+    MenuItemsSettingsCurrent,
+    MenuItemsSettingsCurrentPost,
     MenuItemsSettingsNode,
     MenuItemsSettingsStructure,
+    MenuItemsSettingsUpdate,
     SystemType,
 )
 
@@ -9813,4 +9816,44 @@ MENUITEMS_SETTINGS_STRUCTURE2: MenuItemsSettingsStructure = {
       ]
     }
   }
+}
+
+MENUITEMS_SETTINGS_UPDATE: MenuItemsSettingsUpdate = {
+    "values": [
+        {
+            "value": {
+                "Nodeid": 2131230778,
+                "Controllable": False,
+                "Available": True,
+                "data": {
+                    "value": True
+                }
+            }
+        }
+    ]
+}
+
+MENUITEMS_SETTINGS_CURRENT: MenuItemsSettingsCurrent = {
+    "values": [
+        {
+            "value": {
+                "Nodeid": 2131230778,
+                "Controllable": False,
+                "Available": True,
+                "string_id": "Inschakelen",
+                "data": {
+                    "value": True
+                }
+            }
+        }
+    ],
+    "version": 0
+}
+
+MENUITEMS_SETTINGS_CURRENT_POST: MenuItemsSettingsCurrentPost = {
+    "nodes": [
+        {
+            "nodeid": 420
+        }
+    ]
 }

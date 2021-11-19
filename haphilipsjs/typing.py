@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional, TypedDict, Union
+from typing import Dict, List, Literal, Optional, Type, TypedDict, Union
 
 
 class ActivitiesChannelType(TypedDict, total=False):
@@ -251,3 +251,45 @@ class MenuItemsSettingsNode(TypedDict, total=False):
 
 class MenuItemsSettingsStructure(TypedDict, total=False):
     node: MenuItemsSettingsNode
+
+class MenuItemsSettingsUpdateValueData(TypedDict, total=False):
+    value: bool
+
+class MenuItemsSettingsUpdateValueValue(TypedDict, total=False):
+    Nodeid: int
+    Controllable: bool # unlikely to be needed
+    Available: bool # unlikely to be needed
+    string_id: str # unlikely to be needed
+    data: MenuItemsSettingsUpdateValueData
+
+class MenuItemsSettingsUpdateValue(TypedDict, total=False):
+    value: MenuItemsSettingsUpdateValueValue
+
+class MenuItemsSettingsUpdate(TypedDict, total=False):
+    values: List[MenuItemsSettingsUpdateValue]
+
+
+
+class MenuItemsSettingsCurrentValueData(TypedDict, total=False):
+    value: bool
+
+class MenuItemsSettingsCurrentValueValue(TypedDict, total=False):
+    Nodeid: int
+    Controllable: bool
+    Available: bool
+    string_id: str
+    data: MenuItemsSettingsCurrentValueData
+
+class MenuItemsSettingsCurrentValue(TypedDict, total=False):
+    value: MenuItemsSettingsCurrentValueValue
+
+class MenuItemsSettingsCurrent(TypedDict, total=False):
+    values: List[MenuItemsSettingsCurrentValue]
+    version: int
+
+class MenuItemsSettingsCurrentPostNode(TypedDict, total=False):
+    nodeid: int
+
+class MenuItemsSettingsCurrentPost(TypedDict, total=False):
+    nodes: List[MenuItemsSettingsCurrentPostNode]
+
