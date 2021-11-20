@@ -1299,19 +1299,22 @@ class PhilipsTV(object):
             )
             return r
 
-    async def getMenuItemsSettingsCurrentData(self, node_id: int, force=False) -> Optional[MenuItemsSettingsCurrentValueValue]:
-            data = await self.getMenuItemsSettingsCurrent([node_id], force=force)
+    async def getMenuItemsSettingsCurrentData(self, node_ids: List[int], force=False) -> Dict[int, Optional[MenuItemsSettingsCurrentValueValue]]:
+            data = await self.getMenuItemsSettingsCurrent(node_ids, force=force)
+            res: Dict[int, Optional[MenuItemsSettingsCurrentValueValue]] = {}
             if data:
                 for value in data.get("values", {}):
-                    if value["value"].get("Nodeid") == node_id:
-                        return value["value"].get("data")
-            return None
+                    res[value["value"].get("Nodeid")] = value["value"].get("data")
+            for node_id in node_ids:
+                if node_id not in res:
+                    res[node_id] = None
+            return res
 
     async def postMenuItemsSettingsUpdate(self, post: MenuItemsSettingsUpdate, force=False):
         if self.json_feature_supported("menuitems", "Setup_Menu") or force:
             return await self.postReq("menuitems/settings/update", cast(dict, post))
 
-    async def postMenuItemsSettingsUpdateData(self, node_id: int, data: MenuItemsSettingsValueData, force=False):
+    async def postMenuItemsSettingsUpdateData(self, value: Dict[int, MenuItemsSettingsValueData], force=False):
         post: MenuItemsSettingsUpdate = {
             "values": [
                 {
@@ -1320,6 +1323,7 @@ class PhilipsTV(object):
                         "data": data
                     }
                 }
+                for node_id, data in value.items()
             ]
         }
         return await self.postMenuItemsSettingsUpdate(post, force=force)

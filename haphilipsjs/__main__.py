@@ -20,10 +20,10 @@ async def monitor_run(stdscr, tv: PhilipsTV):
 
         if tv.applications:
             for app in tv.applications.values():
-                if app["intent"] == tv.application:
-                    return app["label"]
+                if app.get("intent") == tv.application:
+                    return app.get("label")
 
-        return f"{tv.application['component']['className']}"
+        return tv.application.get("component", {}).get("className")
 
     while True:
 
@@ -245,7 +245,7 @@ async def run(args, parser, tv: PhilipsTV):
                 "Applications: {}".format(
                     ", ".join(
                         [
-                            application["label"] or "None"
+                            application.get("label") or "None"
                             for application in tv.applications.values()
                         ]
                     )
@@ -317,11 +317,11 @@ async def run(args, parser, tv: PhilipsTV):
                 json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
                 print()
             else:
-                res = await tv.getMenuItemsSettingsCurrentData(args.node_id, force=True)
-                json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
+                res = await tv.getMenuItemsSettingsCurrentData([args.node_id], force=True)
+                json.dump(res[args.node_id], sys.stdout, indent=2, ensure_ascii=False)
                 print()
         elif args.settings_command == "set":
-                res = await tv.postMenuItemsSettingsUpdateData(args.node_id, args.data, force=True)
+                res = await tv.postMenuItemsSettingsUpdateData({args.node_id: args.data}, force=True)
                 json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
                 print()
     elif args.command == "markdown":
