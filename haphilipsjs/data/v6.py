@@ -9823,8 +9823,6 @@ MENUITEMS_SETTINGS_UPDATE: MenuItemsSettingsUpdate = {
         {
             "value": {
                 "Nodeid": 2131230778,
-                "Controllable": False,
-                "Available": True,
                 "data": {
                     "value": True
                 }

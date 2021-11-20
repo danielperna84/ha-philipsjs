@@ -229,25 +229,29 @@ class MenuItemsSettingsNodeDataSlider(TypedDict):
     slider_id: str
     slider_data: MenuItemsSettingsNodeDataSliderData
 
-class MenuItemsSettingsNodeDataEnum(TypedDict, total=False):
+class MenuItemsSettingsNodeDataEnumRequired(TypedDict):
     enum_id: int
     string_id: str
-    icon: str
+
+class MenuItemsSettingsNodeDataEnum(MenuItemsSettingsNodeDataEnumRequired, total=False):
+    icon: Optional[str]
 
 class MenuItemsSettingsNodeData(TypedDict, total=False):
     nodes: List["MenuItemsSettingsNode"]              # PARENT_NODE
-    enums: List["MenuItemsSettingsNodeDataEnum"]      # LIST_NODE
+    enums: List[MenuItemsSettingsNodeDataEnum]        # LIST_NODE
     slider_data: MenuItemsSettingsNodeDataSliderData  # SLIDER_NODE
     sliders: List[MenuItemsSettingsNodeDataSlider]    # MULTIPLE_SLIDERS
     colors: List[int]                                 # WALL_COLOR_NODE
 
-class MenuItemsSettingsNode(TypedDict, total=False):
+class MenuItemsSettingsNodeRequired(TypedDict):
     node_id: int
     type: str
+    data: MenuItemsSettingsNodeData
+
+class MenuItemsSettingsNode(MenuItemsSettingsNodeRequired, total=False):
     string_id: str
     icon: Optional[str]
     context: str
-    data: MenuItemsSettingsNodeData
 
 class MenuItemsSettingsStructure(TypedDict, total=False):
     node: MenuItemsSettingsNode
@@ -264,8 +268,10 @@ class MenuItemsSettingsValueEnumEntry(TypedDict):
     available: bool
     string_id: str
 
-class MenuItemsSettingsValueEnum(TypedDict):
+class MenuItemsSettingsValueEnumRequired(TypedDict):
     select_item: int
+
+class MenuItemsSettingsValueEnum(MenuItemsSettingsValueEnumRequired, total=False):
     enum_values: List[MenuItemsSettingsValueEnumEntry]
 
 class MenuItemsSettingsValueNode(TypedDict):
@@ -288,25 +294,22 @@ class MenuItemsSettingsCurrentValueValue(TypedDict):
 class MenuItemsSettingsCurrentValue(TypedDict):
     value: MenuItemsSettingsCurrentValueValue
 
-class MenuItemsSettingsCurrent(TypedDict, total=False):
+class MenuItemsSettingsCurrent(TypedDict):
     values: List[MenuItemsSettingsCurrentValue]
     version: int
 
-class MenuItemsSettingsCurrentPostNode(TypedDict, total=False):
+class MenuItemsSettingsCurrentPostNode(TypedDict):
     nodeid: int
 
-class MenuItemsSettingsCurrentPost(TypedDict, total=False):
+class MenuItemsSettingsCurrentPost(TypedDict):
     nodes: List[MenuItemsSettingsCurrentPostNode]
 
-class MenuItemsSettingsUpdateValueValue(TypedDict, total=False):
+class MenuItemsSettingsUpdateValueValue(TypedDict):
     Nodeid: int
-    Controllable: bool # unlikely to be needed
-    Available: bool # unlikely to be needed
-    string_id: str # unlikely to be needed
     data: MenuItemsSettingsValueData
 
-class MenuItemsSettingsUpdateValue(TypedDict, total=False):
+class MenuItemsSettingsUpdateValue(TypedDict):
     value: MenuItemsSettingsUpdateValueValue
 
-class MenuItemsSettingsUpdate(TypedDict, total=False):
+class MenuItemsSettingsUpdate(TypedDict):
     values: List[MenuItemsSettingsUpdateValue]
