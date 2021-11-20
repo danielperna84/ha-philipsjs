@@ -32,9 +32,14 @@ async def monitor_run(stdscr, tv: PhilipsTV):
         if tv.source_id:
             stdscr.addstr(1, 0, await tv.getSourceName(tv.source_id))
 
+        stdscr.addstr(3, 15, "Menu Version")
+        if tv.channel_id:
+            stdscr.addstr(4, 15, str(tv.settings_version))
+
         stdscr.addstr(0, 15, "Channel")
         if tv.channel_id:
             stdscr.addstr(1, 15, await tv.getChannelName(tv.channel_id))
+
 
         stdscr.addstr(0, 30, "Application")
         if tv.application:
@@ -45,7 +50,7 @@ async def monitor_run(stdscr, tv: PhilipsTV):
             stdscr.addstr(1, 45, tv.context.get("level1", ""))
             stdscr.addstr(2, 45, tv.context.get("level2", ""))
             stdscr.addstr(3, 45, tv.context.get("level3", ""))
-            stdscr.addstr(3, 45, tv.context.get("data", ""))
+            stdscr.addstr(4, 45, tv.context.get("data", ""))
 
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
@@ -186,6 +191,8 @@ async def main():
     settings_set.add_argument("data", help="Json data to post", type=json.loads)
 
     markdown = subparsers.add_parser("markdown", help="Print markdown for commandline")
+    notify = subparsers.add_parser("notify", help="Look at notify changes, use with debug")
+
 
     args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
@@ -327,6 +334,10 @@ async def run(args, parser, tv: PhilipsTV):
 
         argmark.md_help(parser)
 
+    elif args.command == "notify":
+        await tv.update()
+        while await tv.notifyChange() is not None:
+            pass
 
 if __name__ == "__main__":
     asyncio.run(main())

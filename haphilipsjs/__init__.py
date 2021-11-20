@@ -251,6 +251,7 @@ class PhilipsTV(object):
         self.settings: Optional[MenuItemsSettingsStructure] = None
         self.settings_nodes: Dict[int, MenuItemsSettingsNode] = {}
         self.settings_context: Dict[str, int] = {}
+        self.settings_version = 0
         self.ambilight_topology = None
         self.ambilight_mode_set = None
         self.ambilight_mode_raw: Optional[str] = None
@@ -598,7 +599,7 @@ class PhilipsTV(object):
             return None
         except (httpx.ConnectTimeout, httpx.ConnectError) as err:
             raise ConnectionFailure(err) from err
-        except httpx.ProtocolError as err:
+        except (httpx.ProtocolError, httpx.ReadError) as err:
             raise ProtocolFailure(err) from err
         except httpx.HTTPError as err:
             raise GeneralFailure(err) from err
@@ -1345,6 +1346,7 @@ class PhilipsTV(object):
                 "audio/volume": self.audio_volume,
                 "context": self.context,
                 "screenstate": {"screenstate": self.screenstate},
+                "menuitems/settings/version": {"version": self.settings_version}
             }
         }
 
@@ -1378,6 +1380,10 @@ class PhilipsTV(object):
 
             if "screenstate" in result:
                 self.screenstate = result["screenstate"]["screenstate"]
+
+            if "menuitems/settings/version" in result:
+                self.settings_version = result["menuitems/settings/version"]["version"]
+
             return True
 
         if result is None:
