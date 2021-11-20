@@ -29,6 +29,7 @@ from .typing import (
     MenuItemsSettingsCurrentPost,
     MenuItemsSettingsCurrentValue,
     MenuItemsSettingsCurrentValueValue,
+    MenuItemsSettingsNode,
     MenuItemsSettingsNodeData,
     MenuItemsSettingsStructure,
     MenuItemsSettingsUpdate,
@@ -247,6 +248,8 @@ class PhilipsTV(object):
         self.application: Optional[ApplicationIntentType] = None
         self.context: Optional[ContextType] = None
         self.screenstate: Optional[str] = None
+        self.settings: Optional[MenuItemsSettingsStructure] = None
+        self.settings_nodes: Dict[int, MenuItemsSettingsNode] = {}
         self.ambilight_topology = None
         self.ambilight_mode_set = None
         self.ambilight_mode_raw: Optional[str] = None
@@ -1263,8 +1266,23 @@ class PhilipsTV(object):
                     await self.getReq("menuitems/settings/structure")
             )
     
-            self._settings = r
+            def parse_node(node: MenuItemsSettingsNode):
+                node_id = node.get("node_id")
+                assert node_id, "node_id missing"
+                self.settings_nodes[node_id] = node
+                nodes = node.get("data", {}).get("nodes")
+                if nodes is None:
+                    return
+                for node2 in nodes:
+                    parse_node(node2)
+
+            if r and "node" in r:
+                self.settings_nodes = {}
+                parse_node(r["node"])
+
+            self.settings = r
             return r
+
 
     async def getMenuItemsSettingsCurrent(self, node_ids: List[int], force=False) -> Optional[MenuItemsSettingsCurrent]:
         if self.json_feature_supported("menuitems", "Setup_Menu") or force:

@@ -178,6 +178,7 @@ async def main():
     settings_get.add_argument("--raw", help="return full raw", action="store_true", default=False)
 
     settings_structure = settings_commands.add_parser("structure", help="Get settings structure")
+    settings_structure.add_argument("--node_id", help="node id to request", type=int, default=None)
 
     settings_set = settings_commands.add_parser("set", help="Post a settings value")
     settings_set.add_argument("node_id", help="node id to request", type=int)
@@ -307,6 +308,8 @@ async def run(args, parser, tv: PhilipsTV):
     elif args.command == "settings":
         if args.settings_command == "structure":
             res = await tv.getMenuItemsSettingsStructure(force=True)
+            if args.node_id:
+                res = tv.settings_nodes.get(args.node_id)
             json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
         elif args.settings_command == "get":
             if args.raw:
