@@ -25,6 +25,14 @@ from .typing import (
     ChannelsType,
     ContextType,
     FavoriteListType,
+    MenuItemsSettingsCurrent,
+    MenuItemsSettingsCurrentPost,
+    MenuItemsSettingsCurrentValue,
+    MenuItemsSettingsCurrentValueValue,
+    MenuItemsSettingsNodeData,
+    MenuItemsSettingsStructure,
+    MenuItemsSettingsUpdate,
+    MenuItemsSettingsValueData,
     SystemType,
     ApplicationType,
 )
@@ -691,6 +699,7 @@ class PhilipsTV(object):
                 await self.getApplications()
                 await self.getAmbilightSupportedStyles()
                 await self.getAmbilightCached()
+                await self.getMenuItemsSettingsStructure()
 
             await self.getPowerState()
             await self.getAudiodata()
@@ -1247,6 +1256,56 @@ class PhilipsTV(object):
                 for translation in res["translations"]
             }
         return None
+
+    async def getMenuItemsSettingsStructure(self, force=False) -> Optional[MenuItemsSettingsStructure]:
+        if self.json_feature_supported("menuitems", "Setup_Menu") or force:
+            r = cast(Optional[MenuItemsSettingsStructure],
+                    await self.getReq("menuitems/settings/structure")
+            )
+    
+            self._settings = r
+            return r
+
+    async def getMenuItemsSettingsCurrent(self, node_ids: List[int], force=False) -> Optional[MenuItemsSettingsCurrent]:
+        if self.json_feature_supported("menuitems", "Setup_Menu") or force:
+            post: MenuItemsSettingsCurrentPost = {
+                "nodes": [
+                    {
+                        "nodeid": node_id
+                    }
+                    for node_id in node_ids
+                ] 
+            }
+            r = cast(Optional[MenuItemsSettingsCurrent],
+                     await self.postReq("menuitems/settings/current", cast(dict, post))
+            )
+            return r
+
+    async def getMenuItemsSettingsCurrentData(self, node_id: int, force=False) -> Optional[MenuItemsSettingsCurrentValueValue]:
+            data = await self.getMenuItemsSettingsCurrent([node_id], force=force)
+            if data:
+                for value in data.get("values", {}):
+                    if value["value"].get("Nodeid") == node_id:
+                        return value["value"].get("data")
+            return None
+
+    async def postMenuItemsSettingsUpdate(self, post: MenuItemsSettingsUpdate, force=False):
+        if self.json_feature_supported("menuitems", "Setup_Menu") or force:
+            return await self.postReq("menuitems/settings/update", cast(dict, post))
+
+    async def postMenuItemsSettingsUpdateData(self, node_id: int, data: MenuItemsSettingsValueData, force=False):
+        post: MenuItemsSettingsUpdate = {
+            "values": [
+                {
+                    "value": {
+                        "Nodeid": node_id,
+                        "data": data
+                    }
+                }
+            ]
+        }
+        return await self.postMenuItemsSettingsUpdate(post, force=force)
+        
 
     async def notifyChange(self, timeout=TIMEOUT_NOTIFYREAD):
         """Start a http connection waiting for changes."""

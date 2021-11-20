@@ -252,35 +252,40 @@ class MenuItemsSettingsNode(TypedDict, total=False):
 class MenuItemsSettingsStructure(TypedDict, total=False):
     node: MenuItemsSettingsNode
 
-class MenuItemsSettingsUpdateValueData(TypedDict, total=False):
+class MenuItemsSettingsValueInt(TypedDict):
+    value: int
+
+class MenuItemsSettingsValueBool(TypedDict):
     value: bool
 
-class MenuItemsSettingsUpdateValueValue(TypedDict, total=False):
-    Nodeid: int
-    Controllable: bool # unlikely to be needed
-    Available: bool # unlikely to be needed
-    string_id: str # unlikely to be needed
-    data: MenuItemsSettingsUpdateValueData
+class MenuItemsSettingsValueEnumEntry(TypedDict):
+    enum_id: int
+    controllable: bool
+    available: bool
+    string_id: str
 
-class MenuItemsSettingsUpdateValue(TypedDict, total=False):
-    value: MenuItemsSettingsUpdateValueValue
+class MenuItemsSettingsValueEnum(TypedDict):
+    select_item: int
+    enum_values: List[MenuItemsSettingsValueEnumEntry]
 
-class MenuItemsSettingsUpdate(TypedDict, total=False):
-    values: List[MenuItemsSettingsUpdateValue]
+class MenuItemsSettingsValueNode(TypedDict):
+    activenode_id: int
 
+MenuItemsSettingsValueData = Union[
+    MenuItemsSettingsValueInt,
+    MenuItemsSettingsValueBool,
+    MenuItemsSettingsValueEnum,
+    MenuItemsSettingsValueNode
+]
 
-
-class MenuItemsSettingsCurrentValueData(TypedDict, total=False):
-    value: bool
-
-class MenuItemsSettingsCurrentValueValue(TypedDict, total=False):
+class MenuItemsSettingsCurrentValueValue(TypedDict):
     Nodeid: int
     Controllable: bool
     Available: bool
     string_id: str
-    data: MenuItemsSettingsCurrentValueData
+    data: MenuItemsSettingsValueData
 
-class MenuItemsSettingsCurrentValue(TypedDict, total=False):
+class MenuItemsSettingsCurrentValue(TypedDict):
     value: MenuItemsSettingsCurrentValueValue
 
 class MenuItemsSettingsCurrent(TypedDict, total=False):
@@ -293,3 +298,15 @@ class MenuItemsSettingsCurrentPostNode(TypedDict, total=False):
 class MenuItemsSettingsCurrentPost(TypedDict, total=False):
     nodes: List[MenuItemsSettingsCurrentPostNode]
 
+class MenuItemsSettingsUpdateValueValue(TypedDict, total=False):
+    Nodeid: int
+    Controllable: bool # unlikely to be needed
+    Available: bool # unlikely to be needed
+    string_id: str # unlikely to be needed
+    data: MenuItemsSettingsValueData
+
+class MenuItemsSettingsUpdateValue(TypedDict, total=False):
+    value: MenuItemsSettingsUpdateValueValue
+
+class MenuItemsSettingsUpdate(TypedDict, total=False):
+    values: List[MenuItemsSettingsUpdateValue]

@@ -170,11 +170,23 @@ async def main():
     strings.add_argument("--country", help="Country code to request")
     strings.add_argument("--variant", help="Variant")
 
+    settings = subparsers.add_parser("settings", help="Get setting")
+
+    settings_commands = settings.add_subparsers(help="settings commands", dest="settings_command")
+    settings_get = settings_commands.add_parser("get", help="Get current setting")
+    settings_get.add_argument("node_id", help="node id to request", type=int)
+    settings_get.add_argument("--raw", help="return full raw", action="store_true", default=False)
+
+    settings_structure = settings_commands.add_parser("structure", help="Get settings structure")
+
+    settings_set = settings_commands.add_parser("set", help="Post a settings value")
+    settings_set.add_argument("node_id", help="node id to request", type=int)
+    settings_set.add_argument("data", help="Json data to post", type=json.loads)
 
     markdown = subparsers.add_parser("markdown", help="Print markdown for commandline")
 
     args = parser.parse_args()
-    logging.basicConfig(level=args.debug and logging.DEBUG or logging.INFO)
+    logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
     haphilipsjs.TIMEOUT = 60.0
     tv = haphilipsjs.PhilipsTV(
         args.host,
@@ -189,7 +201,7 @@ async def main():
         await tv.aclose()
 
 
-async def run(args, parser, tv):
+async def run(args, parser, tv: PhilipsTV):
     if args.command == "status":
         await tv.update()
 
@@ -282,16 +294,33 @@ async def run(args, parser, tv):
 
     elif args.command == "get":
         res = await tv.getReq(args.path)
-        json.dump(res, sys.stdout, indent=2)
+        json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
 
     elif args.command == "post":
         res = await tv.postReq(args.path, literal_eval(args.data))
-        json.dump(res, sys.stdout, indent=2)
+        json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
 
     elif args.command == "strings":
         res = await tv.getStrings(args.string_ids, args.language, args.country, args.variant)
-        json.dump(res, sys.stdout, indent=2)
+        json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
 
+    elif args.command == "settings":
+        if args.settings_command == "structure":
+            res = await tv.getMenuItemsSettingsStructure(force=True)
+            json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
+        elif args.settings_command == "get":
+            if args.raw:
+                res = await tv.getMenuItemsSettingsCurrent([args.node_id], force=True)
+                json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
+                print()
+            else:
+                res = await tv.getMenuItemsSettingsCurrentData(args.node_id, force=True)
+                json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
+                print()
+        elif args.settings_command == "set":
+                res = await tv.postMenuItemsSettingsUpdateData(args.node_id, args.data, force=True)
+                json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
+                print()
     elif args.command == "markdown":
         import argmark
 
