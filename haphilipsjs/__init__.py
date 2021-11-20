@@ -250,6 +250,7 @@ class PhilipsTV(object):
         self.screenstate: Optional[str] = None
         self.settings: Optional[MenuItemsSettingsStructure] = None
         self.settings_nodes: Dict[int, MenuItemsSettingsNode] = {}
+        self.settings_context: Dict[str, int] = {}
         self.ambilight_topology = None
         self.ambilight_mode_set = None
         self.ambilight_mode_raw: Optional[str] = None
@@ -1266,19 +1267,21 @@ class PhilipsTV(object):
                     await self.getReq("menuitems/settings/structure")
             )
     
-            def parse_node(node: MenuItemsSettingsNode):
+            def parse_node(node: MenuItemsSettingsNode, parent: str):
                 node_id = node.get("node_id")
+                path = parent + "/" + node.get("context", node_id)
                 assert node_id, "node_id missing"
                 self.settings_nodes[node_id] = node
+                self.settings_context[path] = node_id
                 nodes = node.get("data", {}).get("nodes")
                 if nodes is None:
                     return
                 for node2 in nodes:
-                    parse_node(node2)
+                    parse_node(node2, path)
 
             if r and "node" in r:
                 self.settings_nodes = {}
-                parse_node(r["node"])
+                parse_node(r["node"], "")
 
             self.settings = r
             return r
@@ -1299,12 +1302,12 @@ class PhilipsTV(object):
             )
             return r
 
-    async def getMenuItemsSettingsCurrentData(self, node_ids: List[int], force=False) -> Dict[int, Optional[MenuItemsSettingsCurrentValueValue]]:
+    async def getMenuItemsSettingsCurrentValue(self, node_ids: List[int], force=False) -> Dict[int, Optional[MenuItemsSettingsCurrentValueValue]]:
             data = await self.getMenuItemsSettingsCurrent(node_ids, force=force)
             res: Dict[int, Optional[MenuItemsSettingsCurrentValueValue]] = {}
             if data:
                 for value in data.get("values", {}):
-                    res[value["value"].get("Nodeid")] = value["value"].get("data")
+                    res[value["value"].get("Nodeid")] = value["value"]
             for node_id in node_ids:
                 if node_id not in res:
                     res[node_id] = None

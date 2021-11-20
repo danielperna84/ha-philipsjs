@@ -175,10 +175,11 @@ async def main():
     settings_commands = settings.add_subparsers(help="settings commands", dest="settings_command")
     settings_get = settings_commands.add_parser("get", help="Get current setting")
     settings_get.add_argument("node_id", help="node id to request", type=int)
-    settings_get.add_argument("--raw", help="return full raw", action="store_true", default=False)
 
     settings_structure = settings_commands.add_parser("structure", help="Get settings structure")
-    settings_structure.add_argument("--node_id", help="node id to request", type=int, default=None)
+    settings_structure_key = settings_structure.add_mutually_exclusive_group()
+    settings_structure_key.add_argument("--node_id", help="node id to request", type=int, default=None)
+    settings_structure_key.add_argument("--node_path", help="node context path to request", type=str, default=None)
 
     settings_set = settings_commands.add_parser("set", help="Post a settings value")
     settings_set.add_argument("node_id", help="node id to request", type=int)
@@ -310,20 +311,17 @@ async def run(args, parser, tv: PhilipsTV):
             res = await tv.getMenuItemsSettingsStructure(force=True)
             if args.node_id:
                 res = tv.settings_nodes.get(args.node_id)
+            elif args.node_path:
+                res = tv.settings_nodes.get(tv.settings_context.get(args.node_path, 0))
             json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
         elif args.settings_command == "get":
-            if args.raw:
-                res = await tv.getMenuItemsSettingsCurrent([args.node_id], force=True)
-                json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
-                print()
-            else:
-                res = await tv.getMenuItemsSettingsCurrentData([args.node_id], force=True)
-                json.dump(res[args.node_id], sys.stdout, indent=2, ensure_ascii=False)
-                print()
+            res = await tv.getMenuItemsSettingsCurrentValue([args.node_id], force=True)
+            json.dump(res[args.node_id], sys.stdout, indent=2, ensure_ascii=False)
+            print()
         elif args.settings_command == "set":
-                res = await tv.postMenuItemsSettingsUpdateData({args.node_id: args.data}, force=True)
-                json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
-                print()
+            res = await tv.postMenuItemsSettingsUpdateData({args.node_id: args.data}, force=True)
+            json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
+            print()
     elif args.command == "markdown":
         import argmark
 
