@@ -27,10 +27,9 @@ from .typing import (
     FavoriteListType,
     MenuItemsSettingsCurrent,
     MenuItemsSettingsCurrentPost,
-    MenuItemsSettingsCurrentValue,
     MenuItemsSettingsCurrentValueValue,
+    MenuItemsSettingsEntry,
     MenuItemsSettingsNode,
-    MenuItemsSettingsNodeData,
     MenuItemsSettingsStructure,
     MenuItemsSettingsUpdate,
     MenuItemsSettingsValueData,
@@ -249,8 +248,7 @@ class PhilipsTV(object):
         self.context: Optional[ContextType] = None
         self.screenstate: Optional[str] = None
         self.settings: Optional[MenuItemsSettingsStructure] = None
-        self.settings_nodes: Dict[int, MenuItemsSettingsNode] = {}
-        self.settings_context: Dict[str, int] = {}
+        self.settings_entries: Dict[int, MenuItemsSettingsEntry] = {}
         self.settings_version = 0
         self.ambilight_topology = None
         self.ambilight_mode_set = None
@@ -1268,21 +1266,16 @@ class PhilipsTV(object):
                     await self.getReq("menuitems/settings/structure")
             )
     
-            def parse_node(node: MenuItemsSettingsNode, parent: str):
-                node_id = node.get("node_id")
-                path = parent + "/" + node.get("context", node_id)
-                assert node_id, "node_id missing"
-                self.settings_nodes[node_id] = node
-                self.settings_context[path] = node_id
-                nodes = node.get("data", {}).get("nodes")
-                if nodes is None:
-                    return
+            def parse_node(node: MenuItemsSettingsNode, parent: Optional[int]):
+                node_id = node["node_id"]
+                self.settings_entries[node_id] = MenuItemsSettingsEntry(node, parent)
+                nodes = node["data"].get("nodes", {})
                 for node2 in nodes:
-                    parse_node(node2, path)
+                    parse_node(node2, node_id)
 
             if r and "node" in r:
-                self.settings_nodes = {}
-                parse_node(r["node"], "")
+                self.settings_entries = {}
+                parse_node(r["node"], None)
 
             self.settings = r
             return r

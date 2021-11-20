@@ -184,7 +184,6 @@ async def main():
     settings_structure = settings_commands.add_parser("structure", help="Get settings structure")
     settings_structure_key = settings_structure.add_mutually_exclusive_group()
     settings_structure_key.add_argument("--node_id", help="node id to request", type=int, default=None)
-    settings_structure_key.add_argument("--node_path", help="node context path to request", type=str, default=None)
 
     settings_set = settings_commands.add_parser("set", help="Post a settings value")
     settings_set.add_argument("node_id", help="node id to request", type=int)
@@ -317,9 +316,7 @@ async def run(args, parser, tv: PhilipsTV):
         if args.settings_command == "structure":
             res = await tv.getMenuItemsSettingsStructure(force=True)
             if args.node_id:
-                res = tv.settings_nodes.get(args.node_id)
-            elif args.node_path:
-                res = tv.settings_nodes.get(tv.settings_context.get(args.node_path, 0))
+                res = tv.settings_entries.get(args.node_id)
             json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
         elif args.settings_command == "get":
             res = await tv.getMenuItemsSettingsCurrentValue([args.node_id], force=True)

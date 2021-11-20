@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, Optional, Type, TypedDict, Union
+from typing import Dict, List, Literal, NamedTuple, Optional, Type, TypedDict, Union
 
 
 class ActivitiesChannelType(TypedDict, total=False):
@@ -253,6 +253,10 @@ class MenuItemsSettingsNode(MenuItemsSettingsNodeRequired, total=False):
     icon: Optional[str]
     context: str
 
+class MenuItemsSettingsEntry(NamedTuple):
+    node: MenuItemsSettingsNode
+    parent: Optional[int]
+
 class MenuItemsSettingsStructure(TypedDict, total=False):
     node: MenuItemsSettingsNode
 
@@ -269,7 +273,7 @@ class MenuItemsSettingsValueEnumEntry(TypedDict):
     string_id: str
 
 class MenuItemsSettingsValueEnumRequired(TypedDict):
-    select_item: int
+    select_item: Optional[int]
 
 class MenuItemsSettingsValueEnum(MenuItemsSettingsValueEnumRequired, total=False):
     enum_values: List[MenuItemsSettingsValueEnumEntry]
