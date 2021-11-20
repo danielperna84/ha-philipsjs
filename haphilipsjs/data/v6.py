@@ -585,7 +585,7 @@ CONTEXT: ContextType = {
     "level3": "NA",
 }
 
-MENUITEMS_SETTINGS_STRUCTURE2: MenuItemsSettingsStructure = {
+MENUITEMS_SETTINGS_STRUCTURE: MenuItemsSettingsStructure = {
   "node": {
     "node_id": 2131230753,
     "type": "PARENT_NODE",

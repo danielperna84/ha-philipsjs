@@ -17,6 +17,7 @@ from haphilipsjs.data.v6 import (
     CHANNELDB_TV_CHANNELLISTS_ALL,
     ACTIVITIES_CURRENT,
     CONTEXT,
+    MENUITEMS_SETTINGS_STRUCTURE,
     POWERSTATE,
     SYSTEM_ANDROID_DECRYPTED,
     SYSTEM_ANDROID_ENCRYPTED,
@@ -110,7 +111,9 @@ async def client_mock(loop, param: Param):
         respx.get(f"{param.base}/ambilight/currentconfiguration").respond(
             json=cast(Dict, AMBILIGHT_CURRENT_CONFIGURATION)
         )
-
+        respx.get(f"{param.base}/menuitems/settings/structure").respond(
+            json=cast(Dict, MENUITEMS_SETTINGS_STRUCTURE)
+        )
         if param.type == "android":
             client = haphilipsjs.PhilipsTV(
                 "127.0.0.1", api_version=6, secured_transport=True
