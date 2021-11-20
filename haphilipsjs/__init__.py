@@ -1289,6 +1289,9 @@ class PhilipsTV(object):
 
 
     async def getMenuItemsSettingsCurrent(self, node_ids: List[int], force=False) -> Optional[MenuItemsSettingsCurrent]:
+        if not node_ids:
+            return None
+
         if self.json_feature_supported("menuitems", "Setup_Menu") or force:
             post: MenuItemsSettingsCurrentPost = {
                 "nodes": [
