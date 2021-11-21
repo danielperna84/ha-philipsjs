@@ -1322,18 +1322,19 @@ class PhilipsTV(object):
             return await self.postReq("menuitems/settings/update", cast(dict, post))
 
     async def postMenuItemsSettingsUpdateData(self, value: Dict[int, MenuItemsSettingsValueData], force=False):
-        post: MenuItemsSettingsUpdate = {
+        post = {
             "values": [
                 {
                     "value": {
                         "Nodeid": node_id,
                         "data": data
-                    }
+                    },
+                    "data": data # Work around for strange API where data moves around.
                 }
                 for node_id, data in value.items()
             ]
         }
-        return await self.postMenuItemsSettingsUpdate(post, force=force)
+        return await self.postMenuItemsSettingsUpdate(cast(MenuItemsSettingsUpdate, post), force=force)
         
 
     async def notifyChange(self, timeout=TIMEOUT_NOTIFYREAD):
