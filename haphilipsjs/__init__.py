@@ -1304,7 +1304,14 @@ class PhilipsTV(object):
             res: Dict[int, Optional[MenuItemsSettingsCurrentValueValue]] = {}
             if data:
                 for value in data.get("values", {}):
-                    res[value["value"].get("Nodeid")] = value["value"]
+                    value_value = value["value"]
+
+                    # Sometimes the API places the data field outside of the value field.
+                    # This seem faulty, so let's move it in.
+                    if data := value.get("data"):
+                        value_value["data"] = data
+
+                    res[value["value"].get("Nodeid")] = value_value
             for node_id in node_ids:
                 if node_id not in res:
                     res[node_id] = None

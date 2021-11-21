@@ -281,11 +281,19 @@ class MenuItemsSettingsValueEnum(MenuItemsSettingsValueEnumRequired, total=False
 class MenuItemsSettingsValueNode(TypedDict):
     activenode_id: int
 
+class MenuItemsSettingsValueSlider(TypedDict):
+    slider_id: int
+    value: int
+
+class MenuItemsSettingsValueSliders(TypedDict):
+    values: list[MenuItemsSettingsValueSlider]
+
 MenuItemsSettingsValueData = Union[
     MenuItemsSettingsValueInt,
     MenuItemsSettingsValueBool,
     MenuItemsSettingsValueEnum,
-    MenuItemsSettingsValueNode
+    MenuItemsSettingsValueNode,
+    MenuItemsSettingsValueSliders
 ]
 
 class MenuItemsSettingsCurrentValueValue(TypedDict):
