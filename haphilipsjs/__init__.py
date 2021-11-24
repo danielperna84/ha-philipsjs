@@ -229,13 +229,14 @@ class PhilipsTV(object):
         password=None,
         verify=False,
         auth_shared_key=None,
+        system = None
     ):
         self._host = host
         self._connfail = 0
         self.api_version = int(api_version)
         self.on = False
         self.name: Optional[str] = None
-        self.system: Optional[SystemType] = None
+        self.system: Optional[SystemType] = system
         self.sources = {}
         self.source_id = None
         self.audio_volume = None
@@ -267,7 +268,7 @@ class PhilipsTV(object):
         else:
             self.auth_shared_key = AUTH_SHARED_KEY
 
-        if secured_transport:
+        if secured_transport or self.secured_transport:
             self.protocol = "https"
         else:
             self.protocol = "http"
@@ -1329,7 +1330,6 @@ class PhilipsTV(object):
                         "Nodeid": node_id,
                         "data": data
                     },
-                    "data": data # Work around for strange API where data moves around.
                 }
                 for node_id, data in value.items()
             ]
