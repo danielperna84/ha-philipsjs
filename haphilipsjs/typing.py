@@ -286,7 +286,7 @@ class MenuItemsSettingsValueSlider(TypedDict):
     value: int
 
 class MenuItemsSettingsValueSliders(TypedDict):
-    values: list[MenuItemsSettingsValueSlider]
+    values: List[MenuItemsSettingsValueSlider]
 
 MenuItemsSettingsValueData = Union[
     MenuItemsSettingsValueInt,
