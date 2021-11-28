@@ -1257,6 +1257,7 @@ class PhilipsTV(object):
             return {
                 translation["string_id"]: translation["string_translation"]
                 for translation in res["translations"]
+                if translation["string_translation"]
             }
         return None
 
