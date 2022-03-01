@@ -769,6 +769,10 @@ class PhilipsTV(object):
             return r
 
     async def getChannelId(self):
+        if not self.channels:
+            self.channel = None
+            return None
+
         if self.api_version >= 5:
             r = cast(Optional[ActivitesTVType], await self.getReq("activities/tv"))
         else:
