@@ -271,6 +271,7 @@ async def run(args, parser, tv: PhilipsTV):
                 tv.ambilight_current_configuration
             )
         )
+        print("Ambilight+Hue State: {}".format(tv.huelampstate))
 
     elif args.command == "ambilight":
         if args.ambilight_mode:
