@@ -261,7 +261,7 @@ class PhilipsTV(object):
         self.ambilight_current_configuration: Optional[
             AmbilightCurrentConfiguration
         ] = None
-        self.huelampstate: Optional[str] = None
+        self.huelamp_power: Optional[str] = None
         self.powerstate = None
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
@@ -715,7 +715,7 @@ class PhilipsTV(object):
             await self.getAmbilightMode()
             await self.getAmbilightPower()
             await self.getAmbilightCurrentConfiguration()
-            await self.getHueLampState()
+            await self.getHueLampPower()
             self.on = True
             return True
         except ConnectionFailure as err:
@@ -974,18 +974,18 @@ class PhilipsTV(object):
                 return True
         return False
 
-    async def getHueLampState(self):
+    async def getHueLampPower(self):
         r = await self.getReq("HueLamp/power")
         if r:
-            self.huelampstate = cast(str, r["power"])
+            self.huelamp_power = cast(str, r["power"])
         else:
-            self.huelampstate = None
+            self.huelamp_power = None
         return r
 
-    async def setHueLampState(self, state):
+    async def setHueLampPower(self, state):
         data = {"power": state}
         if await self.postReq("HueLamp/power", data) is not None:
-            self.huelampstate = state
+            self.huelamp_power = state
             return True
 
     async def setApplication(self, intent: ApplicationIntentType):
