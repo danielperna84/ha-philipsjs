@@ -25,6 +25,7 @@ from haphilipsjs.data.v6 import (
     SYSTEM_SAPHI_ENCRYPTED,
     VOLUME,
     SCREENSTATE,
+    HUELAMPPOWER,
 )
 
 MOCK_ANDROID_SOURCES = {
@@ -111,6 +112,7 @@ async def client_mock(loop, param: Param):
         respx.get(f"{param.base}/ambilight/currentconfiguration").respond(
             json=cast(Dict, AMBILIGHT_CURRENT_CONFIGURATION)
         )
+        respx.get(f"{param.base}/HueLamp/power").respond(json=HUELAMPPOWER)
         respx.get(f"{param.base}/menuitems/settings/structure").respond(
             json=cast(Dict, MENUITEMS_SETTINGS_STRUCTURE)
         )
@@ -161,6 +163,7 @@ async def test_basic_data(client_mock, param: Param):
     }
     assert client_mock.powerstate == POWERSTATE["powerstate"]
     assert client_mock.screenstate == SCREENSTATE["screenstate"]
+    assert client_mock.huelamp_power == HUELAMPPOWER["power"]
 
 
 async def test_current_channel_none(client_mock, param):

@@ -578,6 +578,8 @@ AMBILIGHT_CURRENT_CONFIGURATION: AmbilightCurrentConfiguration = {
 POWERSTATE = {"powerstate": "On"}
 SCREENSTATE = {"screenstate": "On"}
 
+HUELAMPPOWER = {"power": "On"}
+
 CONTEXT: ContextType = {
     "data": "NA",
     "level1": "WatchTv",
