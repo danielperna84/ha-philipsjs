@@ -975,18 +975,22 @@ class PhilipsTV(object):
         return False
 
     async def getHueLampPower(self):
-        r = await self.getReq("HueLamp/power")
-        if r:
-            self.huelamp_power = cast(str, r["power"])
-        else:
-            self.huelamp_power = None
-        return r
+        if self.json_feature_supported("ambilight", "Hue"):
+            r = await self.getReq("HueLamp/power")
+            if r and "power" in r:
+                self.huelamp_power = cast(str, r["power"])
+            else:
+                self.huelamp_power = None
+            return r
+        return None
 
     async def setHueLampPower(self, state):
-        data = {"power": state}
-        if await self.postReq("HueLamp/power", data) is not None:
-            self.huelamp_power = state
-            return True
+        if self.json_feature_supported("ambilight", "Hue"):
+            data = {"power": state}
+            if await self.postReq("HueLamp/power", data) is not None:
+                self.huelamp_power = state
+                return True
+        return False
 
     async def setApplication(self, intent: ApplicationIntentType):
         if self.json_feature_supported("activities", "intent"):
