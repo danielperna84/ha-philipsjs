@@ -13,7 +13,7 @@ PACKAGES = find_packages(exclude=['tests', 'tests.*', 'dist', 'ccu', 'build'])
 
 REQUIRES = [
     "cryptography",
-    "httpx",
+    "httpx>=0.22.0",
 ]
 
 setup(
