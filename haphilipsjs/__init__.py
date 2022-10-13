@@ -1254,11 +1254,10 @@ class PhilipsTV(object):
         language: Optional[str] = None,
         country: Optional[str] = None,
         variant: Optional[str] = None,
-    ) -> Union[Dict[str, str], None]:
+    ) -> Dict[str, str]:
         res: Dict[str, str] = {}
         for group in chunked_iterator(MAXIMUM_ITEMS_IN_REQUEST, strings):
-            if (data := await self._getStrings(group, language=language, country=country, variant=variant)) is None:
-                return None
+            data = await self._getStrings(group, language=language, country=country, variant=variant)
             res.update(data)
         return res
 
@@ -1268,7 +1267,7 @@ class PhilipsTV(object):
         language: Optional[str] = None,
         country: Optional[str] = None,
         variant: Optional[str] = None,
-    ):
+    ) -> Dict[str, str]:
         data: StringsRequest = {
             "strings": [{"string_id": string} for string in strings],
             "locale": {
@@ -1284,7 +1283,7 @@ class PhilipsTV(object):
                 for translation in res["translations"]
                 if translation["string_translation"]
             }
-        return None
+        return {}
 
     async def getMenuItemsSettingsStructure(self, force=False) -> Optional[MenuItemsSettingsStructure]:
         if self.json_feature_supported("menuitems", "Setup_Menu") or force:
