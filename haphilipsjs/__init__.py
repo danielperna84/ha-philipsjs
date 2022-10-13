@@ -1233,8 +1233,8 @@ class PhilipsTV(object):
         language: Optional[str] = None,
         country: Optional[str] = None,
         variant: Optional[str] = None,
-    ) -> Union[dict[str, str], None]:
-        res: dict[str, str] = {}
+    ) -> Union[Dict[str, str], None]:
+        res: Dict[str, str] = {}
         for group in chunked_iterator(MAXIMUM_ITEMS_IN_REQUEST, strings):
             if (data := await self._getStrings(group, language=language, country=country, variant=variant)) is None:
                 return None
