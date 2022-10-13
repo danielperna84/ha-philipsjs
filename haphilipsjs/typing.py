@@ -325,3 +325,22 @@ class MenuItemsSettingsUpdateValue(TypedDict):
 
 class MenuItemsSettingsUpdate(TypedDict):
     values: List[MenuItemsSettingsUpdateValue]
+
+class StringsTranslation(TypedDict):
+    string_id: str
+    string_translation: Optional[str]
+
+class Strings(TypedDict):
+    translations: List[StringsTranslation]
+
+class StringId(TypedDict):
+    string_id: str
+
+class StringLocale(TypedDict):
+    language: str
+    country: str
+    variant: str
+
+class StringsRequest(TypedDict):
+    strings: List[StringId]
+    locale: StringLocale

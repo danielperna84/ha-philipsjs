@@ -29,6 +29,7 @@ from haphilipsjs.data.v6 import (
     SCREENSTATE,
     HUELAMPPOWER,
 )
+from haphilipsjs.typing import StringsRequest, Strings
 
 MOCK_ANDROID_SOURCES = {
     "content://android.media.tv/channel": {"name": "Watch TV"},
@@ -490,6 +491,54 @@ async def test_menu_items_current(client_mock: haphilipsjs.PhilipsTV, param):
                 2131230778: None,
                 2131230779: None
             }
+
+async def test_get_strings_cached(client_mock: haphilipsjs.PhilipsTV, param: Param):
+    await client_mock.getSystem()
+    assert client_mock.strings == {}
+
+    with respx.mock as mock:
+        def mock_strings(request: StringsRequest, response: Strings):
+            return mock.post(f"{param.base}/strings", json=request).respond(json=cast(Dict, response))
+
+        mock_strings({
+                "strings": [{"string_id": "1"}, {"string_id": "2"}],
+                "locale": {
+                    "language": "",
+                    "country": "",
+                    "variant": "",
+                }
+            },
+            {
+                "translations": [
+                    { "string_id": "1", "string_translation": "ONE"},
+                    { "string_id": "2", "string_translation": "TWO"}
+                ]
+            }
+        )
+
+        res = await client_mock.getStringsCached(["1","2"])
+        assert res == {"1": "ONE", "2": "TWO"}
+        assert client_mock.strings == {"1": "ONE", "2": "TWO"}
+
+        mock_strings({
+                "strings": [{"string_id": "3"}, {"string_id": "4"}],
+                "locale": {
+                    "language": "",
+                    "country": "",
+                    "variant": "",
+                },
+            },
+            {
+                "translations": [
+                    { "string_id": "3", "string_translation": "THREE"},
+                    { "string_id": "4", "string_translation": "FOUR"}
+                ]
+            }
+        )
+
+        res = await client_mock.getStringsCached(["1","3","4"])
+        assert res == {"1": "ONE", "2": "TWO", "3": "THREE", "4": "FOUR"}
+        assert client_mock.strings == {"1": "ONE", "2": "TWO", "3": "THREE", "4": "FOUR"}
 
 
 async def test_buggy_json():

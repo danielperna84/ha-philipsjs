@@ -34,6 +34,8 @@ from .typing import (
     MenuItemsSettingsStructure,
     MenuItemsSettingsUpdate,
     MenuItemsSettingsValueData,
+    Strings,
+    StringsRequest,
     SystemType,
     ApplicationType,
 )
@@ -211,6 +213,7 @@ class PhilipsTV(object):
         self.on = False
         self.name: Optional[str] = None
         self.system: Optional[SystemType] = system
+        self.strings: dict[str, str] = {}
         self.sources = {}
         self.source_id = None
         self.audio_volume = None
@@ -549,7 +552,7 @@ class PhilipsTV(object):
         except httpx.HTTPError as err:
             raise GeneralFailure(err) from err
 
-    async def postReq(self, path: str, data: Dict, timeout=None, protocol=None) -> Optional[Dict]:
+    async def postReq(self, path: str, data: Any, timeout=None, protocol=None) -> Optional[Dict]:
         try:
             resp = await self.session.post(self._url(path, protocol), json=data, timeout=timeout)
             if resp.status_code == 401:
@@ -1227,6 +1230,24 @@ class PhilipsTV(object):
             r = await self.postReq("activities/browser", {"url": url})
             return r is not None
 
+    async def getStringsCached(self, string_ids: Iterable[str]) -> Union[Dict[str, str], None]:
+        """Fetch translations for strings, making sure all items exist."""
+        string_ids_wanted = set(string_ids)
+        string_ids_missing = string_ids_wanted - self.strings.keys()
+
+        # fetch translations from TV
+        if string_ids_missing:
+            if (data := await self.getStrings(sorted(string_ids_missing))) is None:
+                return None
+            self.strings.update(data)
+
+        # make sure untranslated strings is set 1 to 1
+        string_ids_missing = string_ids_wanted - set(self.strings.keys())
+        for string_id in string_ids_missing:
+            self.strings[string_id] = string_id
+
+        return self.strings
+
     async def getStrings(
         self,
         strings: Iterable[str],
@@ -1248,7 +1269,7 @@ class PhilipsTV(object):
         country: Optional[str] = None,
         variant: Optional[str] = None,
     ):
-        data = {
+        data: StringsRequest = {
             "strings": [{"string_id": string} for string in strings],
             "locale": {
                 "language": language or "",
@@ -1256,7 +1277,7 @@ class PhilipsTV(object):
                 "variant": variant or "",
             },
         }
-        res = await self.postReq("strings", data)
+        res = cast(Optional[Strings], await self.postReq("strings", data))
         if res:
             return {
                 translation["string_id"]: translation["string_translation"]
