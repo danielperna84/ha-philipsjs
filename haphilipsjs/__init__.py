@@ -1,7 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, cast, overload
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, cast, overload, Iterable, TypeVar
 import httpx
 import logging
 import json
+import itertools
 from urllib.parse import quote
 from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
@@ -60,6 +61,7 @@ TV_PLAYBACK_INTENTS = [
 
 HTTP_PORT = 1925
 HTTPS_PORT = 1926
+MAXIMUM_ITEMS_IN_REQUEST = 50
 
 
 def hmac_signature(key: bytes, timestamp: str, data: str):
@@ -125,6 +127,20 @@ def decode_xtv_response(response: httpx.Response):
         return {}
 
     return decode_xtv_json(text)
+
+
+_T = TypeVar("_T")
+
+def chunked_iterator(size: int, iterable: Iterable[_T]) -> Iterable[Iterable[_T]]:
+    """Create a chain of iterators that each will give a chunk of the original."""
+    step = iter(iterable)
+    while True:
+        chunk_it = itertools.islice(step, size)
+        try:
+            first_el = next(chunk_it)
+        except StopIteration:
+            return
+        yield itertools.chain((first_el,), chunk_it)
 
 
 PASSTHROUGH_URI = "content://android.media.tv/passthrough"
@@ -1213,7 +1229,21 @@ class PhilipsTV(object):
 
     async def getStrings(
         self,
-        strings: List[str],
+        strings: Iterable[str],
+        language: Optional[str] = None,
+        country: Optional[str] = None,
+        variant: Optional[str] = None,
+    ) -> Union[dict[str, str], None]:
+        res: dict[str, str] = {}
+        for group in chunked_iterator(MAXIMUM_ITEMS_IN_REQUEST, strings):
+            if (data := await self._getStrings(group, language=language, country=country, variant=variant)) is None:
+                return None
+            res.update(data)
+        return res
+
+    async def _getStrings(
+        self,
+        strings: Iterable[str],
         language: Optional[str] = None,
         country: Optional[str] = None,
         variant: Optional[str] = None,
@@ -1243,8 +1273,18 @@ class PhilipsTV(object):
             self.settings = r
             return r
 
+    async def getMenuItemsSettingsCurrent(self, node_ids: Iterable[int], force=False) -> Optional[MenuItemsSettingsCurrent]:
+        current: MenuItemsSettingsCurrent = {"values": [], "version": 0}
+        for group in chunked_iterator(MAXIMUM_ITEMS_IN_REQUEST, node_ids):
+            if (data := await self._getMenuItemsSettingsCurrent(group)) is None:
+                return None
 
-    async def getMenuItemsSettingsCurrent(self, node_ids: List[int], force=False) -> Optional[MenuItemsSettingsCurrent]:
+            current["values"].extend(data["values"])
+            if current["version"] == 0:
+                current["version"] = data["version"]
+        return current
+
+    async def _getMenuItemsSettingsCurrent(self, node_ids: Iterable[int], force=False) -> Optional[MenuItemsSettingsCurrent]:
         if not node_ids:
             return None
 

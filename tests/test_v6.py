@@ -3,6 +3,7 @@ import pytest
 import httpx
 import respx
 import json
+from unittest.mock import patch
 from typing import Dict, NamedTuple, cast
 
 from haphilipsjs.data.v6 import (
@@ -18,6 +19,7 @@ from haphilipsjs.data.v6 import (
     ACTIVITIES_CURRENT,
     CONTEXT,
     MENUITEMS_SETTINGS_STRUCTURE,
+    MENUITEMS_SETTINGS_CURRENT,
     POWERSTATE,
     SYSTEM_ANDROID_DECRYPTED,
     SYSTEM_ANDROID_ENCRYPTED,
@@ -115,6 +117,9 @@ async def client_mock(loop, param: Param):
         respx.get(f"{param.base}/HueLamp/power").respond(json=HUELAMPPOWER)
         respx.get(f"{param.base}/menuitems/settings/structure").respond(
             json=cast(Dict, MENUITEMS_SETTINGS_STRUCTURE)
+        )
+        respx.post(f"{param.base}/menuitems/settings/current").respond(
+            json=cast(Dict, MENUITEMS_SETTINGS_CURRENT)
         )
         if param.type == "android":
             client = haphilipsjs.PhilipsTV(
@@ -431,6 +436,60 @@ async def test_ambilight_supported_stypes(client_mock, param):
     await client_mock.getSystem()
     await client_mock.getAmbilightSupportedStyles()
     assert client_mock.ambilight_styles == AMBILIGHT_SUPPORTED_STYLES_EXTENDED[param.type]
+
+
+async def test_menu_items_current(client_mock: haphilipsjs.PhilipsTV, param):
+    await client_mock.getSystem()
+
+    MOCK_VALUE_1 = {
+        "Nodeid": 2131230778,
+        "Controllable": False,
+        "Available": True,
+        "string_id": "Inschakelen",
+        "data": {
+            "value": True
+        }
+    }
+    MOCK_VALUE_2 = {
+        "Nodeid": 2131230779,
+        "Controllable": False,
+        "Available": True,
+        "string_id": "Inschakelen 2",
+        "data": {
+            "value": True
+        }
+    }
+
+    route = respx.post(f"{param.base}/menuitems/settings/current")
+    route.side_effect = [
+        httpx.Response(
+            status_code=200,
+            json={
+                "values": [{"value": MOCK_VALUE_1}],
+                "version": 0
+            }
+        ),
+        httpx.Response(
+            status_code=200,
+            json={
+                "values": [{"value": MOCK_VALUE_2}],
+                "version": 0
+            }
+        ),
+    ]
+ 
+    with patch.object(haphilipsjs, "MAXIMUM_ITEMS_IN_REQUEST", new=1):
+        data = await client_mock.getMenuItemsSettingsCurrentValue([2131230778, 2131230779])
+        if param.type == "android":
+            assert data == {
+                2131230778: MOCK_VALUE_1,
+                2131230779: MOCK_VALUE_2,
+            }
+        elif param.type == "saphi":
+            assert data == {
+                2131230778: None,
+                2131230779: None
+            }
 
 
 async def test_buggy_json():
