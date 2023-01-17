@@ -26,6 +26,7 @@ from .typing import (
     ChannelsType,
     ContextType,
     FavoriteListType,
+    RecordingsListed,
     MenuItemsSettingsCurrent,
     MenuItemsSettingsCurrentPost,
     MenuItemsSettingsCurrentValueValue,
@@ -238,6 +239,7 @@ class PhilipsTV(object):
         self.ambilight_current_configuration: Optional[
             AmbilightCurrentConfiguration
         ] = None
+        self.recordings_list: Dict[str, RecordingsListed] = {}
         self.huelamp_power: Optional[str] = None
         self.powerstate = None
         if auth_shared_key:
@@ -1224,6 +1226,18 @@ class PhilipsTV(object):
                 self.ambilight_mode_set = None
 
             return True
+
+    async def getRecordingsList(self):
+        if self.json_feature_supported("recordings", "List"):
+            r = cast(
+                Optional[RecordingsListed],
+                await self.getReq("recordings/list"),
+            )
+            if r:
+                self.recordings_list = r["recordings"]
+            else:
+                self.recordings_list = {}
+            return r
 
     async def openURL(self, url: str):
         if self.json_feature_supported("activities", "browser"):

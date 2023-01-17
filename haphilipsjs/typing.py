@@ -220,6 +220,23 @@ class AmbilightCurrentConfiguration(TypedDict, total=False):
     audioSettings: AmbilightAudioSettingsType
     colorSettings: AmbilightColorSettingsType
 
+class RecordingsListedType(TypedDict, total=False):
+    RecordingId: int
+    RecordingType: str #RECORDING_ONGOING, RECORDING_SCHEDULED, RECORDING_NEW, RECORDING_PARTIALLY_VIEWED, RECORDING_VIEWED
+    RecName: str
+    EventInfo: str
+    EventId: int
+    StartTime: int
+    ActualStartTime: int
+    Duration: int
+    IsRadio: bool
+    IsPartial: bool
+    RecError: str #REC_ERROR_NONE, ...
+
+class RecordingsListed(TypedDict):
+    version: str
+    recordingsList: List[RecordingsListedType]
+
 class MenuItemsSettingsNodeDataSliderData(TypedDict):
     min: int
     max: int
