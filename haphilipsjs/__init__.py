@@ -239,7 +239,7 @@ class PhilipsTV(object):
         self.ambilight_current_configuration: Optional[
             AmbilightCurrentConfiguration
         ] = None
-        self.recordings_list: Dict[str, RecordingsListed] = {}
+        self.recordings_list: Optional[RecordingsListed] = None
         self.huelamp_power: Optional[str] = None
         self.powerstate = None
         if auth_shared_key:
@@ -1227,16 +1227,16 @@ class PhilipsTV(object):
 
             return True
 
-    async def getRecordingsList(self):
+    async def getRecordings(self):
         if self.json_feature_supported("recordings", "List"):
             r = cast(
                 Optional[RecordingsListed],
                 await self.getReq("recordings/list"),
             )
             if r:
-                self.recordings_list = r["recordings"]
+                self.recordings_list = r
             else:
-                self.recordings_list = {}
+                self.recordings_list = None
             return r
 
     async def openURL(self, url: str):
