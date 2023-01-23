@@ -66,7 +66,7 @@ async def param_fixture(request):
 
 
 @pytest.fixture
-async def client_mock(loop, param: Param):
+async def client_mock(param: Param):
     with respx.mock:
         if param.type == "android":
             respx.get(f"{param.base}/system").respond(

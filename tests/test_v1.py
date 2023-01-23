@@ -31,7 +31,7 @@ async def param_fixture(request):
 
 
 @pytest.fixture
-async def client_mock(loop, param: Param):
+async def client_mock(param: Param):
     with respx.mock:
         client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=1)
 

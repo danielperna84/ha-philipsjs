@@ -43,7 +43,7 @@ setup(
             'tests': [
                 'pytest>3.6.4',
                 'pytest-cov<2.6',
-                'pytest-aiohttp',
+                'pytest-asyncio>=0.20.2',
                 'coveralls',
                 'pytest-mock',
                 'respx>=0.17.0',

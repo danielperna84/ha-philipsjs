@@ -3,7 +3,6 @@ import platform
 import json
 import sys
 
-from setuptools import find_namespace_packages
 from . import PhilipsTV
 import asyncio
 from ast import literal_eval
