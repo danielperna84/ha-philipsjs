@@ -220,6 +220,50 @@ class AmbilightCurrentConfiguration(TypedDict, total=False):
     audioSettings: AmbilightAudioSettingsType
     colorSettings: AmbilightColorSettingsType
 
+class RecordingsListedType(TypedDict, total=False):
+    RecordingId: int
+    ServerRecordingId: int
+    RecordingType: str #RECORDING_ONGOING, RECORDING_SCHEDULED, RECORDING_NEW, RECORDING_PARTIALLY_VIEWED, RECORDING_VIEWED
+    RecName: str
+    EventId: int
+    EventInfo: str
+    EventExtendedInfo: str
+    EventGenre: str
+    EventRating: int
+    SeriesID: str
+    StartTime: int
+    ActualStartTime: int
+    Duration: int
+    MarginStart: int
+    MarginEnd: int
+    AutoMarginStart: int
+    AutoMarginEnd: int
+    RetentionInfo: int
+    SeasonNo: int
+    EpisodeNo: int
+    EpisodeCount: int
+    ProgramNumber: int
+    ProgramDuration: int
+    ResumeInfo: int
+    LastPinChangedTime: int
+    HasCicamPin: bool
+    hasDot: bool
+    HasLicenseFile: bool
+    IsRadio: bool
+    IsPartial: bool
+    IsIpEpgRec: bool
+    isFTARecording: bool
+    EITVersion: int
+    EITSource: str #EIT_SOURCE_PF, ...
+    RecError: str #REC_ERROR_NONE, ...
+    Version: int
+    Size: int
+    ccid: int
+
+class RecordingsListed(TypedDict):
+    version: str
+    recordings: List[RecordingsListedType]
+
 class MenuItemsSettingsNodeDataSliderData(TypedDict):
     min: int
     max: int
