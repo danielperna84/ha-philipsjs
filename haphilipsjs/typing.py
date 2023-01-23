@@ -15,7 +15,7 @@ class ActivitiesChannelType(TypedDict, total=False):
 
 class ActivitiesChannelListType(TypedDict, total=False):
     id: str
-    version: str
+    version: Union[int, str]
 
 
 class ActivitesTVType(TypedDict, total=False):
@@ -51,7 +51,7 @@ class ApplicationsType(TypedDict):
     applications: List[ApplicationType]
 
 
-class FavoriteChannelType(TypedDict):
+class FavoriteChannelType(TypedDict, total=False):
     ccid: int
     preset: str
 
@@ -59,19 +59,22 @@ class FavoriteChannelType(TypedDict):
 class FavoriteListType(TypedDict, total=False):
     id: str
     version: Union[int, str]
-    parentId: str
     listType: str
     medium: str
-    virtual: bool
-    modifiable: bool
     name: str
     channels: List[FavoriteChannelType]
 
 
 class ChannelType(TypedDict, total=False):
-    ccid: int
+    ccid: Union[int, str]
     preset: str
     name: str
+    onid: int
+    tsid: int
+    sid: int
+    serviceType: str
+    type: str
+    logoVersion: Union[int, str]
 
 
 class ChannelListType(TypedDict, total=False):
@@ -79,18 +82,37 @@ class ChannelListType(TypedDict, total=False):
     version: Union[int, str]
     listType: str
     medium: str
-    active: bool
-    virtual: bool
-    modifiable: bool
+    operator: str
+    installCountry: str
     Channel: List[ChannelType]
 
 
 ChannelsType = Dict[str, ChannelType]
 
 
+class ChannelDbTvListBase(TypedDict):
+    id: str
+    version: Union[int, str]
+    listType: str
+
+
+class ChannelDbTvList(ChannelDbTvListBase, total=False):
+    medium: str
+    active: bool
+    virtual: bool
+    modifiable: bool
+
+class ChannelDbTvListFavorite(ChannelDbTvListBase, total=False):
+    medium: str
+    active: bool
+    virtual: bool
+    modifiable: bool
+    parentId: str
+    name: str
+
 class ChannelDbTv(TypedDict, total=False):
-    channelLists: List[ChannelListType]
-    favoriteLists: List[FavoriteListType]
+    channelLists: List[ChannelDbTvList]
+    favoriteLists: List[ChannelDbTvListFavorite]
 
 
 class JsonFeaturesType(TypedDict, total=False):

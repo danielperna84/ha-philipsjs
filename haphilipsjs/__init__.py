@@ -24,6 +24,7 @@ from .typing import (
     ChannelListType,
     ChannelsCurrentType,
     ChannelsType,
+    ChannelType,
     ContextType,
     FavoriteListType,
     MenuItemsSettingsCurrent,
@@ -185,17 +186,20 @@ class PairingFailure(GeneralFailure):
 
 
 class NoneJsonData(GeneralFailure):
+    """API Returned non json data when json was expected."""
     def __init__(self, data):
         super().__init__(f"Non json data received: {data}")
         self.data = data
-
-    """API Returned non json data when json was expected."""
 
 
 T = TypeVar("T")
 
 
 class PhilipsTV(object):
+
+    channels: ChannelsType
+    """All available channels, with ccid as key."""
+
     def __init__(
         self,
         host=None,
@@ -217,7 +221,7 @@ class PhilipsTV(object):
         self.sources = {}
         self.source_id = None
         self.audio_volume = None
-        self.channels: ChannelsType = {}
+        self.channels = {}
         self.channel: Optional[Union[ActivitesTVType, ChannelsCurrentType]] = None
         self.channel_lists: Dict[str, ChannelListType] = {}
         self.favorite_lists: Dict[str, FavoriteListType] = {}
@@ -453,6 +457,44 @@ class PhilipsTV(object):
                 if pos > 0:
                     return r["id"][pos + 1 :]
             return r["id"]
+
+    @property
+    def channel_list_id(self) -> str:
+        if self.api_version >= 5:
+            if not self.channel:
+                return "all"
+            r = cast(ActivitesTVType, self.channel)
+            channel_list = r.get("channelList")
+            if not channel_list:
+                return "all"
+            return channel_list.get("id", "all")
+
+        return "all"
+
+    @property
+    def channels_current(self) -> List[ChannelType]:
+        """All channels in the current favorite list."""
+        if self.api_version >= 5:
+            favorite_list = self.favorite_lists.get(self.channel_list_id)
+            if not favorite_list:
+                return list(self.channels.values())
+
+            return [
+                {
+                    **channel,
+                    "preset": favorite.get("preset", "")
+                }
+                for favorite in favorite_list.get("channels", [])
+                if (channel := self.channels.get(str(favorite.get("ccid"))))
+            ]
+        else:
+            return [
+                {
+                    **channel,
+                    "ccid": key
+                }
+                for key, channel in self.channels.items()
+            ]
 
     @property
     def ambilight_modes(self):
@@ -722,13 +764,10 @@ class PhilipsTV(object):
     async def getChannels(self):
         if self.api_version >= 5:
             self.channels = {}
-            for list_id in self.channel_lists:
-                r = await self.getChannelList(list_id)
-                if r:
-                    for channel in r:
-                        if "ccid" in channel:
-                            self.channels[str(channel["ccid"])] = channel
-                return r
+            for channel_list in self.channel_lists.values():
+                for channel in channel_list.get("Channel", []):
+                    self.channels[str(channel.get("ccid"))] = channel
+            return self.channels
         else:
             r = cast(Optional[ChannelsType], await self.getReq("channels"))
             if r:
@@ -773,15 +812,15 @@ class PhilipsTV(object):
         self.context = r
         return r
 
-    async def setChannel(self, ccid, list_id: str = "alltv"):
+    async def setChannel(self, ccid: Union[str, int], list_id: Optional[str] = None):
         channel: Union[ActivitesTVType, ChannelsCurrentType]
         if self.api_version >= 5:
-            channel = {"channelList": {"id": list_id}, "channel": {"ccid": ccid}}
+            channel = {"channelList": {"id": list_id or "all"}, "channel": {"ccid": int(ccid)}}
             if await self.postReq("activities/tv", cast(Dict, channel)) is not None:
                 self.channel = channel
                 return True
         else:
-            channel = {"id": ccid}
+            channel = {"id": str(ccid)}
             if await self.postReq("channels/current", cast(Dict, channel)) is not None:
                 self.channel = channel
                 return True
@@ -791,15 +830,34 @@ class PhilipsTV(object):
         if self.api_version >= 5:
             r = cast(ChannelDbTv, await self.getReq("channeldb/tv"))
             if r:
-                self.channel_lists = {
-                    data["id"]: data for data in r.get("channelLists", {})
-                }
-                self.favorite_lists = {
-                    data["id"]: data for data in r.get("favoriteLists", {})
-                }
+                channel_lists = {}
+                favorite_lists = {}
+
+                for data in r.get("channelLists", []):
+                    list_id = data["id"]
+                    channel_list = cast(
+                        Optional[ChannelListType],
+                        await self.getReq(f"channeldb/tv/channelLists/{list_id}"),
+                    )
+                    if channel_list:
+                        channel_lists[list_id] = channel_list
+
+
+                for data in r.get("favoriteLists", []):
+                    list_id = data["id"]
+                    favorite_list = cast(
+                        Optional[FavoriteListType],
+                        await self.getReq(f"channeldb/tv/favoriteLists/{list_id}"),
+                    )
+                    if favorite_list:
+                        favorite_lists[list_id] = favorite_list
+
+                self.channel_lists = channel_lists
+                self.favorite_lists = favorite_lists
             else:
                 self.channel_lists = {}
                 self.favorite_lists = {}
+
             return r
 
     async def getFavoriteList(self, list_id: str):

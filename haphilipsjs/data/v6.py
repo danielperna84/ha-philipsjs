@@ -322,34 +322,78 @@ ACTIVITIES_CURRENT: ApplicationIntentType = {
     }
 }
 
-ACTIVITIES_TV: ActivitesTVType = {"channel": {"ccid": 1648}}
+ACTIVITIES_TV_ANDROID: ActivitesTVType = {
+  "channel": {"ccid": 1648},
+  "channelList": {
+    "id": "1",
+    "version": "10"
+  }
+}
+
+ACTIVITIES_TV_SAPHI: ActivitesTVType = {
+  "channel": {"ccid": 1648},
+}
+
+ACTIVITIES_TV = {
+  "android": ACTIVITIES_TV_ANDROID,
+  "saphi": ACTIVITIES_TV_SAPHI
+}
 
 CHANNELDB_TV_CHANNELLISTS_ALL: ChannelListType = {
     "id": "all",
     "version": 10,
     "listType": "MixedSources",
     "medium": "mixed",
-    "active": True,
-    "virtual": True,
-    "modifiable": False,
     "Channel": [
         {"ccid": 1648, "preset": "1", "name": "Irdeto scrambled"},
         {"ccid": 1649, "preset": "2"},
     ],
 }
 
+
+CHANNELDB_TV_FAVORITELISTS_ALLTER: FavoriteListType = {
+    "id": "allter",
+    "version": 10,
+    "listType": "MixedSources",
+    "medium": "mixed",
+    "channels": [
+        {"ccid": 1648, "preset": "1"},
+        {"ccid": 1649, "preset": "2"},
+    ],
+}
+
+
+CHANNELDB_TV_FAVORITELISTS_1: FavoriteListType = {
+    "id": "1",
+    "version": 10,
+    "listType": "MixedSources",
+    "medium": "mixed",
+    "channels": [
+        {"ccid": 1649, "preset": "1"},
+    ],
+}
+
 CHANNELDB_TV_ANDROID: ChannelDbTv = {
-    "channelLists": [CHANNELDB_TV_CHANNELLISTS_ALL],
+      "channelLists": [ {
+        "id": "all",
+        "version": 10,
+        "listType": "MixedSources",
+        "medium": "mixed",
+        "active": True,
+        "virtual": True,
+        "modifiable": False,
+      }
+    ],
     "favoriteLists": [
         {
-            "id": "com.google.android.videos%2F.tv.usecase.tvinput.playback.TvInputService",
+            "id": "allter",
             "version": 1545826184134,
             "parentId": "all",
             "listType": "MixedSources",
             "medium": "mixed",
             "virtual": False,
             "modifiable": False,
-            "name": "Google Play Movies & TV",
+            "name": "All teresterial",
         },
         {
             "id": "1",
@@ -366,7 +410,15 @@ CHANNELDB_TV_ANDROID: ChannelDbTv = {
 
 
 CHANNELDB_TV_SAPHI: ChannelDbTv = {
-    "channelLists": [CHANNELDB_TV_CHANNELLISTS_ALL],
+    "channelLists": [{
+        "id": "all",
+        "version": 10,
+        "listType": "MixedSources",
+        "medium": "mixed",
+        "active": True,
+        "virtual": True,
+        "modifiable": False,
+    }],
 }
 
 

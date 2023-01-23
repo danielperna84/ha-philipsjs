@@ -16,6 +16,8 @@ from haphilipsjs.data.v6 import (
     CHANNELDB_TV_ANDROID,
     CHANNELDB_TV_SAPHI,
     CHANNELDB_TV_CHANNELLISTS_ALL,
+    CHANNELDB_TV_FAVORITELISTS_ALLTER,
+    CHANNELDB_TV_FAVORITELISTS_1,
     ACTIVITIES_CURRENT,
     CONTEXT,
     MENUITEMS_SETTINGS_STRUCTURE,
@@ -88,10 +90,19 @@ async def client_mock(param: Param):
         respx.get(f"{param.base}/channeldb/tv/channelLists/all").respond(
             json=cast(Dict, CHANNELDB_TV_CHANNELLISTS_ALL)
         )
+
+        respx.get(f"{param.base}/channeldb/tv/favoriteLists/allter").respond(
+            json=cast(Dict, CHANNELDB_TV_FAVORITELISTS_ALLTER)
+        )
+
+        respx.get(f"{param.base}/channeldb/tv/favoriteLists/1").respond(
+            json=cast(Dict, CHANNELDB_TV_FAVORITELISTS_1)
+        )
+
         respx.get(f"{param.base}/activities/current").respond(
             json=cast(Dict, ACTIVITIES_CURRENT)
         )
-        respx.get(f"{param.base}/activities/tv").respond(json=cast(Dict, ACTIVITIES_TV))
+        respx.get(f"{param.base}/activities/tv").respond(json=cast(Dict, ACTIVITIES_TV[param.type]))
         respx.get(f"{param.base}/applications").respond(json=cast(Dict, APPLICATIONS))
         respx.get(f"{param.base}/powerstate").respond(json=POWERSTATE)
         respx.get(f"{param.base}/screenstate").respond(json=SCREENSTATE)
@@ -155,6 +166,11 @@ async def test_basic_data(client_mock, param: Param):
         assert client_mock.quirk_ambilight_mode_ignored == True
         assert client_mock.os_type == "MSAF_2019_P"
 
+        assert client_mock.channel_list_id == "1"
+        assert client_mock.channels_current == [
+            {"ccid": 1649, "preset": "1"}
+        ]
+
     elif param.type == "saphi":
         assert client_mock.system == SYSTEM_SAPHI_DECRYPTED
         assert client_mock.sources == MOCK_SAPHI_SOURCES
@@ -162,6 +178,10 @@ async def test_basic_data(client_mock, param: Param):
         assert client_mock.application_id == None
         assert client_mock.quirk_ambilight_mode_ignored == True
         assert client_mock.os_type == "Linux"
+
+        assert client_mock.channel_list_id == "all"
+        assert client_mock.channels_current == list(client_mock.channels.values())
+
 
     assert client_mock.channels == {
         "1648": {"ccid": 1648, "preset": "1", "name": "Irdeto scrambled"},
@@ -294,7 +314,7 @@ async def test_set_channel(client_mock, param: Param):
 
     assert respx.calls[-1].request.url == f"{param.base}/activities/tv"
     assert json.loads(respx.calls[-1].request.content) == {
-        "channelList": {"id": "alltv"},
+        "channelList": {"id": "all"},
         "channel": {"ccid": 1649},
     }
 

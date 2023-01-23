@@ -51,6 +51,12 @@ async def monitor_run(stdscr, tv: PhilipsTV):
             stdscr.addstr(3, 45, tv.context.get("level3", ""))
             stdscr.addstr(4, 45, tv.context.get("data", ""))
 
+
+        stdscr.addstr(0, 70, "Channels")
+        for idx, channel  in enumerate(tv.channels_current):
+            stdscr.addstr(1+idx, 70, channel.get("name", channel.get("ccid")))
+
+
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
             stdscr.addstr(offset_y + 1, offset_x, "-----------")
