@@ -31,7 +31,7 @@ async def param_fixture(request):
 
 
 @pytest.fixture
-async def client_mock(loop, param: Param):
+async def client_mock(param: Param):
     with respx.mock:
         client = haphilipsjs.PhilipsTV("127.0.0.1", api_version=1)
 
@@ -79,6 +79,13 @@ async def test_basic_data(client_mock: haphilipsjs.PhilipsTV, param: Param):
     assert client_mock.system == SYSTEM_DECRYPTED[param.type]
     assert client_mock.sources == SOURCES
     assert client_mock.channels == CHANNELS
+    assert client_mock.channels_current == [
+        {
+            **channel,
+            "ccid": key
+        }
+        for key, channel in CHANNELS.items()
+    ]
     assert client_mock.ambilight_current_configuration is None
     assert client_mock.ambilight_styles == {}
     assert client_mock.powerstate == POWERSTATE.get(param.type, {}).get("powerstate")

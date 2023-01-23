@@ -3,7 +3,6 @@ import platform
 import json
 import sys
 
-from setuptools import find_namespace_packages
 from . import PhilipsTV
 import asyncio
 from ast import literal_eval
@@ -51,6 +50,12 @@ async def monitor_run(stdscr, tv: PhilipsTV):
             stdscr.addstr(2, 45, tv.context.get("level2", ""))
             stdscr.addstr(3, 45, tv.context.get("level3", ""))
             stdscr.addstr(4, 45, tv.context.get("data", ""))
+
+
+        stdscr.addstr(0, 70, "Channels")
+        for idx, channel  in enumerate(tv.channels_current):
+            stdscr.addstr(1+idx, 70, channel.get("name", channel.get("ccid")))
+
 
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
