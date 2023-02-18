@@ -729,6 +729,7 @@ class PhilipsTV(object):
             await self.getAmbilightPower()
             await self.getAmbilightCurrentConfiguration()
             await self.getHueLampPower()
+            await self.getRecordings()
             self.on = True
             return True
         except ConnectionFailure as err:
