@@ -30,6 +30,7 @@ from haphilipsjs.data.v6 import (
     VOLUME,
     SCREENSTATE,
     HUELAMPPOWER,
+    RECORDINGS_LIST,
 )
 from haphilipsjs.typing import StringsRequest, Strings
 
@@ -143,6 +144,9 @@ async def client_mock(param: Param):
             )
         else:
             raise Exception
+        respx.get(f"{param.base}/recordings/list").respond(
+            json=RECORDINGS_LIST
+        )
 
         yield client
         await client.aclose()
