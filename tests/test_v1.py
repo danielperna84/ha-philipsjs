@@ -17,7 +17,6 @@ from haphilipsjs.data.v1 import (
     SYSTEM_DECRYPTED,
     SYSTEM_ENCRYPTED,
     VOLUME,
-    RECORDINGS_LIST,
 )
 
 
@@ -68,9 +67,6 @@ async def client_mock(param: Param):
             respx.get(f"{param.base}/context").respond(json=CONTEXT[param.type])
         else:
             respx.get(f"{param.base}/context").respond(404)
-        respx.get(f"{param.base}/recordings/list").respond(
-            json=RECORDINGS_LIST
-        )
 
         yield client
         await client.aclose()
