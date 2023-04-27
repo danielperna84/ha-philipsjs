@@ -729,6 +729,7 @@ class PhilipsTV(object):
             await self.getAmbilightPower()
             await self.getAmbilightCurrentConfiguration()
             await self.getHueLampPower()
+            await self.getRecordings()
             self.on = True
             return True
         except ConnectionFailure as err:
@@ -1286,16 +1287,18 @@ class PhilipsTV(object):
             return True
 
     async def getRecordings(self):
-        if self.json_feature_supported("recordings", "List"):
-            r = cast(
-                Optional[RecordingsListed],
-                await self.getReq("recordings/list"),
-            )
-            if r:
-                self.recordings_list = r
-            else:
-                self.recordings_list = None
-            return r
+        #Just known working with API level 6 currently
+        if self.api_version == 6:
+            if self.json_feature_supported("recordings", "List"):
+                r = cast(
+                    Optional[RecordingsListed],
+                    await self.getReq("recordings/list"),
+                )
+                if r:
+                    self.recordings_list = r
+                else:
+                    self.recordings_list = None
+                return r
 
     async def openURL(self, url: str):
         if self.json_feature_supported("activities", "browser"):

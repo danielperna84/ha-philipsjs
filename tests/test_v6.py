@@ -30,6 +30,7 @@ from haphilipsjs.data.v6 import (
     VOLUME,
     SCREENSTATE,
     HUELAMPPOWER,
+    RECORDINGS_LIST,
 )
 from haphilipsjs.typing import StringsRequest, Strings
 
@@ -143,6 +144,9 @@ async def client_mock(param: Param):
             )
         else:
             raise Exception
+        respx.get(f"{param.base}/recordings/list").respond(
+            json=RECORDINGS_LIST
+        )
 
         yield client
         await client.aclose()
@@ -567,3 +571,31 @@ async def test_buggy_json():
     assert haphilipsjs.decode_xtv_json('{,"a":{}}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},,,"b":{}}') == {"a": {}, "b": {}}
+
+async def test_get_recordings(client_mock):
+    """Verify that we can read back selected recording values"""
+    await client_mock.update()
+
+    recording_ongoing = False
+    recording_new = 0
+
+    assert client_mock.recordings_list["version"] == "253.91"
+
+    for rec in client_mock.recordings_list["recordings"]:
+        if rec["RecordingId"] == 36:
+            rec_time_planned = rec["StartTime"]
+            rec_margin_start = rec["MarginStart"]
+            rec_time = rec_time_planned - rec_margin_start
+            assert rec_time == 1676833531
+            assert rec["RecordingType"] == "RECORDING_ONGOING"
+            assert rec["RecError"] == "REC_ERROR_NONE"
+        
+        if rec["RecordingType"] == "RECORDING_ONGOING":
+                recording_ongoing = True
+
+        if rec["RecordingType"] == "RECORDING_NEW":
+            recording_new += 1
+
+    assert recording_ongoing == True
+    assert recording_new == 1
+
