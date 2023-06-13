@@ -747,13 +747,21 @@ class PhilipsTV(object):
         return cast(SystemType, result)
 
     async def getSystem(self):
-        r = cast(Optional[SystemType], await self.getReq("system"))
-        if r:
-            self.system = self._decodeSystem(r)
-            self.name = r.get("name")
-        else:
-            self.system = {}
-            self.name = None
+        # Newest TV software requires https for system-info. Therefore we will try both protocols.
+        protocols = ["http", "https"]
+        orig_protocol = self.protocol
+        
+        for prot in protocols:
+            self.protocol = prot
+            r = cast(Optional[SystemType], await self.getReq("system"))
+            if r:
+                self.system = self._decodeSystem(r)
+                self.name = r.get("name")
+                return r
+            else:
+                self.system = {}
+                self.name = None
+        self.protocol = orig_protocol
         return r
 
     async def getAudiodata(self):
