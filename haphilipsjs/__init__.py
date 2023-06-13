@@ -556,17 +556,16 @@ class PhilipsTV(object):
         if protocol is None:
             protocol = self.protocol
 
-        if self.protocol == "https":
+        if protocol == "https":
             port = HTTPS_PORT
         else:
             port = HTTP_PORT
 
         return f"{protocol}://{self._host}:{port}/{self.api_version}/{path}"
 
-    async def getReq(self, path) -> Optional[Dict]:
-
+    async def getReq(self, path, protocol = None) -> Optional[Dict]:
         try:
-            resp = await self.session.get(self._url(path))
+            resp = await self.session.get(self._url(path, protocol = protocol))
             if resp.status_code == 401:
                 raise AutenticationFailure("Authenticaion failed to device")
 
@@ -752,8 +751,7 @@ class PhilipsTV(object):
         orig_protocol = self.protocol
         
         for prot in protocols:
-            self.protocol = prot
-            r = cast(Optional[SystemType], await self.getReq("system"))
+            r = cast(Optional[SystemType], await self.getReq("system", protocol=prot))
             if r:
                 self.system = self._decodeSystem(r)
                 self.name = r.get("name")
