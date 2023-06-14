@@ -748,7 +748,9 @@ class PhilipsTV(object):
     async def getSystem(self):
         # Newest TV software requires https for system-info. Therefore we will try both protocols.
         protocols = ["http", "https"]
-        orig_protocol = self.protocol
+
+        if protocols[0] != self.protocol:
+            protocols = reversed(protocols)
         
         for prot in protocols:
             r = cast(Optional[SystemType], await self.getReq("system", protocol=prot))
@@ -759,7 +761,6 @@ class PhilipsTV(object):
             else:
                 self.system = {}
                 self.name = None
-        self.protocol = orig_protocol
         return r
 
     async def getAudiodata(self):
