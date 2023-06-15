@@ -75,6 +75,9 @@ async def client_mock(param: Param):
             respx.get(f"{param.base}/system").respond(
                 json=cast(Dict, SYSTEM_ANDROID_ENCRYPTED)
             )
+            respx.get("http://127.0.0.1:1925/6/system").respond(
+                json={}
+            )
             respx.get(f"{param.base}/channeldb/tv").respond(
                 json=cast(Dict, CHANNELDB_TV_ANDROID)
             )
