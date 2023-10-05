@@ -31,6 +31,10 @@ from haphilipsjs.data.v6 import (
     SCREENSTATE,
     HUELAMPPOWER,
     RECORDINGS_LIST,
+    PAIR_REQUEST_DEVICE,
+    PAIR_REQUEST_SAPHI,
+    PAIR_REQUEST_ANDROID,
+    PAIR_RESPONSE,
 )
 from haphilipsjs.typing import StringsRequest, Strings
 
@@ -602,3 +606,35 @@ async def test_get_recordings(client_mock):
     assert recording_ongoing == True
     assert recording_new == 1
 
+async def test_pair_request(client_mock: haphilipsjs.PhilipsTV, param: Param):
+    await client_mock.update()
+
+    if param.type == "android":
+        post_json = PAIR_REQUEST_ANDROID
+    elif param.type == "saphi":
+        post_json = PAIR_REQUEST_SAPHI
+    else:
+        pytest.skip("Unknown pair data")
+
+    device = post_json["device"]
+
+    with respx.mock as mock:
+        route = mock.post(f"{param.base}/pair/request")
+        route.respond(
+            json=cast(Dict, PAIR_RESPONSE)
+        )
+        data = await client_mock.pairRequest(
+            app_id=device["app_id"],
+            app_name=device["app_name"],
+            device_name=device["device_name"],
+            device_os=device["device_os"],
+            type=device["type"],
+            device_id = device["id"]
+        )
+        
+        assert json.loads(route.calls.last.request.content) == post_json
+        assert data == {
+            "device": device,
+            "auth_key": PAIR_RESPONSE["auth_key"],
+            "timestamp": PAIR_RESPONSE["timestamp"],
+        }

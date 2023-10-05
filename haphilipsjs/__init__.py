@@ -641,7 +641,18 @@ class PhilipsTV(object):
 
         state = {"device": device}
 
-        data = {"scope": ["read", "write", "control"], "device": device}
+        data = {
+            "access": {
+                "scope": ["read", "write", "control"]
+            },
+            "device": device
+        }
+
+        if self.system:
+            featuring = self.system.get("featuring", None)
+            if featuring:
+                data["access"]["featuring"] = featuring
+
 
         LOG.debug("pair/request request: %s", data)
         resp = await self.session.post(self._url("pair/request"), json=data, auth=None)
