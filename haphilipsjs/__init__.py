@@ -9,7 +9,7 @@ from base64 import b64decode, b64encode
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
-from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.hashes import SHA1
 from cryptography.hazmat.primitives.hmac import HMAC
 
 from .typing import (
@@ -70,7 +70,7 @@ MAXIMUM_ITEMS_IN_REQUEST = 50
 
 def hmac_signature(key: bytes, timestamp: str, data: str):
     """Calculate a timestamped signature."""
-    hmac = HMAC(key, SHA256())
+    hmac = HMAC(key, SHA1())
     hmac.update(timestamp.encode("utf-8"))
     hmac.update(data.encode("utf-8"))
     return b64encode(hmac.finalize()).decode("utf-8")
