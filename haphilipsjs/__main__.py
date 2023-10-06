@@ -297,7 +297,7 @@ async def run(args, parser, tv: PhilipsTV):
             "ha-philipsjs", "ha-philipsjs", platform.node(), platform.system(), "native"
         )
 
-        pin = input("Please enter pin displayed on scree")
+        pin = input("Please enter pin displayed on screen: ")
 
         res = await tv.pairGrant(state, pin)
 
