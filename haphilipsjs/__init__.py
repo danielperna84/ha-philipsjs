@@ -345,7 +345,7 @@ class PhilipsTV(object):
                 self.system.get("featuring", {})
                 .get("systemfeatures", {})
                 .get("secured_transport")
-                == "true"
+                in ("true", True)
             )
         else:
             return None
