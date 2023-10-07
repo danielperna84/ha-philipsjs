@@ -640,6 +640,39 @@ CONTEXT: ContextType = {
     "level3": "NA",
 }
 
+PAIR_REQUEST_DEVICE = {
+  "id": "aaabbbcccdddeee",
+  "device_name": "Android device",
+  "device_os": "Android 12",
+  "app_id": "com.tpvision.philipstvapp2",
+  "app_name": "Philips TV Remote",
+  "type": "native"
+}
+
+PAIR_REQUEST_SAPHI = {
+  "device": PAIR_REQUEST_DEVICE,
+  "access": {
+    "featuring": SYSTEM_SAPHI["featuring"],
+    "scope": ["read", "write", "control"]
+  }
+}
+
+PAIR_REQUEST_ANDROID = {
+  "device": PAIR_REQUEST_DEVICE,
+  "access": {
+    "featuring": SYSTEM_ANDROID["featuring"],
+    "scope": ["read", "write", "control"]
+  }
+}
+
+PAIR_RESPONSE = {
+	"error_id": "SUCCESS",
+	"error_text": "Authorization required",
+	"auth_key": "ccddeeffgghh",
+	"timestamp": 1128,
+	"timeout": 30
+}
+
 MENUITEMS_SETTINGS_STRUCTURE: MenuItemsSettingsStructure = {
   "node": {
     "node_id": 2131230753,
