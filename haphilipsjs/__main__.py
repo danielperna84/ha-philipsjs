@@ -8,7 +8,7 @@ import asyncio
 from ast import literal_eval
 
 
-async def monitor_run(stdscr, tv: PhilipsTV):
+async def monitor_run(stdscr: curses.window, tv: PhilipsTV):
 
     stdscr.clear()
     stdscr.timeout(1000)
@@ -22,14 +22,15 @@ async def monitor_run(stdscr, tv: PhilipsTV):
                 if app.get("intent") == tv.application:
                     return app.get("label")
 
-        return tv.application.get("component", {}).get("className")
+        if tv.application:
+            return tv.application.get("component", {}).get("className")
 
     while True:
 
         stdscr.clear()
         stdscr.addstr(0, 0, "Source")
         if tv.source_id:
-            stdscr.addstr(1, 0, await tv.getSourceName(tv.source_id))
+            stdscr.addstr(1, 0, await tv.getSourceName(tv.source_id) or "")
 
         stdscr.addstr(3, 15, "Menu Version")
         if tv.channel_id:
@@ -37,12 +38,12 @@ async def monitor_run(stdscr, tv: PhilipsTV):
 
         stdscr.addstr(0, 15, "Channel")
         if tv.channel_id:
-            stdscr.addstr(1, 15, await tv.getChannelName(tv.channel_id))
+            stdscr.addstr(1, 15, await tv.getChannelName(tv.channel_id) or "")
 
 
         stdscr.addstr(0, 30, "Application")
         if tv.application:
-            stdscr.addstr(1, 30, get_application_name())
+            stdscr.addstr(1, 30, get_application_name() or "")
 
         stdscr.addstr(0, 45, "Context")
         if tv.context:
@@ -54,7 +55,7 @@ async def monitor_run(stdscr, tv: PhilipsTV):
 
         stdscr.addstr(0, 70, "Channels")
         for idx, channel  in enumerate(tv.channels_current):
-            stdscr.addstr(1+idx, 70, channel.get("name", channel.get("ccid")))
+            stdscr.addstr(1+idx, 70, str(channel.get("name", channel.get("ccid", ""))))
 
 
         def print_pixels(side, offset_y, offset_x):
@@ -329,7 +330,11 @@ async def run(args, parser, tv: PhilipsTV):
             json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
             print()
     elif args.command == "markdown":
-        import argmark
+        try:
+            import argmark  # type: ignore
+        except ImportError:
+            print("Unable to find argmmark")
+            return
 
         argmark.md_help(parser)
 
