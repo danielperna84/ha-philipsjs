@@ -2,13 +2,17 @@ import curses
 import platform
 import json
 import sys
+import pprint
 
 from . import PhilipsTV
+from haphilipsjs.typing import AmbilightCurrentConfiguration
+
 import asyncio
 from ast import literal_eval
 
+pp = pprint.PrettyPrinter(indent=2)
 
-async def monitor_run(stdscr, tv: PhilipsTV):
+async def monitor_run(stdscr: curses.window, tv: PhilipsTV):
 
     stdscr.clear()
     stdscr.timeout(1000)
@@ -22,14 +26,15 @@ async def monitor_run(stdscr, tv: PhilipsTV):
                 if app.get("intent") == tv.application:
                     return app.get("label")
 
-        return tv.application.get("component", {}).get("className")
+        if tv.application:
+            return tv.application.get("component", {}).get("className")
 
     while True:
 
         stdscr.clear()
         stdscr.addstr(0, 0, "Source")
         if tv.source_id:
-            stdscr.addstr(1, 0, await tv.getSourceName(tv.source_id))
+            stdscr.addstr(1, 0, await tv.getSourceName(tv.source_id) or "")
 
         stdscr.addstr(3, 15, "Menu Version")
         if tv.channel_id:
@@ -37,12 +42,12 @@ async def monitor_run(stdscr, tv: PhilipsTV):
 
         stdscr.addstr(0, 15, "Channel")
         if tv.channel_id:
-            stdscr.addstr(1, 15, await tv.getChannelName(tv.channel_id))
+            stdscr.addstr(1, 15, await tv.getChannelName(tv.channel_id) or "")
 
 
         stdscr.addstr(0, 30, "Application")
         if tv.application:
-            stdscr.addstr(1, 30, get_application_name())
+            stdscr.addstr(1, 30, get_application_name() or "")
 
         stdscr.addstr(0, 45, "Context")
         if tv.context:
@@ -54,7 +59,7 @@ async def monitor_run(stdscr, tv: PhilipsTV):
 
         stdscr.addstr(0, 70, "Channels")
         for idx, channel  in enumerate(tv.channels_current):
-            stdscr.addstr(1+idx, 70, channel.get("name", channel.get("ccid")))
+            stdscr.addstr(1+idx, 70, str(channel.get("name", channel.get("ccid", ""))))
 
 
         def print_pixels(side, offset_y, offset_x):
@@ -164,6 +169,12 @@ async def main():
         type=ast.literal_eval,
         required=False,
     )
+    ambilight.add_argument(
+        "--style", dest="ambilight_style", type=str, required=False
+    )
+    ambilight.add_argument(
+        "--setting", dest="ambilight_setting", type=str, required=False
+    )
 
     pair = subparsers.add_parser("pair", help="Pair with tv")
 
@@ -249,36 +260,34 @@ async def run(args, parser, tv: PhilipsTV):
             )
         print("Context: {}".format(tv.context))
 
-        print("Application: {}".format(tv.application))
-        if tv.applications:
-            print(
-                "Applications: {}".format(
-                    ", ".join(
-                        [
-                            application.get("label") or "None"
-                            for application in tv.applications.values()
-                        ]
-                    )
-                )
-            )
+        print("Application:")
+        pp.pprint(tv.application)
+
+        print("Applications:")
+        pp.pprint(list(tv.applications.values()))
+
         print("Power State: {}".format(tv.powerstate))
         print("Screen State: {}".format(tv.screenstate))
 
         await tv.getAmbilightPower()
         print("Ambilight power: {}".format(tv.ambilight_power))
         print("Ambilight mode: {}".format(tv.ambilight_mode))
-        print("Ambilight topology: {}".format(await tv.getAmbilightTopology()))
-        print("Ambilight processed: {}".format(await tv.getAmbilightProcessed()))
-        print("Ambilight measured: {}".format(await tv.getAmbilightMeasured()))
-        print("Ambilight styles: {}".format(list(tv.ambilight_styles.values())))
-        print(
-            "Ambilight currentconfiguration: {}".format(
-                tv.ambilight_current_configuration
-            )
-        )
+        print("Ambilight topology:")
+        pp.pprint(await tv.getAmbilightTopology())
+        print("Ambilight processed:")
+        pp.pprint(await tv.getAmbilightProcessed())
+        print("Ambilight measured:")
+        pp.pprint(await tv.getAmbilightMeasured())
+        print("Ambilight styles:")
+        pp.pprint(list(tv.ambilight_styles.values()))
+        print("Ambilight currentconfiguration:")
+        pp.pprint(tv.ambilight_current_configuration)
         print("Ambilight+Hue State: {}".format(tv.huelamp_power))
 
     elif args.command == "ambilight":
+        await tv.getSystem()
+        await tv.setTransport(tv.secured_transport, tv.api_version_detected)
+
         if args.ambilight_mode:
             if not await tv.setAmbilightMode(args.ambilight_mode):
                 print("Failed to set mode")
@@ -286,6 +295,18 @@ async def run(args, parser, tv: PhilipsTV):
         if args.ambilight_cached:
             if not await tv.setAmbilightCached(args.ambilight_cached):
                 print("Failed to set ambilight cached")
+
+        current: AmbilightCurrentConfiguration = {}
+        if args.ambilight_style:
+            current["styleName"] = args.ambilight_style
+        if args.ambilight_setting:
+            current["menuSetting"] = args.ambilight_setting
+        if current:
+            current["isExpert"] = False
+
+            if await tv.setAmbilightCurrentConfiguration(current) is False:
+                print("Failed to set ambilight config")
+
 
     elif args.command == "monitor":
         await monitor(tv)
@@ -329,7 +350,11 @@ async def run(args, parser, tv: PhilipsTV):
             json.dump(res, sys.stdout, indent=2, ensure_ascii=False)
             print()
     elif args.command == "markdown":
-        import argmark
+        try:
+            import argmark  # type: ignore
+        except ImportError:
+            print("Unable to find argmmark")
+            return
 
         argmark.md_help(parser)
 
