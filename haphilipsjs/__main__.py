@@ -5,6 +5,8 @@ import sys
 import pprint
 
 from . import PhilipsTV
+from haphilipsjs.typing import AmbilightCurrentConfiguration
+
 import asyncio
 from ast import literal_eval
 
@@ -167,6 +169,12 @@ async def main():
         type=ast.literal_eval,
         required=False,
     )
+    ambilight.add_argument(
+        "--style", dest="ambilight_style", type=str, required=False
+    )
+    ambilight.add_argument(
+        "--setting", dest="ambilight_setting", type=str, required=False
+    )
 
     pair = subparsers.add_parser("pair", help="Pair with tv")
 
@@ -277,6 +285,9 @@ async def run(args, parser, tv: PhilipsTV):
         print("Ambilight+Hue State: {}".format(tv.huelamp_power))
 
     elif args.command == "ambilight":
+        await tv.getSystem()
+        await tv.setTransport(tv.secured_transport, tv.api_version_detected)
+
         if args.ambilight_mode:
             if not await tv.setAmbilightMode(args.ambilight_mode):
                 print("Failed to set mode")
@@ -284,6 +295,18 @@ async def run(args, parser, tv: PhilipsTV):
         if args.ambilight_cached:
             if not await tv.setAmbilightCached(args.ambilight_cached):
                 print("Failed to set ambilight cached")
+
+        current: AmbilightCurrentConfiguration = {}
+        if args.ambilight_style:
+            current["styleName"] = args.ambilight_style
+        if args.ambilight_setting:
+            current["menuSetting"] = args.ambilight_setting
+        if current:
+            current["isExpert"] = False
+
+            if await tv.setAmbilightCurrentConfiguration(current) is False:
+                print("Failed to set ambilight config")
+
 
     elif args.command == "monitor":
         await monitor(tv)
