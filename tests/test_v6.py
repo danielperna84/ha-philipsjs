@@ -575,6 +575,7 @@ async def test_get_strings_cached(client_mock: haphilipsjs.PhilipsTV, param: Par
 async def test_buggy_json():
     assert haphilipsjs.decode_xtv_json("") == {}
     assert haphilipsjs.decode_xtv_json("}") == {}
+    assert haphilipsjs.decode_xtv_json("Context Service not started") == {}
     assert haphilipsjs.decode_xtv_json('{,"a":{}}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},,,"b":{}}') == {"a": {}, "b": {}}
