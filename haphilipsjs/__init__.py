@@ -113,7 +113,11 @@ def decode_xtv_json(text: str):
         text = text.replace(",}", "}")
         while (p := text.find(",,")) >= 0:
             text = text[:p] + text[p + 1 :]
-        data = json.loads(text)
+
+        try:
+            data = json.loads(text)
+        except json.decoder.JSONDecodeError as exception:
+            raise NoneJsonData(text) from exception
 
     return data
 
