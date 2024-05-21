@@ -578,6 +578,8 @@ async def test_buggy_json():
     assert haphilipsjs.decode_xtv_json('{,"a":{}}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},,,"b":{}}') == {"a": {}, "b": {}}
+    with pytest.raises(haphilipsjs.NoneJsonData):
+        haphilipsjs.decode_xtv_json("Plain text data")
 
 async def test_get_recordings(client_mock):
     """Verify that we can read back selected recording values"""
