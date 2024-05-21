@@ -66,7 +66,7 @@ TV_PLAYBACK_INTENTS = [
 HTTP_PORT = 1925
 HTTPS_PORT = 1926
 MAXIMUM_ITEMS_IN_REQUEST = 50
-
+IGNORED_JSON_RESPONSES = {"", "Context Service not started", "}"}
 
 def hmac_signature(key: bytes, timestamp: str, data: str):
     """Calculate a timestamped signature."""
@@ -101,7 +101,7 @@ def cbc_encode(key: bytes, data: str):
 
 
 def decode_xtv_json(text: str):
-    if text == "" or text == "}":
+    if text in IGNORED_JSON_RESPONSES:
         LOG.debug("Ignoring invalid json %s", text)
         return {}
 
