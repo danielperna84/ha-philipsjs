@@ -214,7 +214,8 @@ class PhilipsTV(object):
         password=None,
         verify=False,
         auth_shared_key=None,
-        system = None
+        system = None,
+        limits = None,
     ):
         self._host = host
         self._connfail = 0
@@ -261,7 +262,8 @@ class PhilipsTV(object):
             self.protocol = "http"
 
         timeout = httpx.Timeout(timeout=TIMEOUT, connect=TIMEOUT_CONNECT)
-        limits = httpx.Limits(max_keepalive_connections=0, max_connections=3)
+        if limits is None:
+            limits = httpx.Limits(max_keepalive_connections=3, max_connections=3)
         self.session = httpx.AsyncClient(limits=limits, timeout=timeout, verify=False)
         self.session.headers["Accept"] = "application/json"
 
