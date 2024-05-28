@@ -359,6 +359,15 @@ async def test_send_key_off(client_mock, param: Param):
         await client_mock.sendKey("Standby")
 
 
+async def test_send_key_retry(client_mock, param: Param):
+    route = respx.post(f"{param.base}/input/key").mock(side_effect=httpx.RemoteProtocolError)
+
+    with pytest.raises(haphilipsjs.ProtocolFailure):
+        await client_mock.sendKey("Standby")
+
+    assert route.call_count == 2
+
+
 async def test_ambilight_mode(client_mock, param):
     await client_mock.getSystem()
 
