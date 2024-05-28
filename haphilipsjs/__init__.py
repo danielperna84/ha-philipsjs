@@ -6,6 +6,8 @@ import itertools
 from urllib.parse import quote
 from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
+from functools import wraps
+
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
@@ -198,6 +200,27 @@ class NoneJsonData(GeneralFailure):
 
 
 T = TypeVar("T")
+
+
+def handle_httpx_exceptions(f):
+    """Wrap up httpx exceptions in our wanted variants."""
+    @wraps(f)
+    async def wrapper(*args, **kwds):
+        try:
+            try:
+                return await f(*args, **kwds)
+            except httpx.RemoteProtocolError as err:
+                LOG.warning("%r. We retry once, could be a reused session that was closed", err)
+                return await f(*args, **kwds)
+
+        except (httpx.ConnectTimeout, httpx.ConnectError) as err:
+            raise ConnectionFailure(err) from err
+        except (httpx.ProtocolError, httpx.ReadError) as err:
+            raise ProtocolFailure(err) from err
+        except httpx.HTTPError as err:
+            raise GeneralFailure(err) from err
+
+    return wrapper
 
 
 class PhilipsTV(object):
@@ -569,38 +592,32 @@ class PhilipsTV(object):
 
         return f"{protocol}://{self._host}:{port}/{self.api_version}/{path}"
 
+    @handle_httpx_exceptions
     async def getReq(self, path, protocol = None) -> Optional[Dict]:
-        try:
-            resp = await self.session.get(self._url(path, protocol = protocol))
-            if resp.status_code == 401:
-                raise AutenticationFailure("Authenticaion failed to device")
+        resp = await self.session.get(self._url(path, protocol = protocol))
 
-            if resp.status_code != 200:
-                LOG.debug("Get failed: %s -> %d %s", path, resp.status_code, resp.text)
-                return None
+        if resp.status_code == 401:
+            raise AutenticationFailure("Authenticaion failed to device")
 
-            LOG.debug("Get succeded: %s -> %s", path, resp.text)
-            return decode_xtv_response(resp)
-        except (httpx.ConnectTimeout, httpx.ConnectError) as err:
-            raise ConnectionFailure(err) from err
-        except httpx.HTTPError as err:
-            raise GeneralFailure(err) from err
+        if resp.status_code != 200:
+            LOG.debug("Get failed: %s -> %d %s", path, resp.status_code, resp.text)
+            return None
 
+        LOG.debug("Get succeded: %s -> %s", path, resp.text)
+        return decode_xtv_response(resp)
+  
+    @handle_httpx_exceptions
     async def _getBinary(self, path: str) -> Tuple[Optional[bytes], Optional[str]]:
 
-        try:
-            resp = await self.session.get(self._url(path))
-            if resp.status_code == 401:
-                raise AutenticationFailure("Authenticaion failed to device")
+        resp = await self.session.get(self._url(path))
+        if resp.status_code == 401:
+            raise AutenticationFailure("Authenticaion failed to device")
 
-            if resp.status_code != 200:
-                return None, None
-            return resp.content, resp.headers.get("content-type")
-        except (httpx.ConnectTimeout, httpx.ConnectError) as err:
-            raise ConnectionFailure(err) from err
-        except httpx.HTTPError as err:
-            raise GeneralFailure(err) from err
+        if resp.status_code != 200:
+            return None, None
+        return resp.content, resp.headers.get("content-type")
 
+    @handle_httpx_exceptions
     async def postReq(self, path: str, data: Any, timeout=None, protocol=None) -> Optional[Dict]:
         try:
             resp = await self.session.post(self._url(path, protocol), json=data, timeout=timeout)
@@ -616,12 +633,6 @@ class PhilipsTV(object):
         except httpx.ReadTimeout:
             LOG.debug("Read time out on postReq", exc_info=True)
             return None
-        except (httpx.ConnectTimeout, httpx.ConnectError) as err:
-            raise ConnectionFailure(err) from err
-        except (httpx.ProtocolError, httpx.ReadError) as err:
-            raise ProtocolFailure(err) from err
-        except httpx.HTTPError as err:
-            raise GeneralFailure(err) from err
 
     async def pairRequest(
         self,
