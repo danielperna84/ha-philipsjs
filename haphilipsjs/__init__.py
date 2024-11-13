@@ -210,7 +210,7 @@ def handle_httpx_exceptions(f):
             try:
                 return await f(*args, **kwds)
             except httpx.RemoteProtocolError as err:
-                LOG.warning("%r. We retry once, could be a reused session that was closed", err)
+                LOG.debug("%r. We retry once, could be a reused session that was closed", err)
                 return await f(*args, **kwds)
 
         except (httpx.ConnectTimeout, httpx.ConnectError) as err:
