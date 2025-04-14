@@ -1,0 +1,37 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=77.0"]
+
+[project]
+name = "ha-philipsjs"
+version = "3.2.3"
+license = "MIT"
+description = "jointSPACE API for Home-Assistant"
+readme = "README.md"
+authors = [{ name = "Daniel Perna", email = "danielperna84@gmail.com" }]
+requires-python = ">=3.9"
+keywords = ["jointSPACE"]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "cryptography",
+  "httpx>=0.22.0",
+]
+
+[project.optional-dependencies]
+tests = [
+  "pytest>3.6.4",
+  "pytest-cov<2.6",
+  "pytest-asyncio>=0.20.2",
+  "coveralls",
+  "pytest-mock",
+  "respx>=0.17.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/danielperna84/ha-philipsjs"
+
+[tool.setuptools.packages.find]
+include = ["haphilipsjs*"]
