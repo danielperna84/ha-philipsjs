@@ -1,4 +1,4 @@
-from typing import Dict, List, Literal, NamedTuple, Optional, Type, TypedDict, Union
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Type, TypedDict, Union, TypeAlias
 
 
 class ActivitiesChannelType(TypedDict, total=False):
@@ -302,22 +302,64 @@ class MenuItemsSettingsNodeDataEnumRequired(TypedDict):
 class MenuItemsSettingsNodeDataEnum(MenuItemsSettingsNodeDataEnumRequired, total=False):
     icon: Optional[str]
 
-class MenuItemsSettingsNodeData(TypedDict, total=False):
-    nodes: List["MenuItemsSettingsNode"]              # PARENT_NODE
-    enums: List[MenuItemsSettingsNodeDataEnum]        # LIST_NODE
-    slider_data: MenuItemsSettingsNodeDataSliderData  # SLIDER_NODE
-    sliders: List[MenuItemsSettingsNodeDataSlider]    # MULTIPLE_SLIDERS
-    colors: List[int]                                 # WALL_COLOR_NODE
-
 class MenuItemsSettingsNodeRequired(TypedDict):
     node_id: int
-    type: str
-    data: MenuItemsSettingsNodeData
 
-class MenuItemsSettingsNode(MenuItemsSettingsNodeRequired, total=False):
+class MenuItemsSettingsNodeGeneric(MenuItemsSettingsNodeRequired, total=False):
     string_id: str
     icon: Optional[str]
     context: str
+
+class MenuItemsSettingsNodeParentData(TypedDict, total=False):
+    nodes: List["MenuItemsSettingsNode"]
+
+class MenuItemsSettingsNodeParent(MenuItemsSettingsNodeGeneric):
+    type: Literal["PARENT_NODE"]
+    data: MenuItemsSettingsNodeParentData
+
+class MenuItemsSettingsNodeEnumsData(TypedDict):
+    enums: List[MenuItemsSettingsNodeDataEnum]
+
+class MenuItemsSettingsNodeEnums(MenuItemsSettingsNodeGeneric):
+    type: Literal["LIST_NODE"]
+    data: MenuItemsSettingsNodeEnumsData
+
+class MenuItemsSettingsNodeColorsData(TypedDict):
+    colors: List[int]
+
+class MenuItemsSettingsNodeColors(MenuItemsSettingsNodeGeneric):
+    type: Union[Literal["WALL_COLOR_NODE"], Literal["COLOR_PICKER_NODE"]]
+    data: MenuItemsSettingsNodeColorsData
+
+class MenuItemsSettingsNodeSliderData(TypedDict):
+    slider_data: MenuItemsSettingsNodeDataSliderData
+
+class MenuItemsSettingsNodeSlider(MenuItemsSettingsNodeGeneric):
+    type: Literal["SLIDER_NODE"]
+    data: MenuItemsSettingsNodeSliderData
+
+class MenuItemsSettingsNodeMultiSliderData(TypedDict):
+    sliders: List[MenuItemsSettingsNodeDataSlider]
+
+class MenuItemsSettingsNodeMultiSlider(MenuItemsSettingsNodeGeneric):
+    type: Literal["MULTIPLE_SLIDER"]
+    data: MenuItemsSettingsNodeMultiSliderData
+
+class MenuItemsSettingsNodeEmptyData(TypedDict):
+    pass
+
+class MenuItemsSettingsNodeEntry(MenuItemsSettingsNodeGeneric):
+    type: Union[Literal["TEXT_ENTRY"], Literal["DATE_PICKER"], Literal["TIME_PICKER"], Literal["TOGGLE_NODE"]]
+    data: MenuItemsSettingsNodeEmptyData
+
+MenuItemsSettingsNode: TypeAlias = Union[
+    MenuItemsSettingsNodeParent,
+    MenuItemsSettingsNodeColors,
+    MenuItemsSettingsNodeEnums,
+    MenuItemsSettingsNodeSlider,
+    MenuItemsSettingsNodeMultiSlider,
+    MenuItemsSettingsNodeEntry,
+]
 
 class MenuItemsSettingsEntry(NamedTuple):
     node: MenuItemsSettingsNode
