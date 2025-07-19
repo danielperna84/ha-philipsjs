@@ -339,10 +339,13 @@ class MenuItemsSettingsValueEnumEntry(TypedDict):
     string_id: str
 
 class MenuItemsSettingsValueEnumRequired(TypedDict):
-    select_item: Optional[int]
+    selected_item: Optional[int]
 
 class MenuItemsSettingsValueEnum(MenuItemsSettingsValueEnumRequired, total=False):
     enum_values: List[MenuItemsSettingsValueEnumEntry]
+
+class MenuItemsSettingsUpdateValueEnum(TypedDict):
+    select_item: Optional[int]
 
 class MenuItemsSettingsValueNode(TypedDict):
     activenode_id: int
@@ -382,9 +385,18 @@ class MenuItemsSettingsCurrentPostNode(TypedDict):
 class MenuItemsSettingsCurrentPost(TypedDict):
     nodes: List[MenuItemsSettingsCurrentPostNode]
 
+
+MenuItemsSettingsUpdateValueData = Union[
+    MenuItemsSettingsValueInt,
+    MenuItemsSettingsValueBool,
+    MenuItemsSettingsUpdateValueEnum,
+    MenuItemsSettingsValueNode,
+    MenuItemsSettingsValueSliders
+]
+
 class MenuItemsSettingsUpdateValueValue(TypedDict):
     Nodeid: int
-    data: MenuItemsSettingsValueData
+    data: MenuItemsSettingsUpdateValueData
 
 class MenuItemsSettingsUpdateValue(TypedDict):
     value: MenuItemsSettingsUpdateValueValue
