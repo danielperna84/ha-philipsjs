@@ -37,7 +37,7 @@ from .typing import (
     MenuItemsSettingsNode,
     MenuItemsSettingsStructure,
     MenuItemsSettingsUpdate,
-    MenuItemsSettingsValueData,
+    MenuItemsSettingsUpdateValueData,
     Strings,
     StringsRequest,
     SystemType,
@@ -1454,8 +1454,8 @@ class PhilipsTV(object):
         if self.json_feature_supported("menuitems", "Setup_Menu") or force:
             return await self.postReq("menuitems/settings/update", cast(dict, post))
 
-    async def postMenuItemsSettingsUpdateData(self, value: Dict[int, MenuItemsSettingsValueData], force=False):
-        post = {
+    async def postMenuItemsSettingsUpdateData(self, value: Dict[int, MenuItemsSettingsUpdateValueData], force=False):
+        post: MenuItemsSettingsUpdate = {
             "values": [
                 {
                     "value": {
@@ -1466,7 +1466,7 @@ class PhilipsTV(object):
                 for node_id, data in value.items()
             ]
         }
-        return await self.postMenuItemsSettingsUpdate(cast(MenuItemsSettingsUpdate, post), force=force)
+        return await self.postMenuItemsSettingsUpdate(post, force=force)
         
 
     async def notifyChange(self, timeout=TIMEOUT_NOTIFYREAD):
