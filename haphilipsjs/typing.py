@@ -393,7 +393,7 @@ class MenuItemsSettingsValueNode(TypedDict):
     activenode_id: int
 
 class MenuItemsSettingsValueSlider(TypedDict):
-    slider_id: int
+    slider_id: str
     value: int
 
 class MenuItemsSettingsValueSliders(TypedDict):
@@ -433,7 +433,7 @@ MenuItemsSettingsUpdateValueData = Union[
     MenuItemsSettingsValueBool,
     MenuItemsSettingsUpdateValueEnum,
     MenuItemsSettingsValueNode,
-    MenuItemsSettingsValueSliders
+    MenuItemsSettingsValueSlider
 ]
 
 class MenuItemsSettingsUpdateValueValue(TypedDict):
