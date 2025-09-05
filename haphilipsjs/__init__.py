@@ -111,6 +111,7 @@ def decode_xtv_json(text: str):
         data = json.loads(text)
     except json.decoder.JSONDecodeError:
         LOG.debug("Invalid json received, trying adjusted version")
+        text = text.replace('"channelList": { "id": "version", "" }', '"channelList": { "id": "all", "version": "" }')
         text = text.replace("{,", "{")
         text = text.replace(",}", "}")
         while (p := text.find(",,")) >= 0:
