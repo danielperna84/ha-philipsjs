@@ -588,6 +588,12 @@ async def test_buggy_json():
     assert haphilipsjs.decode_xtv_json('{,"a":{}}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},}') == {"a": {}}
     assert haphilipsjs.decode_xtv_json('{"a":{},,,"b":{}}') == {"a": {}, "b": {}}
+    
+    # Invalid data seen on TPN256E
+    assert haphilipsjs.decode_xtv_json('{ "channelList": { "id": "version", "" } }') == {
+        "channelList": { "id": "all", "version": "" }
+    }
+
     with pytest.raises(haphilipsjs.NoneJsonData):
         haphilipsjs.decode_xtv_json("Plain text data")
 
