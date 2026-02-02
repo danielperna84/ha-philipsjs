@@ -629,7 +629,7 @@ class PhilipsTV(object):
                 LOG.debug("Post succeded: %s -> %s", data, resp.text)
                 return decode_xtv_response(resp)
 
-            LOG.warning("Post failed: %s -> %s", data, resp.text)
+            LOG.debug("Post failed: %s -> %s", data, resp.text)
             return None
         except httpx.ReadTimeout:
             LOG.debug("Read time out on postReq", exc_info=True)
