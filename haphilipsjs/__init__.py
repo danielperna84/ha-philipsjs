@@ -1486,6 +1486,8 @@ class PhilipsTV(object):
                 "menuitems/settings/version": {"version": self.settings_version}
             }
         }
+        if (self.api_version == 6) and self.json_feature_supported("recordings", "List"):
+            data["notification"].update({"recordings/list": self.recordings_list})
 
         timeout_ctx = httpx.Timeout(timeout=TIMEOUT, connect=TIMEOUT_CONNECT, read=timeout)
         try:
@@ -1520,6 +1522,12 @@ class PhilipsTV(object):
 
             if "menuitems/settings/version" in result:
                 self.settings_version = result["menuitems/settings/version"]["version"]
+
+            if "recordings/list" in result:
+                #TV just updates the recording 'version' and doesn't sent the actual 'recordings'
+                if self.recordings_list != None:
+                    if self.recordings_list["version"] != result["recordings/list"]["version"]:
+                        self.recordings_list = self.getRecordings()
 
             return True
 
