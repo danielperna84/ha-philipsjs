@@ -659,18 +659,20 @@ async def test_pair_request(client_mock: haphilipsjs.PhilipsTV, param: Param):
 
 
 async def test_set_favorite_list(client_mock, param: Param):
+    await client_mock.update()
     respx.put(f"{param.base}/channeldb/tv/favoriteLists/1").respond(json={})
 
-    result = await client_mock.setFavoriteList("1", [{"ccid": 1649}])
+    result = await client_mock.setFavoriteList("1", [1649])
 
     assert result is True
     assert respx.calls[-1].request.url == f"{param.base}/channeldb/tv/favoriteLists/1"
     assert json.loads(respx.calls[-1].request.content) == {
-        "channels": [{"ccid": 1649}],
+        "channels": [1649],
     }
 
 
 async def test_set_favorite_list_fail(client_mock, param: Param):
+    await client_mock.update()
     respx.put(f"{param.base}/channeldb/tv/favoriteLists/1").respond(status_code=503)
 
     result = await client_mock.setFavoriteList("1", [1649])
@@ -678,6 +680,7 @@ async def test_set_favorite_list_fail(client_mock, param: Param):
 
 
 async def test_modify_favorite_list_add(client_mock, param: Param):
+    await client_mock.update()
     respx.post(f"{param.base}/channeldb/tv/modifyfavourite/1").respond(json={})
 
     result = await client_mock.modifyFavoriteList("1", add=[1649])
@@ -690,6 +693,7 @@ async def test_modify_favorite_list_add(client_mock, param: Param):
 
 
 async def test_modify_favorite_list_remove(client_mock, param: Param):
+    await client_mock.update()
     respx.post(f"{param.base}/channeldb/tv/modifyfavourite/1").respond(json={})
 
     result = await client_mock.modifyFavoriteList("1", remove=[1648])
@@ -702,18 +706,20 @@ async def test_modify_favorite_list_remove(client_mock, param: Param):
 
 
 async def test_modify_favorite_list_rename(client_mock, param: Param):
-    respx.post(f"{param.base}/channeldb/tv/modifyfavorite/1").respond(json={})
+    await client_mock.update()
+    respx.post(f"{param.base}/channeldb/tv/modifyfavourite/1").respond(json={})
 
     result = await client_mock.modifyFavoriteList("1", name="My Channels")
 
     assert result is True
-    assert respx.calls[-1].request.url == f"{param.base}/channeldb/tv/modifyfavorite/1"
+    assert respx.calls[-1].request.url == f"{param.base}/channeldb/tv/modifyfavourite/1"
     assert json.loads(respx.calls[-1].request.content) == {
         "name": "My Channels",
     }
 
 
 async def test_modify_favorite_list_combined(client_mock, param: Param):
+    await client_mock.update()
     respx.post(f"{param.base}/channeldb/tv/modifyfavourite/1").respond(json={})
 
     result = await client_mock.modifyFavoriteList("1", add=[1649], remove=[1648], name="Favorites")
@@ -728,6 +734,7 @@ async def test_modify_favorite_list_combined(client_mock, param: Param):
 
 
 async def test_modify_favorite_list_fail(client_mock, param: Param):
+    await client_mock.update()
     respx.post(f"{param.base}/channeldb/tv/modifyfavourite/1").respond(status_code=503)
 
     result = await client_mock.modifyFavoriteList("1", add=[1649])
