@@ -103,6 +103,8 @@ def cbc_encode(key: bytes, data: str):
 
 
 def decode_xtv_json(text: str):
+    if text in IGNORED_JSON_RESPONSES:
+        return {}
     try:
         data = json.loads(text)
     except json.decoder.JSONDecodeError:
