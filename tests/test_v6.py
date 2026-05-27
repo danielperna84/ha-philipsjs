@@ -407,20 +407,17 @@ async def test_ambilight_mode(client_mock, param):
     respx.post(f"{param.base}/ambilight/mode").respond(json={})
     await client_mock.setAmbilightMode("internal")
 
-    if client_mock.quirk_ambilight_mode_ignored:
-        assert respx.calls[-2].request.url == f"{param.base}/ambilight/mode"
-        assert json.loads(respx.calls[-2].request.content) == {
-            "current": "internal",
-        }
-        assert respx.calls[-1].request.url == f"{param.base}/ambilight/mode"
-        assert json.loads(respx.calls[-1].request.content) == {
-            "current": "internal_invalid",
-        }
-    else:
-        assert respx.calls[-1].request.url == f"{param.base}/ambilight/mode"
-        assert json.loads(respx.calls[-1].request.content) == {
-            "current": "internal",
-        }
+    # The fixture's GET /ambilight/mode returns {"current": "internal"}, so even
+    # on quirked devices the post-POST check sees the mode flipped cleanly and
+    # does NOT fire the internal_invalid workaround.
+    mode_posts = [
+        c for c in respx.calls
+        if c.request.method == "POST"
+        and str(c.request.url) == f"{param.base}/ambilight/mode"
+    ]
+    sent_bodies = [json.loads(c.request.content) for c in mode_posts]
+    assert {"current": "internal"} in sent_bodies
+    assert {"current": "internal_invalid"} not in sent_bodies
 
     assert await client_mock.getAmbilightMode()
     assert client_mock.ambilight_mode == "internal"
@@ -434,6 +431,32 @@ async def test_ambilight_mode(client_mock, param):
 
     assert await client_mock.setAmbilightMode("interal")
     assert await client_mock.getAmbilightMode()
+
+
+async def test_ambilight_mode_workaround_triggered(client_mock, param: Param):
+    """When the quirk is active and POST mode=internal does not actually flip
+    the mode (GET still reports the previous value), the library follows up
+    with mode=internal_invalid as a workaround."""
+    await client_mock.getSystem()
+
+    if not client_mock.quirk_ambilight_mode_ignored:
+        pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
+
+    respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    # Simulate the firmware-bug case: POST is silently rejected, GET reflects
+    # the unchanged mode.
+    respx.get(f"{param.base}/ambilight/mode").respond(json={"current": "lounge"})
+
+    await client_mock.setAmbilightMode("internal")
+
+    mode_posts = [
+        c for c in respx.calls
+        if c.request.method == "POST"
+        and str(c.request.url) == f"{param.base}/ambilight/mode"
+    ]
+    sent_bodies = [json.loads(c.request.content) for c in mode_posts]
+    assert {"current": "internal"} in sent_bodies
+    assert {"current": "internal_invalid"} in sent_bodies
 
 
 async def test_ambilight_power(client_mock, param):
