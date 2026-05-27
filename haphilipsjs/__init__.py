@@ -744,9 +744,19 @@ class PhilipsTV(object):
             LOG.info("Switching to api_version %d", api_version)
             self.api_version = api_version
 
+    def _reset_dead_endpoints(self) -> None:
+        """Drop the dead-endpoint cache, e.g. on TV reconnect."""
+        if self._dead_endpoints:
+            LOG.info(
+                "TV reconnecting; clearing %d dead endpoint(s)",
+                len(self._dead_endpoints),
+            )
+            self._dead_endpoints.clear()
+
     async def update(self):
         try:
             if not self.on:
+                self._reset_dead_endpoints()
                 await self.getSystem()
                 await self.setTransport(self.secured_transport)
                 await self.getSources()
