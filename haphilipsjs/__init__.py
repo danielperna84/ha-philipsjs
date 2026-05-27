@@ -1135,15 +1135,6 @@ class PhilipsTV(object):
         data = await self.getReq("ambilight/mode")
         if data:
             self.ambilight_mode_raw = data["current"]
-
-            if self.quirk_ambilight_mode_ignored:
-                # we could probably disable quirk here
-                if data["current"] != "internal" and self.ambilight_mode_set:
-                    LOG.warning(
-                        "TV properly report ambilight mode, quirk should be disabled"
-                    )
-                    self.ambilight_mode_set = None
-
             return data["current"]
 
         else:
@@ -1157,13 +1148,15 @@ class PhilipsTV(object):
         if self.quirk_ambilight_mode_ignored:
             if mode == "internal":
                 self.ambilight_mode_set = None
-                if (
-                    await self.postReq(
-                        "ambilight/mode", {"current": "internal_invalid"}
-                    )
-                    is None
-                ):
-                    LOG.info("Ignoring error for workaround for ambilight mode")
+                check = await self.getReq("ambilight/mode") or {}
+                if check.get("current") != "internal":
+                    if (
+                        await self.postReq(
+                            "ambilight/mode", {"current": "internal_invalid"}
+                        )
+                        is None
+                    ):
+                        LOG.debug("Ignoring error for workaround for ambilight mode")
             else:
                 self.ambilight_mode_set = mode
 
