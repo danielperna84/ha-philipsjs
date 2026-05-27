@@ -384,6 +384,23 @@ async def test_dead_endpoint_skip(client_mock, param: Param, status_code):
     assert route.call_count == 1
 
 
+async def test_dead_endpoints_reset_on_off_to_on(client_mock, param: Param):
+    """update() clears the dead-endpoint cache on the off-to-on transition."""
+    assert await client_mock.update() is True
+    assert client_mock.on is True
+
+    respx.get(f"{param.base}/some/dead").respond(status_code=404)
+    assert await client_mock.getReq("some/dead") is None
+    assert "some/dead" in client_mock._dead_endpoints
+
+    # Simulate the TV becoming unreachable (a ConnectionFailure would normally
+    # cause this transition; we set it directly to keep the test focused).
+    client_mock.on = False
+
+    assert await client_mock.update() is True
+    assert "some/dead" not in client_mock._dead_endpoints
+
+
 async def test_ambilight_mode(client_mock, param):
     await client_mock.getSystem()
 
