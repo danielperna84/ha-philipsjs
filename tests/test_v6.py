@@ -175,6 +175,8 @@ async def test_basic_data(client_mock, param: Param):
             == "org.droidtv.nettv.market.MarketMainActivity-org.droidtv.nettv.market"
         )
         assert client_mock.quirk_ambilight_mode_ignored == True
+        # MSAF (Android) reports Standby/StandbyKeep correctly — quirk is Linux-only.
+        assert client_mock.quirk_powerstate_unreliable == False
         assert client_mock.os_type == "MSAF_2019_P"
 
         assert client_mock.channel_list_id == "1"
@@ -188,6 +190,7 @@ async def test_basic_data(client_mock, param: Param):
         assert client_mock.applications == {}
         assert client_mock.application_id == None
         assert client_mock.quirk_ambilight_mode_ignored == True
+        assert client_mock.quirk_powerstate_unreliable == True
         assert client_mock.os_type == "Linux"
 
         assert client_mock.channel_list_id == "all"
@@ -201,6 +204,13 @@ async def test_basic_data(client_mock, param: Param):
     assert client_mock.powerstate == POWERSTATE["powerstate"]
     assert client_mock.screenstate == SCREENSTATE["screenstate"]
     assert client_mock.huelamp_power == HUELAMPPOWER["power"]
+
+
+def test_quirk_powerstate_unreliable_false_without_system():
+    """quirk_powerstate_unreliable is False when system info has not been fetched yet."""
+    tv = haphilipsjs.PhilipsTV("127.0.0.1", api_version=6)
+    assert tv.system is None
+    assert tv.quirk_powerstate_unreliable is False
 
 
 async def test_current_channel_none(client_mock, param):

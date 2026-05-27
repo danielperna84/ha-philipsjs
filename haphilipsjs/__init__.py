@@ -361,6 +361,30 @@ class PhilipsTV(object):
         return False
 
     @property
+    def quirk_powerstate_unreliable(self):
+        """Return if this tv's /powerstate endpoint is unreliable.
+
+        On affected firmware /powerstate returns "On" regardless of actual
+        TV state, including standby. Consumers that derive a power-state
+        entity from this value should treat it as a "probably on" hint
+        only and combine it with HTTP reachability and context.level1 for
+        a more honest signal.
+
+        Linux-only (Saphi / Titan OS). MSAF (Android-based) firmware does
+        report Standby / StandbyKeep correctly and is excluded.
+
+        Versions known affected:
+            - Linux on API 6.1 (TPN248E / 55OLED759/12,
+              TPN256E / 75PUS8510/12) per home-assistant/core#156776
+        """
+
+        os_type = self.os_type
+        if os_type == "Linux":
+            return True
+
+        return False
+
+    @property
     def pairing_type(self):
         if self.system:
             return (
