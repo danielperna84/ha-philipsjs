@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union, cast, overload, Iterable, TypeVar
+from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast, overload, Iterable, TypeVar
 import httpx
 import logging
 import json
@@ -277,6 +277,7 @@ class PhilipsTV(object):
         self.recordings_list: Optional[RecordingsListed] = None
         self.huelamp_power: Optional[str] = None
         self.powerstate = None
+        self._dead_endpoints: Set[str] = set()
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
@@ -597,10 +598,18 @@ class PhilipsTV(object):
 
     @handle_httpx_exceptions
     async def getReq(self, path, protocol = None) -> Optional[Dict]:
+        if path in self._dead_endpoints:
+            return None
+
         resp = await self.session.get(self._url(path, protocol = protocol))
 
         if resp.status_code == 401:
             raise AutenticationFailure("Authenticaion failed to device")
+
+        if resp.status_code in (403, 404):
+            LOG.info("Marking endpoint %s as dead after %d response", path, resp.status_code)
+            self._dead_endpoints.add(path)
+            return None
 
         if resp.status_code != 200:
             LOG.debug("Get failed: %s -> %d %s", path, resp.status_code, resp.text)

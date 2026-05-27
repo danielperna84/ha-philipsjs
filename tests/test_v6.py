@@ -368,6 +368,22 @@ async def test_send_key_retry(client_mock, param: Param):
     assert route.call_count == 2
 
 
+@pytest.mark.parametrize("status_code", [403, 404])
+async def test_dead_endpoint_skip(client_mock, param: Param, status_code):
+    """Endpoints returning 403/404 are cached as dead and not re-requested."""
+    path = "recordings/list"
+    route = respx.get(f"{param.base}/{path}").respond(status_code=status_code)
+
+    assert path not in client_mock._dead_endpoints
+    assert await client_mock.getReq(path) is None
+    assert path in client_mock._dead_endpoints
+    assert route.call_count == 1
+
+    # Second call should short-circuit without hitting the network.
+    assert await client_mock.getReq(path) is None
+    assert route.call_count == 1
+
+
 async def test_ambilight_mode(client_mock, param):
     await client_mock.getSystem()
 
