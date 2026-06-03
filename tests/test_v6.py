@@ -473,6 +473,71 @@ async def test_ambilight_power(client_mock, param):
 
     await client_mock.setAmbilightPower("Off")
     assert json.loads(route.calls[1].request.content) == {"power": "Off"}
+    assert client_mock.ambilight_power == "Off"
+
+
+async def test_ambilight_off_via_currentconfiguration(client_mock, param):
+    """Quirked firmware ignores the OFF style, so setting the configuration to
+    OFF darkens the LEDs by writing zero cached pixels in expert mode."""
+    await client_mock.getSystem()
+    if not client_mock.quirk_ambilight_mode_ignored:
+        pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
+
+    await client_mock.getAmbilightCached()
+    assert client_mock.ambilight_cached_off is not None
+
+    config_route = respx.post(
+        f"{param.base}/ambilight/currentconfiguration"
+    ).respond(json={})
+    mode_route = respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    cached_route = respx.post(f"{param.base}/ambilight/cached").respond(json={})
+
+    await client_mock.setAmbilightCurrentConfiguration(
+        {"styleName": "OFF", "isExpert": False, "menuSetting": ""}
+    )
+
+    # The OFF configuration is posted as usual...
+    assert json.loads(config_route.calls.last.request.content)["styleName"] == "OFF"
+    # ...then the quirk switches to expert mode...
+    assert json.loads(mode_route.calls.last.request.content) == {"current": "expert"}
+    # ...and writes the zeroed cached layout.
+    cached_body = json.loads(cached_route.calls.last.request.content)
+    assert cached_body == client_mock.ambilight_cached_off
+    assert all(
+        px == {"r": 0, "g": 0, "b": 0}
+        for sides in cached_body.values()
+        for pixels in sides.values()
+        for px in pixels.values()
+    )
+
+
+def test_build_ambilight_off_skips_empty_sides_all_layers():
+    """Empty sides are dropped, every remaining pixel zeroed, across all layers."""
+    cached = {
+        "layer1": {
+            "left": {"0": {"r": 5, "g": 6, "b": 7}},
+            "top": {},
+            "right": {"0": {"r": 1, "g": 2, "b": 3}, "1": {"r": 9, "g": 9, "b": 9}},
+            "bottom": {},
+        },
+        "layer2": {
+            "top": {"0": {"r": 4, "g": 4, "b": 4}},
+        },
+    }
+    assert haphilipsjs._build_ambilight_off(cached) == {
+        "layer1": {
+            "left": {"0": {"r": 0, "g": 0, "b": 0}},
+            "right": {"0": {"r": 0, "g": 0, "b": 0}, "1": {"r": 0, "g": 0, "b": 0}},
+        },
+        "layer2": {"top": {"0": {"r": 0, "g": 0, "b": 0}}},
+    }
+
+
+def test_build_ambilight_off_none_without_usable_layout():
+    """No cached data, or only empty sides, yields None."""
+    assert haphilipsjs._build_ambilight_off(None) is None
+    assert haphilipsjs._build_ambilight_off({}) is None
+    assert haphilipsjs._build_ambilight_off({"layer1": {"top": {}, "bottom": {}}}) is None
 
 
 def test_ambilight_styles_menu_family():
