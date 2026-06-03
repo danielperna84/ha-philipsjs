@@ -44,6 +44,10 @@ from .typing import (
     ApplicationType,
 )
 from .auth import CachedDigestAuth
+from .data.v6 import (
+    AMBILIGHT_SUPPORTED_STYLES_EXTENDED_ANDROID,
+    AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI,
+)
 
 LOG = logging.getLogger(__name__)
 TIMEOUT = 20.0
@@ -226,6 +230,37 @@ def handle_httpx_exceptions(f):
     return wrapper
 
 
+_AMBILIGHT_STYLE_MENU_FALLBACK = {
+    "MSAF": {
+        "FOLLOW_VIDEO": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_ANDROID["FOLLOW_VIDEO"]["menuSettings"],
+        "FOLLOW_AUDIO": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_ANDROID["FOLLOW_AUDIO"]["menuSettings"],
+        "FOLLOW_COLOR": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_ANDROID["Lounge light"]["menuSettings"],
+    },
+    "Linux": {
+        "FOLLOW_VIDEO": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI["FOLLOW_VIDEO"]["menuSettings"],
+        "FOLLOW_AUDIO": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI["FOLLOW_AUDIO"]["menuSettings"],
+        "FOLLOW_COLOR": AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI["Lounge light"]["menuSettings"],
+    },
+}
+
+
+def _ambilight_styles_menu_family(os_type: Optional[str]) -> Optional[str]:
+    """Map a TV os_type to its ambilight menuSettings fallback family, or None.
+
+    Both the MSAF (Android) and Linux (Saphi / Titan OS) firmware families
+    omit menuSettings from /ambilight/supportedstyles even though the named
+    presets are user-selectable. The preset catalogs differ between the two
+    families, so each gets its own value set.
+    """
+    if os_type is None:
+        return None
+    if os_type.startswith("MSAF_"):
+        return "MSAF"
+    if os_type == "Linux":
+        return "Linux"
+    return None
+
+
 class PhilipsTV(object):
 
     channels: ChannelsType
@@ -307,10 +342,7 @@ class PhilipsTV(object):
 
     @property
     def quirk_ambilight_styles_menuitems(self):
-        if self.system:
-            return self.system.get("os_type", "").startswith("MSAF_")
-        else:
-            return False
+        return _ambilight_styles_menu_family(self.os_type) is not None
 
     @property
     def os_type(self):
@@ -1269,25 +1301,18 @@ class PhilipsTV(object):
                 }
 
                 if self.quirk_ambilight_styles_menuitems:
+                    family = _ambilight_styles_menu_family(self.os_type)
+                    menu = _AMBILIGHT_STYLE_MENU_FALLBACK[family]
+
                     style = self.ambilight_styles.setdefault(
                         "FOLLOW_VIDEO", {"styleName": "FOLLOW_VIDEO"}
                     )
-                    style["menuSettings"] = [
-                        "STANDARD",
-                        "VIVID",
-                        "IMMERSIVE",
-                        "NATURAL",
-                        "GAME",
-                    ]
+                    style["menuSettings"] = menu["FOLLOW_VIDEO"]
 
                     style = self.ambilight_styles.setdefault(
                         "FOLLOW_AUDIO", {"styleName": "FOLLOW_AUDIO"}
                     )
-                    style["menuSettings"] = [
-                        "ENERGY_ADAPTIVE_BRIGHTNESS",
-                        "VU_METER",
-                        "RANDOM_PIXEL_FLASH",
-                    ]
+                    style["menuSettings"] = menu["FOLLOW_AUDIO"]
 
                     if "Lounge light" in self.ambilight_styles:
                         style = self.ambilight_styles["Lounge light"]
@@ -1297,13 +1322,7 @@ class PhilipsTV(object):
                         style = self.ambilight_styles.setdefault(
                             "Lounge light", {"styleName": "Lounge light"}
                         )
-                    style["menuSettings"] = [
-                        "HOT_LAVA",
-                        "DEEP_WATER",
-                        "FRESH_NATURE",
-                        "ISF",
-                        "CUSTOM_COLOR",
-                    ]
+                    style["menuSettings"] = menu["FOLLOW_COLOR"]
             else:
                 self.ambilight_styles = {}
             return r
