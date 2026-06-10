@@ -475,6 +475,15 @@ async def test_ambilight_power(client_mock, param):
     assert json.loads(route.calls[1].request.content) == {"power": "Off"}
 
 
+def test_ambilight_styles_menu_family():
+    """os_type maps to the correct menuSettings fallback family."""
+    assert haphilipsjs._ambilight_styles_menu_family("MSAF_2019_P") == "MSAF"
+    assert haphilipsjs._ambilight_styles_menu_family("Linux") == "Linux"
+    assert haphilipsjs._ambilight_styles_menu_family(None) is None
+    assert haphilipsjs._ambilight_styles_menu_family("") is None
+    assert haphilipsjs._ambilight_styles_menu_family("Tizen") is None
+
+
 async def test_ambilight_topology(client_mock):
     assert await client_mock.getAmbilightTopology() == AMBILIGHT["topology"]
 

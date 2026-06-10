@@ -608,11 +608,41 @@ AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI: Dict[str, AmbilightSupportedStyleType
             "PARTY",
         ],
         "maxTuning": 2,
+        "menuSettings": [
+            "ENERGY_ADAPTIVE_BRIGHTNESS",
+            "ENERGY_ADAPTIVE_COLORS",
+            "VU_METER",
+            "SPECTRUM_ANALYZER",
+            "KNIGHT_RIDER_CLOCKWISE",
+            "KNIGHT_RIDER_ALTERNATING",
+            "RANDOM_PIXEL_FLASH",
+            "STROBE",
+            "PARTY",
+        ],
     },
     "Lounge light": {
         "styleName": "Lounge light",
         "algorithms": ["MANUAL_HUE", "AUTOMATIC_HUE"],
         "maxSpeed": 255,
+        "menuSettings": [
+            "PTA_LOUNGE",
+            "DEEP_WATER",
+            "HOT_LAVA",
+            "FRESH_NATURE",
+            "ISF_BLUE",
+        ],
+    },
+    "FOLLOW_VIDEO": {
+        "styleName": "FOLLOW_VIDEO",
+        "menuSettings": [
+            "STANDARD",
+            "NATURAL",
+            "VIVID",
+            "CINEMA",
+            "GAME",
+            "SPORTS",
+            "COMFORT",
+        ],
     },
 }
 
