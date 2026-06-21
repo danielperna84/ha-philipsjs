@@ -478,7 +478,13 @@ async def test_ambilight_power(client_mock, param):
 
 async def test_ambilight_off_via_currentconfiguration(client_mock, param):
     """Quirked firmware ignores the OFF style, so setting the configuration to
-    OFF darkens the LEDs by writing zero cached pixels in expert mode."""
+    OFF darkens the LEDs by writing zero cached pixels around an expert switch.
+
+    The zeros are written both before and after switching to expert: the
+    pre-expert write lets renderer-driven firmwares (Android) darken without
+    flashing the stale buffer, and the post-expert write is what lands on
+    firmwares that only honour cached writes while already in expert (Saphi).
+    """
     await client_mock.getSystem()
     if not client_mock.quirk_ambilight_mode_ignored:
         pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
@@ -498,17 +504,33 @@ async def test_ambilight_off_via_currentconfiguration(client_mock, param):
 
     # The OFF configuration is posted as usual...
     assert json.loads(config_route.calls.last.request.content)["styleName"] == "OFF"
-    # ...then the quirk switches to expert mode...
+    # ...the quirk switches to expert mode...
     assert json.loads(mode_route.calls.last.request.content) == {"current": "expert"}
-    # ...and writes the zeroed cached layout.
-    cached_body = json.loads(cached_route.calls.last.request.content)
-    assert cached_body == client_mock.ambilight_cached_off
-    assert all(
-        px == {"r": 0, "g": 0, "b": 0}
-        for sides in cached_body.values()
-        for pixels in sides.values()
-        for px in pixels.values()
-    )
+    # ...and brackets that switch with two zeroed cached writes.
+    assert cached_route.call_count == 2
+    # Order: configuration -> cached -> mode -> cached.
+    quirk_paths = [
+        call.request.url.path
+        for call in respx.calls
+        if call.request.url.path.startswith("/6/ambilight/")
+        and call.request.method == "POST"
+    ]
+    assert quirk_paths == [
+        "/6/ambilight/currentconfiguration",
+        "/6/ambilight/cached",
+        "/6/ambilight/mode",
+        "/6/ambilight/cached",
+    ]
+    # Both cached writes carry the zeroed layout.
+    for cached_call in cached_route.calls:
+        cached_body = json.loads(cached_call.request.content)
+        assert cached_body == client_mock.ambilight_cached_off
+        assert all(
+            px == {"r": 0, "g": 0, "b": 0}
+            for sides in cached_body.values()
+            for pixels in sides.values()
+            for px in pixels.values()
+        )
 
 
 def test_build_ambilight_off_skips_empty_sides_all_layers():

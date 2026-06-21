@@ -1385,10 +1385,16 @@ class PhilipsTV(object):
                 self.ambilight_mode_set = None
                 # This firmware ignores an "OFF" style; the LEDs keep
                 # rendering. Darken them by writing zero pixels in expert mode.
+                # Write the zeros both before and after switching to expert:
+                # the pre-expert write lets renderer-driven firmwares (Android)
+                # darken without flashing the stale buffer when expert engages,
+                # while the post-expert write is what actually lands on firmwares
+                # that only honour cached writes while already in expert (Saphi).
                 if (
                     config.get("styleName") == "OFF"
                     and self.ambilight_cached_off is not None
                 ):
+                    await self.setAmbilightCached(self.ambilight_cached_off)
                     await self.setAmbilightMode("expert")
                     await self.setAmbilightCached(self.ambilight_cached_off)
 
