@@ -401,7 +401,12 @@ class PhilipsTV(object):
         It also ignores ambilight off: a POST to ambilight/currentconfiguration
         with ``styleName`` ``"OFF"`` returns OK but the LEDs stay lit, so
         setAmbilightCurrentConfiguration darkens them by writing zero cached
-        pixels in expert mode when the configuration is set off.
+        pixels around a switch to expert mode when the configuration is set
+        off. The zeros are written both before and after the switch: the
+        pre-expert write lets renderer-driven firmwares (Android) darken
+        without flashing the stale buffer when expert engages, while the
+        post-expert write is what actually lands on firmwares that only honour
+        cached writes while already in expert (Saphi).
 
         Versions known affected:
             - Android - 9.0.0
@@ -1383,13 +1388,6 @@ class PhilipsTV(object):
 
             if self.quirk_ambilight_mode_ignored:
                 self.ambilight_mode_set = None
-                # This firmware ignores an "OFF" style; the LEDs keep
-                # rendering. Darken them by writing zero pixels in expert mode.
-                # Write the zeros both before and after switching to expert:
-                # the pre-expert write lets renderer-driven firmwares (Android)
-                # darken without flashing the stale buffer when expert engages,
-                # while the post-expert write is what actually lands on firmwares
-                # that only honour cached writes while already in expert (Saphi).
                 if (
                     config.get("styleName") == "OFF"
                     and self.ambilight_cached_off is not None

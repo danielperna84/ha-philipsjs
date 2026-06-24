@@ -477,14 +477,8 @@ async def test_ambilight_power(client_mock, param):
 
 
 async def test_ambilight_off_via_currentconfiguration(client_mock, param):
-    """Quirked firmware ignores the OFF style, so setting the configuration to
-    OFF darkens the LEDs by writing zero cached pixels around an expert switch.
-
-    The zeros are written both before and after switching to expert: the
-    pre-expert write lets renderer-driven firmwares (Android) darken without
-    flashing the stale buffer, and the post-expert write is what lands on
-    firmwares that only honour cached writes while already in expert (Saphi).
-    """
+    """Setting the configuration to OFF on quirked firmware darkens the LEDs by
+    writing zero cached pixels both before and after a switch to expert mode."""
     await client_mock.getSystem()
     if not client_mock.quirk_ambilight_mode_ignored:
         pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
