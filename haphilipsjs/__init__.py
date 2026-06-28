@@ -3,6 +3,7 @@ import httpx
 import logging
 import json
 import itertools
+import time
 from urllib.parse import quote
 from secrets import token_bytes, token_hex
 from base64 import b64decode, b64encode
@@ -73,6 +74,12 @@ HTTP_PORT = 1925
 HTTPS_PORT = 1926
 MAXIMUM_ITEMS_IN_REQUEST = 50
 IGNORED_JSON_RESPONSES = {"", "Context Service not started", "}", "<html><head><title>Ok</title></head><body>Ok</body></html>", }
+
+# update() backoff: after N consecutive ConnectionFailures, short-circuit
+# subsequent update() calls inside an exponentially growing window.
+UPDATE_BACKOFF_THRESHOLD = 3
+UPDATE_BACKOFF_INITIAL = 30.0
+UPDATE_BACKOFF_CAP = 300.0
 
 def hmac_signature(key: bytes, timestamp: str, data: str):
     """Calculate a timestamped signature."""
@@ -337,6 +344,8 @@ class PhilipsTV(object):
         self.huelamp_power: Optional[str] = None
         self.powerstate = None
         self._dead_endpoints: Set[str] = set()
+        self._consecutive_failures = 0
+        self._last_failure_at: float = 0.0
         if auth_shared_key:
             self.auth_shared_key = auth_shared_key
         else:
@@ -819,7 +828,27 @@ class PhilipsTV(object):
             )
             self._dead_endpoints.clear()
 
+    def _in_failure_backoff(self) -> bool:
+        """Return True while update() should short-circuit due to repeated failures.
+
+        After UPDATE_BACKOFF_THRESHOLD consecutive ConnectionFailures, an
+        exponentially growing window (initial UPDATE_BACKOFF_INITIAL seconds,
+        capped at UPDATE_BACKOFF_CAP) suppresses further network attempts.
+        Resets when an update() succeeds.
+        """
+        if self._consecutive_failures < UPDATE_BACKOFF_THRESHOLD:
+            return False
+        window = min(
+            UPDATE_BACKOFF_INITIAL
+            * 2 ** (self._consecutive_failures - UPDATE_BACKOFF_THRESHOLD),
+            UPDATE_BACKOFF_CAP,
+        )
+        return time.monotonic() - self._last_failure_at < window
+
     async def update(self):
+        if self._in_failure_backoff():
+            self.on = False
+            return False
         try:
             if not self.on:
                 self._reset_dead_endpoints()
@@ -846,10 +875,19 @@ class PhilipsTV(object):
             await self.getHueLampPower()
             await self.getRecordings()
             self.on = True
+            self._consecutive_failures = 0
             return True
         except ConnectionFailure as err:
             LOG.debug("TV not available: %s", repr(err))
             self.on = False
+            self._consecutive_failures += 1
+            self._last_failure_at = time.monotonic()
+            if self._consecutive_failures == UPDATE_BACKOFF_THRESHOLD:
+                LOG.warning(
+                    "TV unreachable %d times in a row; backing off polling. "
+                    "Manual power-cycle of the TV may be required.",
+                    self._consecutive_failures,
+                )
             return False
 
     def _decodeSystem(self, system) -> SystemType:
