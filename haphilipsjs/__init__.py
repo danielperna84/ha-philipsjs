@@ -261,6 +261,29 @@ def _ambilight_styles_menu_family(os_type: Optional[str]) -> Optional[str]:
     return None
 
 
+def _build_ambilight_off(
+    cached: Optional[AmbilightLayersType],
+) -> Optional[AmbilightLayersType]:
+    """Return the cached pixel layout with every channel zeroed, or None.
+
+    Empty sides are skipped; the TV rejects a payload that includes them.
+    """
+    if not cached:
+        return None
+    result = {
+        layer: zeroed
+        for layer, sides in cached.items()
+        if (
+            zeroed := {
+                side: {index: {"r": 0, "g": 0, "b": 0} for index in pixels}
+                for side, pixels in sides.items()
+                if pixels
+            }
+        )
+    }
+    return cast(Optional[AmbilightLayersType], result or None)
+
+
 class PhilipsTV(object):
 
     channels: ChannelsType
@@ -302,6 +325,7 @@ class PhilipsTV(object):
         self.ambilight_mode_set = None
         self.ambilight_mode_raw: Optional[str] = None
         self.ambilight_cached: Optional[AmbilightLayersType] = None
+        self.ambilight_cached_off: Optional[AmbilightLayersType] = None
         self.ambilight_measured: Optional[AmbilightLayersType] = None
         self.ambilight_processed: Optional[AmbilightLayersType] = None
         self.ambilight_power_raw: Optional[Dict] = None
@@ -373,6 +397,16 @@ class PhilipsTV(object):
 
         It will also not report a correct ambilight mode after being
         changed by call. So we need to remember last set mode.
+
+        It also ignores ambilight off: a POST to ambilight/currentconfiguration
+        with ``styleName`` ``"OFF"`` returns OK but the LEDs stay lit, so
+        setAmbilightCurrentConfiguration darkens them by writing zero cached
+        pixels around a switch to expert mode when the configuration is set
+        off. The zeros are written both before and after the switch: the
+        pre-expert write lets renderer-driven firmwares (Android) darken
+        without flashing the stale buffer when expert engages, while the
+        post-expert write is what actually lands on firmwares that only honour
+        cached writes while already in expert (Saphi).
 
         Versions known affected:
             - Android - 9.0.0
@@ -1238,8 +1272,10 @@ class PhilipsTV(object):
         r = await self.getReq("ambilight/cached")
         if r:
             self.ambilight_cached = r
+            self.ambilight_cached_off = _build_ambilight_off(r)
         else:
             self.ambilight_cached = None
+            self.ambilight_cached_off = None
         return r
 
     async def getAmbilightPower(self):
@@ -1352,6 +1388,13 @@ class PhilipsTV(object):
 
             if self.quirk_ambilight_mode_ignored:
                 self.ambilight_mode_set = None
+                if (
+                    config.get("styleName") == "OFF"
+                    and self.ambilight_cached_off is not None
+                ):
+                    await self.setAmbilightCached(self.ambilight_cached_off)
+                    await self.setAmbilightMode("expert")
+                    await self.setAmbilightCached(self.ambilight_cached_off)
 
             return True
 
