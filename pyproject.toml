@@ -4,7 +4,7 @@ requires = ["setuptools>=77.0"]
 
 [project]
 name = "ha-philipsjs"
-version = "3.2.4"
+version = "3.2.5"
 license = "MIT"
 description = "jointSPACE API for Home-Assistant"
 readme = "README.md"
