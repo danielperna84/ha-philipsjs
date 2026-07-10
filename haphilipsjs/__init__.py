@@ -712,6 +712,23 @@ class PhilipsTV(object):
             LOG.debug("Read time out on postReq", exc_info=True)
             return None
 
+    @handle_httpx_exceptions
+    async def putReq(self, path: str, data: Any, timeout=None, protocol=None) -> Optional[Dict]:
+        try:
+            resp = await self.session.put(self._url(path, protocol), json=data, timeout=timeout)
+            if resp.status_code == 401:
+                raise AutenticationFailure("Authenticaion failed to device")
+
+            if resp.status_code == 200:
+                LOG.debug("Put succeded: %s -> %s", data, resp.text)
+                return decode_xtv_response(resp)
+
+            LOG.debug("Put failed: %s -> %s", data, resp.text)
+            return None
+        except httpx.ReadTimeout:
+            LOG.debug("Read time out on putReq", exc_info=True)
+            return None
+
     async def pairRequest(
         self,
         app_id: str,
@@ -996,6 +1013,48 @@ class PhilipsTV(object):
                 return r["channels"]
             else:
                 return None
+
+    async def setFavoriteList(self, list_id: str, channels: List[int]):
+        """Replace the channel list of a favorite list via PUT.
+
+        TV must be watching a channel (not on home screen) or a 503 is returned.
+        list_id: "1" through "8"
+        channels: ordered list of ccid integers
+        """
+        if self.api_version >= 6:
+            if self.json_feature_supported("editfavorites"):
+                data = {"channels": channels}
+                if await self.putReq(f"channeldb/tv/favoriteLists/{list_id}", data) is not None:
+                    return True
+        return False
+
+    async def modifyFavoriteList(
+        self,
+        list_id: str,
+        add: Optional[List[int]] = None,
+        remove: Optional[List[int]] = None,
+        name: Optional[str] = None,
+    ):
+        """Add/remove channels or rename a favorite list via POST.
+
+        TV must be watching a channel (not on home screen) or a 503 is returned.
+        list_id: "1" through "8"
+        add: list of ccid integers to add
+        remove: list of ccid integers to remove
+        name: optional new display name for the list
+        """
+        if self.api_version >= 6:
+            if self.json_feature_supported("editfavorites"):
+                data: Dict[str, Any] = {}
+                if add is not None:
+                    data["add"] = {"id": add}
+                if remove is not None:
+                    data["remove"] = {"id": remove}
+                if name is not None:
+                    data["name"] = name
+                if await self.postReq(f"channeldb/tv/modifyfavourite/{list_id}", data) is not None:
+                    return True
+        return False
 
     async def getChannelList(self, list_id: str):
         if self.api_version >= 5:
