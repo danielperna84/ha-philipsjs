@@ -401,6 +401,47 @@ async def test_dead_endpoints_reset_on_off_to_on(client_mock, param: Param):
     assert "some/dead" not in client_mock._dead_endpoints
 
 
+def test_in_failure_backoff_below_threshold(client_mock):
+    """No backoff applies while consecutive failures < UPDATE_BACKOFF_THRESHOLD."""
+    client_mock._consecutive_failures = haphilipsjs.UPDATE_BACKOFF_THRESHOLD - 1
+    client_mock._last_failure_at = haphilipsjs.time.monotonic()
+    assert client_mock._in_failure_backoff() is False
+
+
+def test_in_failure_backoff_within_window(client_mock):
+    """Backoff window is active immediately after reaching the threshold."""
+    client_mock._consecutive_failures = haphilipsjs.UPDATE_BACKOFF_THRESHOLD
+    client_mock._last_failure_at = haphilipsjs.time.monotonic()
+    assert client_mock._in_failure_backoff() is True
+
+
+def test_in_failure_backoff_after_window(client_mock):
+    """Backoff window expires; update() may try again."""
+    client_mock._consecutive_failures = haphilipsjs.UPDATE_BACKOFF_THRESHOLD
+    client_mock._last_failure_at = haphilipsjs.time.monotonic() - haphilipsjs.UPDATE_BACKOFF_CAP - 10
+    assert client_mock._in_failure_backoff() is False
+
+
+async def test_update_short_circuits_during_backoff(client_mock, param: Param):
+    """While in the failure-backoff window, update() returns False without any HTTP traffic."""
+    client_mock._consecutive_failures = haphilipsjs.UPDATE_BACKOFF_THRESHOLD + 2
+    client_mock._last_failure_at = haphilipsjs.time.monotonic()
+
+    respx.calls.reset()
+    assert await client_mock.update() is False
+    assert len(respx.calls) == 0
+    assert client_mock.on is False
+
+
+async def test_update_resets_failure_counter_on_success(client_mock, param: Param):
+    """A successful update() clears _consecutive_failures so backoff is released."""
+    client_mock._consecutive_failures = haphilipsjs.UPDATE_BACKOFF_THRESHOLD + 5
+    client_mock._last_failure_at = haphilipsjs.time.monotonic() - haphilipsjs.UPDATE_BACKOFF_CAP - 10
+
+    assert await client_mock.update() is True
+    assert client_mock._consecutive_failures == 0
+
+
 async def test_ambilight_mode(client_mock, param):
     await client_mock.getSystem()
 
