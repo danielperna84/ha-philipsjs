@@ -177,6 +177,31 @@ def channel_uri(channel):
     return uri
 
 
+@overload
+def json_feature_supported(system: Optional[SystemType], type: str) -> Optional[List[str]]:
+    ...
+
+
+@overload
+def json_feature_supported(system: Optional[SystemType], type: str, value: str) -> Optional[bool]:
+    ...
+
+
+def json_feature_supported(system: Optional[SystemType], type: str, value: Optional[str] = None):
+    """Check json features of a system descriptor, without a connection to the TV."""
+    if system:
+        features = cast(
+            List[str],
+            system.get("featuring", {}).get("jsonfeatures", {}).get(type, []),
+        )
+        if value:
+            return value in features
+        else:
+            return features
+    else:
+        return None
+
+
 class GeneralFailure(Exception):
     """Base class for component failures."""
 
@@ -465,17 +490,9 @@ class PhilipsTV(object):
         ...
 
     def json_feature_supported(self, type: str, value: Optional[str] = None):
-        if self.system:
-            features = cast(
-                List[str],
-                self.system.get("featuring", {}).get("jsonfeatures", {}).get(type, []),
-            )
-            if value:
-                return value in features
-            else:
-                return features
-        else:
-            return None
+        if value:
+            return json_feature_supported(self.system, type, value)
+        return json_feature_supported(self.system, type)
 
     @property
     def api_version_detected(self) -> Optional[int]:

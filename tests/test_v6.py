@@ -802,3 +802,16 @@ async def test_pair_request(client_mock: haphilipsjs.PhilipsTV, param: Param):
             "auth_key": PAIR_RESPONSE["auth_key"],
             "timestamp": PAIR_RESPONSE["timestamp"],
         }
+
+
+@pytest.mark.parametrize(
+    ("system", "args", "result"),
+    [
+        (SYSTEM_ANDROID_DECRYPTED, ("menuitems", "Setup_Menu"), True),
+        (SYSTEM_ANDROID_DECRYPTED, ("menuitems", "Unknown"), False),
+        (SYSTEM_ANDROID_DECRYPTED, ("menuitems",), ["Setup_Menu"]),
+        (None, ("menuitems", "Setup_Menu"), None),
+    ],
+)
+def test_json_feature_supported(system, args, result):
+    assert haphilipsjs.json_feature_supported(system, *args) == result

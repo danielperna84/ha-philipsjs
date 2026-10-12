@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Dict, List, Literal, NamedTuple, Optional, Type, TypedDict, Union, TypeAlias
 
 
@@ -324,7 +325,23 @@ class MenuItemsSettingsNodeEnums(MenuItemsSettingsNodeGeneric):
     type: Literal["LIST_NODE"]
     data: MenuItemsSettingsNodeEnumsData
 
+class MenuItemsSettingsNodeType(str, Enum):
+    """Types of nodes in the menu settings structure."""
+
+    PARENT_NODE = "PARENT_NODE"
+    LIST_NODE = "LIST_NODE"
+    SLIDER_NODE = "SLIDER_NODE"
+    MULTIPLE_SLIDER = "MULTIPLE_SLIDER"
+    TOGGLE_NODE = "TOGGLE_NODE"
+    WALL_COLOR_NODE = "WALL_COLOR_NODE"
+    COLOR_PICKER_NODE = "COLOR_PICKER_NODE"
+    TEXT_ENTRY = "TEXT_ENTRY"
+    DATE_PICKER = "DATE_PICKER"
+    TIME_PICKER = "TIME_PICKER"
+
 class MenuItemsSettingsNodeColorsData(TypedDict):
+    """ARGB colors of a color node, its current value is an index into colors."""
+
     colors: List[int]
 
 class MenuItemsSettingsNodeColors(MenuItemsSettingsNodeGeneric):
@@ -408,6 +425,12 @@ MenuItemsSettingsValueData = Union[
 ]
 
 class MenuItemsSettingsCurrentValueValue(TypedDict):
+    """Current value of a menu node.
+
+    The string_id holds the translated name of the node, also for nodes
+    without a string_id in the menu settings structure.
+    """
+
     Nodeid: int
     Controllable: bool
     Available: bool
