@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, List, Literal, NamedTuple, Optional, Type, TypedDict, Union, TypeAlias
+from typing import Any, Dict, List, Literal, NamedTuple, Optional, Type, TypedDict, Union, TypeAlias, final
 
 
 class ActivitiesChannelType(TypedDict, total=False):
@@ -385,9 +385,11 @@ class MenuItemsSettingsEntry(NamedTuple):
 class MenuItemsSettingsStructure(TypedDict, total=False):
     node: MenuItemsSettingsNode
 
+@final
 class MenuItemsSettingsValueInt(TypedDict):
     value: int
 
+@final
 class MenuItemsSettingsValueBool(TypedDict):
     value: bool
 
@@ -400,12 +402,14 @@ class MenuItemsSettingsValueEnumEntry(TypedDict):
 class MenuItemsSettingsValueEnumRequired(TypedDict):
     selected_item: Optional[int]
 
+@final
 class MenuItemsSettingsValueEnum(MenuItemsSettingsValueEnumRequired, total=False):
     enum_values: List[MenuItemsSettingsValueEnumEntry]
 
 class MenuItemsSettingsUpdateValueEnum(TypedDict):
     select_item: Optional[int]
 
+@final
 class MenuItemsSettingsValueNode(TypedDict):
     activenode_id: int
 
@@ -413,6 +417,7 @@ class MenuItemsSettingsValueSlider(TypedDict):
     slider_id: str
     value: int
 
+@final
 class MenuItemsSettingsValueSliders(TypedDict):
     values: List[MenuItemsSettingsValueSlider]
 
@@ -423,6 +428,10 @@ MenuItemsSettingsValueData = Union[
     MenuItemsSettingsValueNode,
     MenuItemsSettingsValueSliders
 ]
+"""Current value data of a menu node, its shape follows from the type of the node.
+
+The members are final, so the union can be narrowed by checking for their keys.
+"""
 
 class MenuItemsSettingsCurrentValueValue(TypedDict):
     """Current value of a menu node.

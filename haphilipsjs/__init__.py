@@ -44,6 +44,8 @@ from .typing import (
     ApplicationType,
 )
 from .auth import CachedDigestAuth
+from .features import json_feature_supported
+from .menu import is_menu_supported_on_system
 from .data.v6 import (
     AMBILIGHT_SUPPORTED_STYLES_EXTENDED_ANDROID,
     AMBILIGHT_SUPPORTED_STYLES_EXTENDED_SAPHI,
@@ -175,31 +177,6 @@ def channel_uri(channel):
     if channel is not None:
         uri += f"/{channel}"
     return uri
-
-
-@overload
-def json_feature_supported(system: Optional[SystemType], type: str) -> Optional[List[str]]:
-    ...
-
-
-@overload
-def json_feature_supported(system: Optional[SystemType], type: str, value: str) -> Optional[bool]:
-    ...
-
-
-def json_feature_supported(system: Optional[SystemType], type: str, value: Optional[str] = None):
-    """Check json features of a system descriptor, without a connection to the TV."""
-    if system:
-        features = cast(
-            List[str],
-            system.get("featuring", {}).get("jsonfeatures", {}).get(type, []),
-        )
-        if value:
-            return value in features
-        else:
-            return features
-    else:
-        return None
 
 
 class GeneralFailure(Exception):
@@ -1490,7 +1467,7 @@ class PhilipsTV(object):
         return {}
 
     async def getMenuItemsSettingsStructure(self, force=False) -> Optional[MenuItemsSettingsStructure]:
-        if self.json_feature_supported("menuitems", "Setup_Menu") or force:
+        if is_menu_supported_on_system(self.system) or force:
             r = cast(Optional[MenuItemsSettingsStructure],
                     await self.getReq("menuitems/settings/structure")
             )
@@ -1512,7 +1489,7 @@ class PhilipsTV(object):
         if not node_ids:
             return None
 
-        if self.json_feature_supported("menuitems", "Setup_Menu") or force:
+        if is_menu_supported_on_system(self.system) or force:
             post: MenuItemsSettingsCurrentPost = {
                 "nodes": [
                     {
@@ -1545,7 +1522,7 @@ class PhilipsTV(object):
             return res
 
     async def postMenuItemsSettingsUpdate(self, post: MenuItemsSettingsUpdate, force=False):
-        if self.json_feature_supported("menuitems", "Setup_Menu") or force:
+        if is_menu_supported_on_system(self.system) or force:
             return await self.postReq("menuitems/settings/update", cast(dict, post))
 
     async def postMenuItemsSettingsUpdateData(self, value: Dict[int, MenuItemsSettingsUpdateValueData], force=False):
