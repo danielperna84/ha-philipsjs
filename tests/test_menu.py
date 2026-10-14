@@ -1,7 +1,13 @@
 import pytest
 
 from haphilipsjs.data.v6 import MENUITEMS_SETTINGS_STRUCTURE
-from haphilipsjs.menu import get_menu_node_strings, walk_menu_nodes
+from haphilipsjs.menu import (
+    get_menu_node_name,
+    get_menu_node_strings,
+    is_menu_node_with_value,
+    is_menu_supported_on_system,
+    walk_menu_nodes,
+)
 from haphilipsjs.typing import MenuItemsSettingsNode, MenuItemsSettingsNodeType
 
 SLIDER: MenuItemsSettingsNode = {
@@ -36,18 +42,20 @@ ROOT: MenuItemsSettingsNode = {
 
 def test_walk_menu_nodes():
     assert [[node["node_id"] for node in path] for path in walk_menu_nodes(ROOT)] == [
-        [1],
-        [2, 1],
-        [3, 2, 1],
-        [4, 2, 1],
+        [2],
+        [3, 2],
+        [4, 2],
     ]
 
 
 def test_walk_menu_nodes_structure():
-    paths = list(walk_menu_nodes(MENUITEMS_SETTINGS_STRUCTURE["node"]))
+    root = MENUITEMS_SETTINGS_STRUCTURE["node"]
+    paths = list(walk_menu_nodes(root))
 
-    assert paths[0] == (MENUITEMS_SETTINGS_STRUCTURE["node"],)
-    assert all(path[-1] is MENUITEMS_SETTINGS_STRUCTURE["node"] for path in paths)
+    assert paths[0] == (root["data"]["nodes"][0],)
+    assert all(
+        any(path[-1] is child for child in root["data"]["nodes"]) for path in paths
+    )
 
 
 @pytest.mark.parametrize(
@@ -66,3 +74,47 @@ def test_get_menu_node_strings(node, strings):
 
 def test_menu_node_type():
     assert LIST["type"] == MenuItemsSettingsNodeType.LIST_NODE
+
+
+@pytest.mark.parametrize(
+    ("node", "value", "name"),
+    [
+        (LIST, None, "List"),
+        # The string id of the node wins over the current value
+        (LIST, {"string_id": "Other"}, "List"),
+        (MENU, {"string_id": "Menu"}, "Menu"),
+        (MENU, {}, None),
+        (MENU, None, None),
+    ],
+)
+def test_get_menu_node_name(node, value, name):
+    assert get_menu_node_name(node, {"LIST": "List"}, value) == name
+
+
+@pytest.mark.parametrize(
+    ("node", "value", "result"),
+    [
+        (LIST, None, True),
+        (MENU, {"data": {"activenode_id": 3}}, True),
+        (MENU, {"data": {}}, False),
+        (MENU, {}, False),
+        (MENU, None, False),
+        # Parent nodes without children have nothing to choose from
+        ({"node_id": 5, "type": "PARENT_NODE", "data": {}}, {"data": {"activenode_id": 3}}, False),
+    ],
+)
+def test_is_menu_node_with_value(node, value, result):
+    assert is_menu_node_with_value(node, value) is result
+
+
+@pytest.mark.parametrize(
+    ("system", "result"),
+    [
+        ({"featuring": {"jsonfeatures": {"menuitems": ["Setup_Menu"]}}}, True),
+        ({"featuring": {"jsonfeatures": {"menuitems": []}}}, False),
+        ({}, False),
+        (None, False),
+    ],
+)
+def test_is_menu_supported_on_system(system, result):
+    assert is_menu_supported_on_system(system) is result
