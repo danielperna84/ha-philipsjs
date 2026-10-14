@@ -478,7 +478,7 @@ async def test_ambilight_power(client_mock, param):
 
 async def test_ambilight_off_via_currentconfiguration(client_mock, param):
     """Setting the configuration to OFF on quirked firmware darkens the LEDs by
-    writing zero cached pixels both before and after a switch to expert mode."""
+    writing zero cached pixels only when its OFF readback was rejected."""
     await client_mock.getSystem()
     if not client_mock.quirk_ambilight_mode_ignored:
         pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
@@ -498,6 +498,13 @@ async def test_ambilight_off_via_currentconfiguration(client_mock, param):
 
     # The OFF configuration is posted as usual...
     assert json.loads(config_route.calls.last.request.content)["styleName"] == "OFF"
+    # ...then read back. The default fixture reports FOLLOW_VIDEO, so the
+    # fallback is needed on this simulated firmware.
+    assert any(
+        call.request.method == "GET"
+        and call.request.url.path == "/6/ambilight/currentconfiguration"
+        for call in respx.calls
+    )
     # ...the quirk switches to expert mode...
     assert json.loads(mode_route.calls.last.request.content) == {"current": "expert"}
     # ...and brackets that switch with two zeroed cached writes.
@@ -525,6 +532,116 @@ async def test_ambilight_off_via_currentconfiguration(client_mock, param):
             for pixels in sides.values()
             for px in pixels.values()
         )
+    assert client_mock._ambilight_cached_off_active is True
+
+
+async def test_ambilight_off_skips_cached_workaround_when_confirmed(
+    client_mock, param
+):
+    """A TV that confirms OFF keeps its native off state without expert mode."""
+    await client_mock.getSystem()
+    if not client_mock.quirk_ambilight_mode_ignored:
+        pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
+
+    await client_mock.getAmbilightCached()
+    off = {"styleName": "OFF", "isExpert": False, "menuSetting": ""}
+    config_route = respx.post(
+        f"{param.base}/ambilight/currentconfiguration"
+    ).respond(json={})
+    readback_route = respx.get(
+        f"{param.base}/ambilight/currentconfiguration"
+    ).respond(json=off)
+    mode_route = respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    cached_route = respx.post(f"{param.base}/ambilight/cached").respond(json={})
+
+    await client_mock.setAmbilightCurrentConfiguration(off)
+
+    assert config_route.call_count == 1
+    assert readback_route.call_count == 1
+    assert mode_route.call_count == 0
+    assert cached_route.call_count == 0
+    assert client_mock.ambilight_current_configuration == off
+    assert client_mock._ambilight_cached_off_active is False
+
+
+async def test_ambilight_off_state_survives_follow_app_poll(client_mock, param):
+    """A misleading FOLLOW_VIDEO poll stays logically off while pixels are black."""
+    await client_mock.getSystem()
+    await client_mock.getAmbilightCached()
+
+    respx.post(f"{param.base}/ambilight/currentconfiguration").respond(json={})
+    respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    respx.post(f"{param.base}/ambilight/cached").respond(json={})
+
+    off = {"styleName": "OFF", "isExpert": False, "menuSetting": ""}
+    await client_mock.setAmbilightCurrentConfiguration(off)
+
+    follow_app = {
+        "styleName": "FOLLOW_VIDEO",
+        "isExpert": True,
+        "menuSetting": None,
+    }
+    respx.get(f"{param.base}/ambilight/currentconfiguration").respond(
+        json=follow_app
+    )
+    respx.get(f"{param.base}/ambilight/processed").respond(
+        json=client_mock.ambilight_cached_off
+    )
+
+    assert await client_mock.getAmbilightCurrentConfiguration() == off
+    assert client_mock.ambilight_current_configuration == off
+    assert client_mock._ambilight_cached_off_active is True
+
+    respx.get(f"{param.base}/ambilight/processed").respond(
+        json=AMBILIGHT["processed"]
+    )
+    assert await client_mock.getAmbilightCurrentConfiguration() == follow_app
+    assert client_mock.ambilight_current_configuration == follow_app
+    assert client_mock._ambilight_cached_off_active is False
+
+
+async def test_black_follow_video_without_cached_off_stays_on(client_mock, param):
+    """Black rendered video is not off unless the cached-OFF workaround ran."""
+    await client_mock.getSystem()
+    follow_video = {
+        "styleName": "FOLLOW_VIDEO",
+        "isExpert": True,
+        "menuSetting": None,
+    }
+    respx.get(f"{param.base}/ambilight/currentconfiguration").respond(
+        json=follow_video
+    )
+    processed_route = respx.get(f"{param.base}/ambilight/processed").respond(
+        json=haphilipsjs._build_ambilight_off(AMBILIGHT["processed"])
+    )
+
+    assert await client_mock.getAmbilightCurrentConfiguration() == follow_video
+    assert client_mock.ambilight_current_configuration == follow_video
+    assert processed_route.call_count == 0
+
+
+async def test_new_configuration_clears_cached_off_state(client_mock, param):
+    """A later effect command clears the library-owned logical OFF state."""
+    await client_mock.getSystem()
+    await client_mock.getAmbilightCached()
+
+    respx.post(f"{param.base}/ambilight/currentconfiguration").respond(json={})
+    respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    respx.post(f"{param.base}/ambilight/cached").respond(json={})
+
+    await client_mock.setAmbilightCurrentConfiguration(
+        {"styleName": "OFF", "isExpert": False, "menuSetting": ""}
+    )
+    assert client_mock._ambilight_cached_off_active is True
+
+    follow_video = {
+        "styleName": "FOLLOW_VIDEO",
+        "isExpert": False,
+        "menuSetting": "STANDARD",
+    }
+    await client_mock.setAmbilightCurrentConfiguration(follow_video)
+    assert client_mock.ambilight_current_configuration == follow_video
+    assert client_mock._ambilight_cached_off_active is False
 
 
 def test_build_ambilight_off_skips_empty_sides_all_layers():
