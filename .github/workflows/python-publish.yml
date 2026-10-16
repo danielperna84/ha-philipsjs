@@ -6,6 +6,8 @@ name: Upload Python Package
 on:
   release:
     types: [published]
+  # Manual runs check the trusted publisher setup, existing files are skipped
+  workflow_dispatch:
 
 jobs:
   build:
@@ -39,3 +41,5 @@ jobs:
         path: dist/
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        skip-existing: ${{ github.event_name == 'workflow_dispatch' }}
