@@ -544,6 +544,7 @@ async def test_ambilight_off_skips_cached_workaround_when_confirmed(
         pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
 
     await client_mock.getAmbilightCached()
+    client_mock.ambilight_off_settle_delays = (0,)
     off = {"styleName": "OFF", "isExpert": False, "menuSetting": ""}
     config_route = respx.post(
         f"{param.base}/ambilight/currentconfiguration"
@@ -551,6 +552,9 @@ async def test_ambilight_off_skips_cached_workaround_when_confirmed(
     readback_route = respx.get(
         f"{param.base}/ambilight/currentconfiguration"
     ).respond(json=off)
+    respx.get(f"{param.base}/ambilight/processed").respond(
+        json=haphilipsjs._build_ambilight_off(AMBILIGHT["processed"])
+    )
     mode_route = respx.post(f"{param.base}/ambilight/mode").respond(json={})
     cached_route = respx.post(f"{param.base}/ambilight/cached").respond(json={})
 
@@ -561,6 +565,64 @@ async def test_ambilight_off_skips_cached_workaround_when_confirmed(
     assert mode_route.call_count == 0
     assert cached_route.call_count == 0
     assert client_mock.ambilight_current_configuration == off
+    assert client_mock._ambilight_cached_off_active is False
+
+
+async def test_ambilight_off_confirmed_but_still_lit_uses_cached_workaround(
+    client_mock, param
+):
+    """Firmware that reads back OFF while the LEDs stay lit (TPM191E, core
+    issue 178589) still gets the cached-pixel fallback."""
+    await client_mock.getSystem()
+    if not client_mock.quirk_ambilight_mode_ignored:
+        pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
+
+    await client_mock.getAmbilightCached()
+    client_mock.ambilight_off_settle_delays = (0, 0)
+    off = {"styleName": "OFF", "isExpert": False, "menuSetting": ""}
+    respx.post(f"{param.base}/ambilight/currentconfiguration").respond(json={})
+    respx.get(f"{param.base}/ambilight/currentconfiguration").respond(json=off)
+    processed_route = respx.get(f"{param.base}/ambilight/processed").respond(
+        json=AMBILIGHT["processed"]
+    )
+    mode_route = respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    cached_route = respx.post(f"{param.base}/ambilight/cached").respond(json={})
+
+    await client_mock.setAmbilightCurrentConfiguration(off)
+
+    assert processed_route.call_count == 2
+    assert json.loads(mode_route.calls.last.request.content) == {"current": "expert"}
+    assert cached_route.call_count == 2
+    assert client_mock._ambilight_cached_off_active is True
+
+
+async def test_ambilight_off_fade_out_is_not_mistaken_for_lit(client_mock, param):
+    """Pixels that are still lit on the first check but dark on the next are a
+    normal fade-out: no fallback."""
+    await client_mock.getSystem()
+    if not client_mock.quirk_ambilight_mode_ignored:
+        pytest.skip("Workaround only runs when quirk_ambilight_mode_ignored is True")
+
+    await client_mock.getAmbilightCached()
+    client_mock.ambilight_off_settle_delays = (0, 0)
+    off = {"styleName": "OFF", "isExpert": False, "menuSetting": ""}
+    respx.post(f"{param.base}/ambilight/currentconfiguration").respond(json={})
+    respx.get(f"{param.base}/ambilight/currentconfiguration").respond(json=off)
+    respx.get(f"{param.base}/ambilight/processed").mock(
+        side_effect=[
+            httpx.Response(200, json=AMBILIGHT["processed"]),
+            httpx.Response(
+                200, json=haphilipsjs._build_ambilight_off(AMBILIGHT["processed"])
+            ),
+        ]
+    )
+    mode_route = respx.post(f"{param.base}/ambilight/mode").respond(json={})
+    cached_route = respx.post(f"{param.base}/ambilight/cached").respond(json={})
+
+    await client_mock.setAmbilightCurrentConfiguration(off)
+
+    assert mode_route.call_count == 0
+    assert cached_route.call_count == 0
     assert client_mock._ambilight_cached_off_active is False
 
 
