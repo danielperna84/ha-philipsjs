@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast, overload, Iterable, TypeVar
 import httpx
+import asyncio
 import logging
 import json
 import itertools
@@ -344,6 +345,8 @@ class PhilipsTV(object):
         self.ambilight_cached: Optional[AmbilightLayersType] = None
         self.ambilight_cached_off: Optional[AmbilightLayersType] = None
         self._ambilight_cached_off_active = False
+        self.ambilight_off_settle_delays: Tuple[float, ...] = (0.5, 1.0)
+        """Waits (seconds) before each processed-pixel check after a confirmed OFF."""
         self.ambilight_measured: Optional[AmbilightLayersType] = None
         self.ambilight_processed: Optional[AmbilightLayersType] = None
         self.ambilight_power_raw: Optional[Dict] = None
@@ -1395,6 +1398,22 @@ class PhilipsTV(object):
                 self.ambilight_current_configuration = None
             return self.ambilight_current_configuration
 
+    async def _ambilight_lit_after_off(self) -> bool:
+        """Return True if Ambilight still renders light after a confirmed OFF.
+
+        Some firmwares (for example Android TPM191E) read back styleName OFF
+        and ambilight/power Off while the LEDs stay lit. The processed pixels
+        are the only honest signal there. Poll them a few times so a normal
+        fade-out on firmware where OFF works is not mistaken for that bug.
+        """
+        for delay in self.ambilight_off_settle_delays:
+            if delay:
+                await asyncio.sleep(delay)
+            processed = await self.getAmbilightProcessed()
+            if _ambilight_pixels_are_lit(processed) is not True:
+                return False
+        return True
+
     async def setAmbilightCurrentConfiguration(
         self, config: AmbilightCurrentConfiguration
     ):
@@ -1414,7 +1433,10 @@ class PhilipsTV(object):
                 ):
                     self._ambilight_cached_off_active = False
                     readback = await self.getReq("ambilight/currentconfiguration") or {}
-                    if readback.get("styleName") != "OFF":
+                    if (
+                        readback.get("styleName") != "OFF"
+                        or await self._ambilight_lit_after_off()
+                    ):
                         cached_before = await self.setAmbilightCached(
                             self.ambilight_cached_off
                         )
