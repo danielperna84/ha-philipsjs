@@ -61,6 +61,20 @@ async def monitor_run(stdscr: curses.window, tv: PhilipsTV):
         for idx, channel  in enumerate(tv.channels_current):
             stdscr.addstr(1+idx, 70, str(channel.get("name", channel.get("ccid", ""))))
 
+        #Recordings just known working with API level 6 currently
+        if tv.api_version_detected == 6:
+            stdscr.addstr(0, 90, "Recordings")
+            if tv.recordings_list != None:
+                for idx, rec  in enumerate(tv.recordings_list["recordings"]):
+                    title = rec.get("RecName")
+                    type = rec.get("RecordingType")
+                    
+                    if type == "RECORDING_NEW":
+                        title = "*NEW* " + title
+                    elif type == "RECORDING_ONGOING":
+                        title = "*REC* " + title
+
+                    stdscr.addstr(1+idx, 90, title)
 
         def print_pixels(side, offset_y, offset_x):
             stdscr.addstr(offset_y, offset_x, "{}".format(side))
